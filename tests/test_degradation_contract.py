@@ -1,0 +1,402 @@
+"""The degradation contract, parametrized over the whole registry, plus ladder mechanics.
+
+The highest-value check here is ``test_declared_direction_is_true``: it *verifies* the
+declared ``severity_direction`` by measuring that damage actually rises with level. A
+reversed severity list would otherwise silently invert every Spearman computed from that
+axis, and nothing else in the pipeline would notice.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+from degradations import registry as deg
+from fmeval.context import FieldContext, derive_rng, fluctuation_rms
+from fmeval.data.base import Frame, GridSpec
+from fmeval.ladder import (
+    REFERENCE_RUNG,
+    Rung,
+    apply_rung,
+    build_ladder,
+    ladder_axes,
+    ordinal_axes,
+)
+from tests.conftest import synthetic_field
+
+SHAPE = (32, 16)  # non-square, and divisible by the coarsening factors under test
+
+
+def grid(shape: tuple[int, ...] = SHAPE) -> GridSpec:
+    n = len(shape)
+    return GridSpec(tuple(shape), (1.0,) * n, (True,) * n, ("x", "y", "z")[:n],
+                    (0.0,) * n)
+
+
+def ctx_for(x: np.ndarray, seed: int = 0, label: str = "t") -> FieldContext:
+    """Context matching the array actually passed in, not a fixed shape."""
+    return FieldContext(
+        field="vorticity",
+        grid=grid(x.shape[1:]),
+        frame_index=0,
+        time=0.0,
+        fluctuation_rms=fluctuation_rms(x),
+        rng=derive_rng(seed, label, 0, "vorticity"),
+    )
+
+
+def call(spec: deg.DegradationSpec, x: np.ndarray, severity: float, **kw) -> np.ndarray:
+    kwargs = dict(spec.defaults)
+    kwargs.update(kw)
+    if spec.takes_ctx:
+        kwargs["ctx"] = ctx_for(x)
+    return spec.fn(x, severity, **kwargs)
+
+
+#: Severities that meaningfully exercise each operator, in increasing-damage order.
+LADDERS: dict[str, list[float]] = {
+    "identity": [0],
+    "gaussian_blur": [0.5, 1.0, 2.0, 4.0],
+    "box_blur": [3, 5, 9],
+    "median_blur": [3, 5, 9],
+    "disk_blur": [2, 4, 8],
+    "epanechnikov_blur": [2, 4, 8],
+    "lowpass_ideal": [8, 4, 2],
+    "lowpass_butterworth": [8, 4, 2],
+    "highpass_ideal": [2, 4, 8],
+    "highpass_butterworth": [2, 4, 8],
+    "band_attenuate": [0.8, 0.4, 0.0],
+    "translate": [1, 2, 4],
+    "translate_subpixel": [0.25, 0.5, 1.0],
+    "coarsen": [2, 4, 8],
+    "subsample": [2, 4, 8],
+    "additive_noise": [0.01, 0.1, 0.5],
+    "multiplicative_noise": [0.01, 0.1, 0.5],
+    "gaussian_impostor": [0],
+    "gain": [0.05, 0.2, 0.5],
+    "bias": [0.05, 0.2, 0.5],
+}
+
+
+@pytest.fixture(params=sorted(deg.available()))
+def spec(request) -> deg.DegradationSpec:
+    return deg.get(request.param)
+
+
+def test_no_import_errors():
+    assert deg.discover() == {}
+
+
+def test_every_operator_has_a_test_ladder(spec):
+    """A new operator must be added to LADDERS, or it escapes every check below."""
+    assert spec.name in LADDERS, f"add {spec.name!r} to LADDERS in this file"
+
+
+def test_preserves_shape_and_dtype(spec):
+    x = synthetic_field(SHAPE, 2, seed=0)
+    out = call(spec, x, LADDERS[spec.name][-1])
+    assert out.shape == x.shape
+    assert np.asarray(out).dtype == np.float64
+    assert np.isfinite(out).all(), f"{spec.name} produced non-finite values"
+
+
+def test_zero_severity_is_a_passthrough(spec):
+    """Level 0 must be a no-op, or pairwise metrics do not return 0 on the clean rung."""
+    if spec.name in {"gaussian_impostor", "band_attenuate", "lowpass_ideal",
+                     "lowpass_butterworth", "highpass_ideal", "highpass_butterworth",
+                     "median_blur"}:
+        pytest.skip("no meaningful zero severity for this operator")
+    x = synthetic_field(SHAPE, 1, seed=0)
+    assert np.allclose(call(spec, x, 0), x, rtol=0, atol=1e-15)
+
+
+def test_declared_direction_is_true(spec):
+    """Verify severity_direction by measuring that damage rises with level.
+
+    A reversed list inverts the Spearman for that axis, silently.
+    """
+    if not spec.ordinal or spec.name == "identity":
+        pytest.skip("not on a monotone axis")
+    x = synthetic_field(SHAPE, 1, seed=0, noise=0.02)
+    severities = spec.sort_severities(LADDERS[spec.name])
+    damage = [float(((x - call(spec, x, s)) ** 2).mean()) for s in severities]
+    assert damage == sorted(damage), (
+        f"{spec.name}: damage {damage} is not increasing across sorted severities "
+        f"{severities}; severity_direction={spec.severity_direction!r} may be wrong"
+    )
+
+
+def test_sort_severities_orders_by_damage(spec):
+    """Config order must not matter: the builder sorts into increasing-damage order."""
+    given = LADDERS[spec.name]
+    assert spec.sort_severities(list(reversed(given))) == spec.sort_severities(given)
+
+
+def test_deterministic_operators_are_reproducible(spec):
+    if spec.stochastic:
+        pytest.skip("stochastic")
+    x = synthetic_field(SHAPE, 1, seed=0)
+    s = LADDERS[spec.name][-1]
+    assert np.array_equal(call(spec, x, s), call(spec, x, s))
+
+
+def test_stochastic_operators_are_seed_reproducible(spec):
+    if not spec.stochastic:
+        pytest.skip("deterministic")
+    x = synthetic_field(SHAPE, 1, seed=0)
+    s = LADDERS[spec.name][-1]
+    kw = dict(spec.defaults)
+
+    def run(seed, frame_index, field):
+        c = FieldContext("vorticity", grid(), frame_index, 0.0, fluctuation_rms(x),
+                         derive_rng(seed, "lbl", frame_index, field))
+        return spec.fn(x, s, **{**kw, "ctx": c})
+
+    assert np.array_equal(run(7, 0, "vorticity"), run(7, 0, "vorticity"))
+    assert not np.array_equal(run(7, 0, "vorticity"), run(7, 1, "vorticity"))
+    assert not np.array_equal(run(7, 0, "vorticity"), run(7, 0, "density"))
+    assert not np.array_equal(run(7, 0, "vorticity"), run(8, 0, "vorticity"))
+
+
+# --- operator-specific properties ---------------------------------------------------
+
+
+def test_translate_is_periodic():
+    x = synthetic_field(SHAPE, 1, seed=0)
+    s = deg.get("translate")
+    assert np.array_equal(call(s, x, SHAPE[0], axis="x"), x)
+
+
+def test_translate_moves_the_declared_axis():
+    """axis='x' must move axis -2 on a 2D grid, not axis -1."""
+    x = synthetic_field(SHAPE, 1, seed=0)
+    s = deg.get("translate")
+    assert np.array_equal(call(s, x, 3, axis="x"), np.roll(x, 3, axis=-2))
+    assert np.array_equal(call(s, x, 3, axis="y"), np.roll(x, 3, axis=-1))
+
+
+def test_subpixel_translate_matches_roll_at_integer_distance():
+    """The sub-pixel operator must agree with the exact one where both are defined."""
+    x = synthetic_field(SHAPE, 1, seed=0)
+    s = deg.get("translate_subpixel")
+    for d in (1, 2, 5):
+        assert np.allclose(call(s, x, d, axis="x"), np.roll(x, d, axis=-2), atol=1e-10)
+
+
+def test_subpixel_translate_resolves_below_one_cell():
+    """The whole point: sub-cell displacement must be distinguishable from 0 and from 1."""
+    x = synthetic_field(SHAPE, 1, seed=0)
+    s = deg.get("translate_subpixel")
+    half = call(s, x, 0.5, axis="x")
+    assert not np.allclose(half, x)
+    assert not np.allclose(half, np.roll(x, 1, axis=-2))
+
+
+def test_impostor_preserves_the_spectrum_exactly():
+    """IN-4's defining property: identical |X_k|, hence identical E(k)."""
+    x = synthetic_field((32, 32), 1, seed=0, noise=0.3)
+    y = call(deg.get("gaussian_impostor"), x, 0)
+    assert np.allclose(np.abs(np.fft.fftn(x[0])), np.abs(np.fft.fftn(y[0])), rtol=1e-8)
+
+
+def _flatness(a: np.ndarray) -> float:
+    f = a - a.mean()
+    return float((f**4).mean() / (f**2).mean() ** 2)
+
+
+def test_impostor_is_real_and_gaussian():
+    """Hermitian symmetry must hold, and the result must actually be Gaussian.
+
+    A hand-drawn-phase implementation fails both: ``irfftn`` silently discards imaginary
+    parts and the flatness lands far from 3 (an earlier attempt gave 47.9).
+
+    Flatness is a fourth moment and noisy on one realisation -- measured spread on a 64^2
+    grid is 2.9 +/- 0.2 across seeds -- so the tight assertion is on the mean over several
+    seeds, with a loose per-seed bound that still separates 3 from a broken 48.
+    """
+    spec = deg.get("gaussian_impostor")
+    # Strongly intermittent: sparse spikes on a smooth background.
+    x = synthetic_field((64, 64), 1, seed=0, noise=0.0)
+    x[0, ::16, ::16] += 20.0
+    assert _flatness(x[0]) > 50, "test field is not intermittent enough to discriminate"
+
+    g = grid((64, 64))
+    values = []
+    for seed in range(8):
+        c = FieldContext("v", g, 0, 0.0, fluctuation_rms(x),
+                         derive_rng(seed, "impostor", 0, "v"))
+        y = spec.fn(x, 0, ctx=c, **spec.defaults)
+        assert np.isrealobj(y) and np.isfinite(y).all()
+        f = _flatness(y[0])
+        assert f < 10, (
+            f"impostor flatness {f:.2f} is nowhere near Gaussian; the phase construction "
+            "is probably violating Hermitian symmetry"
+        )
+        values.append(f)
+    assert float(np.mean(values)) == pytest.approx(3.0, abs=0.3)
+
+
+def test_impostor_matches_moments():
+    x = synthetic_field((32, 32), 1, seed=0, noise=0.3)
+    y = call(deg.get("gaussian_impostor"), x, 0)
+    assert y.mean() == pytest.approx(x.mean(), rel=1e-9)
+    assert y.std() == pytest.approx(x.std(), rel=1e-9)
+
+
+def test_impostor_is_not_ordinal():
+    """The canary must be excluded from rank correlation by declaration."""
+    assert deg.get("gaussian_impostor").ordinal is False
+
+
+def test_lowpass_then_highpass_reconstructs():
+    """Ideal filters at a shared cutoff must partition the spectrum exactly."""
+    x = synthetic_field((32, 32), 1, seed=0, noise=0.3)
+    lo = call(deg.get("lowpass_ideal"), x, 8)
+    hi = call(deg.get("highpass_ideal"), x, 8)
+    # The cutoff band |k| == 8 belongs to both, so subtract it once.
+    from degradations.spectral import _apply_filter, _wavenumber_magnitude
+
+    k = _wavenumber_magnitude((32, 32))
+    overlap = _apply_filter(x, (k == 8).astype(float))
+    assert np.allclose(lo + hi - overlap, x, atol=1e-10)
+
+
+def test_gain_preserves_the_mean_and_moves_only_amplitude():
+    x = synthetic_field(SHAPE, 1, seed=0)
+    y = call(deg.get("gain"), x, 0.5)
+    assert y.mean() == pytest.approx(x.mean(), rel=1e-12)
+    fluct_x, fluct_y = x - x.mean(), y - y.mean()
+    assert np.allclose(fluct_y, 1.5 * fluct_x)
+
+
+def test_bias_shifts_the_mean_only():
+    x = synthetic_field(SHAPE, 1, seed=0)
+    y = call(deg.get("bias"), x, 0.25)
+    assert np.allclose(y - x, 0.25 * fluctuation_rms(x))
+
+
+def test_coarsen_is_conservative_and_subsample_is_not():
+    x = synthetic_field((32, 16), 1, seed=0, noise=0.3)
+    co = call(deg.get("coarsen"), x, 4)
+    su = call(deg.get("subsample"), x, 4)
+    assert co.mean() == pytest.approx(x.mean(), abs=1e-12)
+    assert not np.allclose(co, su)
+
+
+# --- ladder construction --------------------------------------------------------------
+
+
+def test_build_ladder_expands_entries():
+    rungs = build_ladder({"gaussian_blur": {"severities": [1.0, 2.0]}})
+    assert [r.variant_label for r in rungs] == [
+        "reference", "gaussian_blur_l1", "gaussian_blur_l2"
+    ]
+    assert [r.level for r in rungs] == [0, 1, 2]
+    assert [r.severity for r in rungs] == [0.0, 1.0, 2.0]
+
+
+def test_build_ladder_sorts_decreasing_direction_correctly():
+    """A cutoff list is worst-last after sorting, whatever order it was written in."""
+    for given in ([64, 32, 16, 8], [8, 16, 32, 64]):
+        rungs = build_ladder({"lowpass_ideal": {"severities": given}},
+                             include_reference=False)
+        assert [r.severity for r in rungs] == [64.0, 32.0, 16.0, 8.0]
+        assert [r.level for r in rungs] == [1, 2, 3, 4]
+
+
+def test_build_ladder_supports_two_instances_of_one_operator():
+    cfg = {
+        "translate_x": {"op": "translate", "severities": [1, 2], "options": {"axis": "x"}},
+        "translate_y": {"op": "translate", "severities": [1, 2], "options": {"axis": "y"}},
+    }
+    rungs = build_ladder(cfg, include_reference=False)
+    assert ladder_axes(rungs) == ["translate_x", "translate_y"]
+    assert {r.op for r in rungs} == {"translate"}
+
+
+def test_build_ladder_honours_enabled_only_and_skip():
+    cfg = {
+        "gaussian_blur": {"severities": [1]},
+        "median_blur": {"severities": [3], "enabled": False},
+        "coarsen": {"severities": [2]},
+    }
+    assert ladder_axes(build_ladder(cfg)) == ["gaussian_blur", "coarsen"]
+    assert ladder_axes(build_ladder(cfg, only=["coarsen"])) == ["coarsen"]
+    assert ladder_axes(build_ladder(cfg, skip=["coarsen"])) == ["gaussian_blur"]
+
+
+def test_ordinal_axes_excludes_the_canary():
+    cfg = {
+        "gaussian_blur": {"severities": [1, 2]},
+        "gaussian_impostor": {"severities": [0]},
+    }
+    rungs = build_ladder(cfg)
+    assert ladder_axes(rungs) == ["gaussian_blur", "gaussian_impostor"]
+    assert ordinal_axes(rungs) == ["gaussian_blur"]
+
+
+def test_build_ladder_rejects_malformed_entries():
+    with pytest.raises(ValueError, match="no 'severities'"):
+        build_ladder({"gaussian_blur": {}})
+    with pytest.raises(ValueError, match="unexpected keys"):
+        build_ladder({"gaussian_blur": {"severities": [1], "typo": 3}})
+    with pytest.raises(KeyError, match="unknown degradation"):
+        build_ladder({"nope": {"severities": [1]}})
+
+
+# --- applying rungs to frames ---------------------------------------------------------
+
+
+def _frame() -> Frame:
+    g = grid()
+    return Frame(
+        index=3,
+        time=1.5,
+        fields={
+            "density": 1.0 + 1e-3 * synthetic_field(SHAPE, 1, seed=1),
+            "velocity": 0.04 * synthetic_field(SHAPE, 2, seed=2),
+        },
+        grid=g,
+    )
+
+
+def test_apply_reference_rung_returns_the_originals():
+    frame = _frame()
+    out = apply_rung(REFERENCE_RUNG, frame, ["density", "velocity"], seed=0)
+    for name, arr in out.items():
+        assert arr is frame.fields[name]
+
+
+def test_apply_rung_degrades_every_requested_field():
+    frame = _frame()
+    rung = build_ladder({"gaussian_blur": {"severities": [2.0]}},
+                        include_reference=False)[0]
+    out = apply_rung(rung, frame, ["density", "velocity"], seed=0)
+    assert set(out) == {"density", "velocity"}
+    for name, arr in out.items():
+        assert arr.shape == frame.fields[name].shape
+        assert not np.allclose(arr, frame.fields[name])
+
+
+def test_apply_rung_is_invariant_to_frame_iteration_order():
+    """Seeding from content, not call order, is what makes parallelisation safe later."""
+    frame = _frame()
+    rung = build_ladder({"additive_noise": {"severities": [0.1]}},
+                        include_reference=False)[0]
+    first = apply_rung(rung, frame, ["density"], seed=11)["density"]
+    _ = apply_rung(rung, frame, ["velocity"], seed=11)  # advance nothing
+    again = apply_rung(rung, frame, ["density"], seed=11)["density"]
+    assert np.array_equal(first, again)
+
+
+def test_noise_scales_with_the_reference_rms_not_the_raw_rms():
+    """Density is 1.0 +/- 1e-3: scaling by the raw RMS would be pure destruction."""
+    frame = _frame()
+    rung = build_ladder({"additive_noise": {"severities": [0.1]}},
+                        include_reference=False)[0]
+    rms = fluctuation_rms(frame["density"])
+    out = apply_rung(rung, frame, ["density"], seed=0,
+                     reference_rms={"density": rms})["density"]
+    perturbation = np.abs(out - frame["density"]).mean()
+    assert perturbation < 0.5 * frame["density"].mean(), "noise swamped the signal"
+    assert perturbation == pytest.approx(0.1 * rms * np.sqrt(2 / np.pi), rel=0.25)

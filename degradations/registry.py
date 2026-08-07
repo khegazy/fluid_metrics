@@ -1,0 +1,242 @@
+"""Registry of degradation operators.
+
+Same shape and same discovery mechanism as the metric registry, so adding a degradation is
+one decorated function in one file::
+
+    @degradation(family="smoothing", severity_name="sigma", severity_units="cells")
+    def gaussian_blur(x, severity, *, ctx):
+        '''Isotropic Gaussian kernel smoothing, periodic wrap.'''
+        return gaussian_filter(x, sigma=severity, mode="wrap", axes=ctx.spatial_axes)
+
+**Operators act on one field at a time**, ``(C, *spatial) -> (C, *spatial)``. That keeps
+almost every operator a two-line pure array function. The ladder builder applies the
+operator to each requested field with an RNG derived from
+``(seed, label, frame_index, field)``, so deterministic operators stay automatically
+consistent across fields while stochastic ones get independent draws. An operator that
+genuinely needs cross-field access declares ``whole_frame=True``.
+
+Two pieces of metadata exist to stop silent corruption of every Spearman downstream:
+
+``severity_direction``
+    Whether damage rises or falls with the severity value. The builder sorts each severity
+    list into increasing-damage order, so a low-pass cutoff list written ``[64, 32, 16, 8]``
+    gets the right ordinal levels instead of a perfectly inverted ladder.
+
+``ordinal``
+    Whether the operator lies on a monotone axis at all. The IN-4 impostor does not; it is
+    a pass/fail canary, and folding it in as "level 6" of some family would corrupt every
+    rank correlation it touched.
+"""
+
+from __future__ import annotations
+
+import importlib
+import inspect
+import pkgutil
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field as dc_field
+from typing import Any, Literal
+
+import numpy as np
+
+Direction = Literal["increasing", "decreasing"]
+
+#: Coarse grouping, used for plot colour and for the "worst axis" summary. NOT the unit of
+#: rank correlation -- that is the ladder entry, since `gaussian_blur` and `median_blur`
+#: are separate ordinal axes even though both are `smoothing`.
+FAMILIES = (
+    "identity",
+    "smoothing",
+    "spectral",
+    "geometric",
+    "resolution",
+    "stochastic",
+    "pointwise",
+)
+
+
+@dataclass(frozen=True)
+class DegradationSpec:
+    """Everything the harness knows about one degradation operator."""
+
+    name: str
+    fn: Callable[..., Any]
+    family: str
+    severity_name: str
+    severity_units: str
+    severity_direction: Direction
+    ordinal: bool
+    stochastic: bool
+    fields: tuple[str, ...]
+    whole_frame: bool
+    doc: str
+    module: str
+    takes_ctx: bool
+    defaults: dict[str, Any] = dc_field(default_factory=dict)
+
+    def sort_severities(self, severities: Sequence[float]) -> list[float]:
+        """Order a severity list by increasing damage.
+
+        A ``decreasing`` operator (low-pass cutoff, say) is sorted descending, so index 0
+        is always the mildest rung whatever order the config author wrote.
+        """
+        return sorted(severities, reverse=self.severity_direction == "decreasing")
+
+
+REGISTRY: dict[str, DegradationSpec] = {}
+_IMPORT_ERRORS: dict[str, Exception] = {}
+_DISCOVERED = False
+
+
+def degradation(
+    *,
+    name: str | None = None,
+    family: str = "stochastic",
+    severity_name: str = "severity",
+    severity_units: str = "",
+    severity_direction: Direction = "increasing",
+    ordinal: bool = True,
+    stochastic: bool = False,
+    fields: Sequence[str] = ("*",),
+    whole_frame: bool = False,
+    defaults: dict[str, Any] | None = None,
+) -> Callable[[Callable], Callable]:
+    """Register a degradation operator.
+
+    Args:
+        name: Registry key. Defaults to the function name.
+        family: One of :data:`FAMILIES`. Grouping only, never the correlation unit.
+        severity_name: What the severity number means, e.g. ``"sigma"``, ``"cutoff"``.
+            Used as the axis label wherever the ladder is plotted.
+        severity_units: e.g. ``"cells"``, ``"wavenumber"``, ``"fraction of rms"``.
+        severity_direction: ``"increasing"`` if larger severity means more damage,
+            ``"decreasing"`` if smaller does (a low-pass cutoff).
+        ordinal: Whether this operator participates in monotonicity and Spearman. False
+            for the IN-4 canary.
+        stochastic: Whether to redraw the RNG per frame. A frozen noise field would be a
+            systematic bias rather than noise.
+        fields: Canonical field names it can act on; ``("*",)`` means any.
+        whole_frame: Receive the whole ``dict[str, ndarray]`` instead of one array. For
+            the rare operator needing cross-field access.
+        defaults: Default keyword options, overridable per ladder entry in config.
+
+    Returns:
+        The undecorated function.
+    """
+
+    def _decorate(fn: Callable) -> Callable:
+        key = name or fn.__name__
+        if key in REGISTRY:
+            raise ValueError(
+                f"duplicate degradation {key!r}: {REGISTRY[key].module} vs {fn.__module__}"
+            )
+        if family not in FAMILIES:
+            raise ValueError(
+                f"{key}: unknown family {family!r}; expected one of {FAMILIES}"
+            )
+
+        params = inspect.signature(fn).parameters
+        n_pos = sum(
+            p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+            for p in params.values()
+        )
+        if n_pos != 2:
+            raise TypeError(
+                f"{key}: a degradation takes 2 positional arguments (field, severity), "
+                f"found {n_pos}"
+            )
+
+        REGISTRY[key] = DegradationSpec(
+            name=key,
+            fn=fn,
+            family=family,
+            severity_name=severity_name,
+            severity_units=severity_units,
+            severity_direction=severity_direction,
+            ordinal=ordinal,
+            stochastic=stochastic,
+            fields=tuple(fields),
+            whole_frame=whole_frame,
+            doc=(fn.__doc__ or "").strip(),
+            module=fn.__module__,
+            takes_ctx="ctx" in params,
+            defaults=dict(defaults or {}),
+        )
+        return fn
+
+    return _decorate
+
+
+def discover(force: bool = False) -> dict[str, Exception]:
+    """Import every module under ``degradations/`` so the decorators fire.
+
+    Import errors are collected rather than raised, for the same reason as in the metric
+    registry: a broken work-in-progress file must not abort everyone's run.
+    """
+    global _DISCOVERED
+    if _DISCOVERED and not force:
+        return _IMPORT_ERRORS
+
+    import degradations as _pkg
+
+    for mod in pkgutil.walk_packages(_pkg.__path__, prefix=f"{_pkg.__name__}."):
+        leaf = mod.name.rsplit(".", 1)[-1]
+        if leaf.startswith("_") or leaf == "registry":
+            continue
+        try:
+            importlib.import_module(mod.name)
+        except Exception as exc:  # noqa: BLE001 - deliberate, see docstring
+            _IMPORT_ERRORS[mod.name] = exc
+    _DISCOVERED = True
+    return _IMPORT_ERRORS
+
+
+def get(name: str) -> DegradationSpec:
+    """Look up a degradation by name, running discovery first if needed."""
+    if name not in REGISTRY:
+        errors = discover()
+        if name not in REGISTRY:
+            hint = ""
+            if errors:
+                broken = ", ".join(f"{m}: {e!r}" for m, e in errors.items())
+                hint = f"\n(modules that failed to import: {broken})"
+            raise KeyError(
+                f"unknown degradation {name!r}; available: {sorted(REGISTRY)}{hint}"
+            )
+    return REGISTRY[name]
+
+
+def available() -> list[str]:
+    """Names of every registered degradation, after discovery."""
+    discover()
+    return sorted(REGISTRY)
+
+
+def _main() -> None:
+    """Print the registry as a table. Entry point for ``python -m degradations``."""
+    discover()
+    if not REGISTRY:
+        print("no degradations registered")
+        return
+    rows = [
+        (
+            s.name,
+            s.family,
+            f"{s.severity_name} [{s.severity_units}]" if s.severity_units
+            else s.severity_name,
+            s.severity_direction,
+            "yes" if s.ordinal else "NO (canary)",
+            "yes" if s.stochastic else "-",
+            ",".join(s.fields),
+        )
+        for s in sorted(REGISTRY.values(), key=lambda s: (s.family, s.name))
+    ]
+    head = ("degradation", "family", "severity", "direction", "ordinal", "stoch", "fields")
+    widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(head)]
+    line = "  ".join(h.ljust(w) for h, w in zip(head, widths))
+    print(line)
+    print("-" * len(line))
+    for r in rows:
+        print("  ".join(c.ljust(w) for c, w in zip(r, widths)))
+    for mod, exc in _IMPORT_ERRORS.items():
+        print(f"\n!! {mod} failed to import: {exc!r}")
