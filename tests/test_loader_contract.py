@@ -267,3 +267,137 @@ def test_close_is_idempotent(kinet_file):
     t = KinetRawTrajectory(kinet_file)
     t.close()
     t.close()
+
+
+# --- the well reader: the test of whether the abstraction holds ----------------------
+
+
+@pytest.fixture
+def well_file(tmp_path):
+    from tests.fixtures_h5 import write_well
+
+    return write_well(tmp_path / "well.h5")
+
+
+@pytest.fixture
+def well_traj(well_file):
+    from fmeval.data.well import WellTrajectory
+
+    with WellTrajectory(well_file, nan_policy="error") as t:
+        yield t
+
+
+def test_well_frame_shape_dtype_and_channels(well_traj):
+    frame = well_traj.frame(1, well_traj.fields)
+    for name, arr in frame.fields.items():
+        want_c = FIELDS[name].n_channels(well_traj.grid.n_spatial)
+        assert arr.shape == (want_c, *SHAPE), f"{name} has shape {arr.shape}"
+        assert arr.dtype == np.float64, "float32 on disk must be cast to the contract"
+
+
+def test_well_velocity_channel_move(well_traj):
+    """The one line that would be invisible on a square grid.
+
+    The file stores (X, Y, D); the contract is (D, X, Y). u = 1 and v = 2 at t=0, and the
+    grid is non-square, so both a missed moveaxis and a transpose fail loudly.
+    """
+    vel = well_traj.frame(0, ["velocity"])["velocity"]
+    assert vel.shape == (2, *SHAPE)
+    assert np.allclose(vel[0], 1.0)
+    assert np.allclose(vel[1], 2.0)
+
+
+def test_well_grid_from_coordinate_arrays(well_traj):
+    g = well_traj.grid
+    assert g.shape == SHAPE
+    assert g.dims == ("x", "y")
+    assert g.spacing == (1.0, 1.0)
+    assert g.periodic == (True, True), "read from boundary_conditions, not assumed"
+
+
+def test_well_excludes_degenerate_and_redundant_fields(well_traj):
+    assert "pressure" not in well_traj.fields
+    assert "temperature" not in well_traj.fields
+
+
+def test_well_rejects_an_unexpected_spatial_order(tmp_path):
+    """A different axis order would need a transpose, so it must fail rather than guess."""
+    import h5py
+
+    from fmeval.data.well import WellTrajectory
+    from tests.fixtures_h5 import write_well
+
+    path = write_well(tmp_path / "swapped.h5")
+    with h5py.File(path, "r+") as f:
+        f["dimensions"].attrs["spatial_dims"] = ["y", "x"]
+    with pytest.raises(ValueError, match="spatial_dims"):
+        WellTrajectory(path)
+
+
+def test_well_reader_is_registered():
+    from fmeval.data.base import READERS
+    from fmeval.data.well import WellTrajectory
+
+    assert READERS["well"] is WellTrajectory
+
+
+def test_well_never_slices_the_time_axis(well_traj, monkeypatch):
+    import h5py
+
+    seen: list[tuple] = []
+    original = h5py.Dataset.__getitem__
+
+    def spy(self, key):
+        seen.append(key if isinstance(key, tuple) else (key,))
+        return original(self, key)
+
+    monkeypatch.setattr(h5py.Dataset, "__getitem__", spy)
+    for _ in well_traj.iter_frames(well_traj.fields):
+        pass
+    # (sim, time, ...) -- position 1 is the time axis for this layout.
+    time_keys = [k[1] for k in seen if len(k) >= 2]
+    assert time_keys
+    for k in time_keys:
+        assert isinstance(k, (int, np.integer)), f"time axis indexed with {k!r}"
+
+
+# --- the abstraction validated against ground truth ----------------------------------
+
+
+DATA_ROOT = "datasets/kinet/doubly_periodic/weakly_compressible_isoT_fluids/sys_Re-5e4_Ma-1en1"
+RAW = f"{DATA_ROOT}/D2Q9_shape-256-256_T-10000_H-dc804f.h5"
+WELL = f"{DATA_ROOT}/D2Q9_shape-256-256_T-10000_H-dc804f_well-format.h5"
+
+
+@pytest.mark.data
+def test_raw_and_well_readers_agree_on_the_same_simulation():
+    """The same rollout in two containers must come back identical.
+
+    This is what validates the whole data abstraction against ground truth rather than
+    against a fixture I wrote. The Well file stores float32, so the tolerance is
+    single-precision; the axis and channel conventions must match exactly.
+    """
+    from pathlib import Path
+
+    from fmeval.data.well import WellTrajectory
+
+    for path in (RAW, WELL):
+        if not Path(path).exists():
+            pytest.skip(f"{path} not available")
+
+    with KinetRawTrajectory(RAW) as raw, WellTrajectory(WELL) as well:
+        assert raw.grid.shape == well.grid.shape
+        assert raw.grid.dims == well.grid.dims
+        assert raw.grid.spacing == pytest.approx(well.grid.spacing)
+        np.testing.assert_allclose(raw.times[:50], well.times[:50], rtol=1e-12)
+
+        shared = sorted(set(raw.fields) & set(well.fields))
+        assert {"density", "velocity", "vorticity"} <= set(shared)
+        for t in (1, 2500, 5000):
+            a = raw.frame(t, shared)
+            b = well.frame(t, shared)
+            for name in shared:
+                np.testing.assert_allclose(
+                    a[name], b[name], rtol=1e-6, atol=1e-8,
+                    err_msg=f"{name} differs at t={t} between the raw and Well readers",
+                )

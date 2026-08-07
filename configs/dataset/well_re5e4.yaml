@@ -1,0 +1,40 @@
+# The same simulation as kinet_re5e4, in the PolymathicAI Well container: float32,
+# macroscopic fields only, 15.7 GB instead of 167 GiB. Reading it through a different
+# reader must reproduce the raw file exactly -- see the marked "data" test
+# test_raw_and_well_readers_agree_on_the_same_simulation, which is what validates the
+# data abstraction against ground truth rather than against a fixture.
+name: well_re5e4
+format: well
+path: ${paths.data}/kinet/doubly_periodic/weakly_compressible_isoT_fluids/sys_Re-5e4_Ma-1en1/D2Q9_shape-256-256_T-10000_H-dc804f_well-format.h5
+trajectory: D2Q9_shape-256-256_T-10000_H-dc804f_well-format
+
+# pressure is omitted: it is density * c_s^2 and carries no independent information, so
+# including it doubles the I/O and injects a guaranteed correlated pair into the
+# cross-metric correlation used for pruning.
+# temperature is omitted: stored (1,1,T,1,1), spatially degenerate, constant 1/3.
+fields: [density, velocity, vorticity]
+
+time:
+  start: 1        # t=0 has all-NaN stability fields and a NaN time_scale[0]
+  stop: null
+  reduction: 50   # 15.7 GB float32; 50 -> 201 frames
+  max_frames: null
+
+reader:
+  chunk_cache_mb: 32   # h5py defaults to 1 MB, smaller than one velocity chunk
+  nan_policy: error
+  include_redundant: false
+  include_degenerate: false   # the Well writer broadcasts temperature to the full grid,
+                              # so it cannot be excluded by shape as in the raw format
+
+# Recompute derived fields with our own operator even at the native resolution, so the
+# native grid and every coarse grid use the same discretisation.
+recompute_derived: true
+
+complexity:
+  family: reynolds_ladder_2d
+  rank: 0
+  params: {reynolds: 5.0e4, mach: 0.1, resolution: 256, dim: 2}
+  label: "Re = 5\\times10^{4}"
+
+notes: "Re=5e4, Ma=0.1, D2Q9 entropic BGK, 256^2, dimensionless units."

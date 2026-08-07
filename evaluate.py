@@ -39,7 +39,7 @@ def open_trajectory(cfg: DictConfig) -> Trajectory:
     Explicit imports rather than a package walk: readers are a small closed set maintained
     with the harness, unlike metrics and degradations which are open contributor sets.
     """
-    from fmeval.data import kinet_raw  # noqa: F401  (registers "kinet_raw")
+    from fmeval.data import kinet_raw, well  # noqa: F401  (register the formats)
 
     fmt = cfg.dataset.format
     if fmt not in READERS:
@@ -113,6 +113,7 @@ def main(cfg: DictConfig) -> None:
         selection = TimeSelection(**OmegaConf.to_container(cfg.dataset.time, resolve=True))
         n_frames = len(selection.resolve(len(trajectory)))
         resolution = cfg.analysis_grid.get("resolution")
+        native_resolution = trajectory.grid.shape[0]
         log.info(
             "dataset %s: %d of %d frames (reduction %d), fields %s, analysis grid %s",
             cfg.dataset.name, n_frames, len(trajectory), selection.reduction, fields,
@@ -174,7 +175,7 @@ def main(cfg: DictConfig) -> None:
             n_frames=result.n_frames,
             n_rows=int(len(subset)),
             fields=fields,
-            analysis_grid=resolution or trajectory.grid.shape[0],
+            analysis_grid=resolution or native_resolution,
             ladder_axes=sorted({r.label for r in rungs if not r.is_reference}),
             n_rungs=len(rungs),
             seed=int(cfg.seed),
@@ -185,6 +186,32 @@ def main(cfg: DictConfig) -> None:
                 "metric_s": result.metric_seconds,
             },
             command=" ".join(sys.argv),
+        )
+        written.append(folder.root)
+
+    # Cross-metric figures -- redundancy, the selectivity comparison, the cost frontier --
+    # are meaningless inside a single-metric folder and are skipped there by their own
+    # preconditions. They live in one comparison folder holding every metric's rows.
+    if len(specs) > 1:
+        folder = fio.make_run_folder(cfg.paths.results, "comparison", stamp)
+        fio.write_results(folder, result.rows)
+        digest = fio.write_config(folder, cfg, overrides)
+        fio.write_maps(folder, result.maps)
+        fio.write_run_meta(
+            folder,
+            run_id=stamp,
+            config_hash=digest,
+            metric=", ".join(s.name for s in specs),
+            dataset=cfg.dataset.name,
+            n_frames=result.n_frames,
+            n_rows=int(len(result.rows)),
+            fields=fields,
+            analysis_grid=resolution or native_resolution,
+            ladder_axes=sorted({r.label for r in rungs if not r.is_reference}),
+            n_rungs=len(rungs),
+            seed=int(cfg.seed),
+            command=" ".join(sys.argv),
+            comparison=True,
         )
         written.append(folder.root)
 
