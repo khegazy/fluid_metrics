@@ -1,0 +1,27 @@
+# Machine-specific symlink to the shared project data on CFS.
+# The dataset root belongs in configs/config.yaml as paths.data.
+/datasets
+
+# Run outputs
+/results/
+/outputs/
+/multirun/
+
+# Environment
+.venv/
+__pycache__/
+*.py[cod]
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+
+# LaTeX build artifacts inside run folders
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
