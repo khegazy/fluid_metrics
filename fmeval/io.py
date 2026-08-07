@@ -132,6 +132,22 @@ def write_config(folder: RunFolder, resolved: Mapping[str, Any],
     return digest
 
 
+def copy_documentation(folder: RunFolder) -> Path | None:
+    """Copy TEST_DESCRIPTION.md into the run folder.
+
+    A results directory should explain its own numbers after being sent to a colleague or
+    uploaded to Overleaf, without needing the repository alongside it.
+    """
+    import shutil
+
+    source = Path(__file__).resolve().parent.parent / "TEST_DESCRIPTION.md"
+    if not source.exists():  # pragma: no cover - present in a checkout
+        return None
+    target = folder.root / source.name
+    shutil.copy(source, target)
+    return target
+
+
 def write_run_meta(folder: RunFolder, **extra: Any) -> Path:
     """Write provenance: git state, environment, package versions, registry snapshot.
 

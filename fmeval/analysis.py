@@ -352,7 +352,10 @@ def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
             damage = float(sub["damage"].median())
             record[f"{label}_value"] = float(sub["value"].median())
             record[f"{label}_damage"] = damage
-            record[f"{label}_nearest_rung"] = _nearest_rung(g, damage, exclude=label)
+            if label != UNCORRELATED_LABEL:
+                # The anchor's nearest rung is the largest translation by construction,
+                # so reporting it would add a column that carries no information.
+                record[f"{label}_nearest_rung"] = _nearest_rung(g, damage, exclude=label)
         rows.append(record)
     return pd.DataFrame(rows)
 

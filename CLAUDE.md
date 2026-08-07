@@ -6,13 +6,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository develops and tests metrics that quantify the quality of fluid simulations (especially ML surrogates of compressible, shocked, turbulent flow), with the eventual goal of using validated metrics as evaluation panels and training losses for a scientific foundation model. It is a collaborative research repo shared by several colleagues.
 
-There is no application code yet — no build, lint, or test commands exist. When a Python package and test suite are added, update this file with the actual commands. The intended stack is Python with PyTorch/NumPy/SciPy, Hydra for configuration where sensible, and Weights & Biases for training logs.
+## Commands
 
-## Source of truth: the metrics tracker
+Environment is `uv` with a committed lockfile. `.venv/bin/python` works everywhere `uv run`
+does, and neither needs the repo root as the working directory.
+
+```bash
+uv sync --extra dev                 # populate .venv from uv.lock
+uv run pytest                       # ~20 s; skips the CFS-reading and LaTeX tests
+uv run pytest -m data               # reads the real files on CFS
+module load texlive/2024 && uv run pytest -m slow   # compiles a report with latexmk
+uv run pytest tests/test_analysis.py -q -k spearman # one file, one pattern
+
+uv run python -m metrics            # what metrics exist
+uv run python -m degradations       # what degradations exist, with severity units
+
+uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
+uv run python make_report.py results/mse_<time> --compile --zip
+```
+
+`evaluate.py` writes one `results/<metric>_<time>/` folder per metric plus a
+`comparison_<time>/` when several metrics run. Each is self-contained — raw numbers, resolved
+config, provenance, and a `main.tex` that compiles standalone and renders on Overleaf.
+
+Two size knobs, both recorded with the results: `dataset.time.reduction` (evaluate every Nth
+frame) and `analysis_grid.resolution` (the IN-2 analysis grid). The full trajectory at
+reduction 1 is roughly half an hour; the default of 50 is under a minute.
+
+Stack: NumPy/SciPy/h5py/pandas/matplotlib with Hydra for configuration. PyTorch is an optional
+extra and nothing currently needs it. Weights & Biases is not wired in yet.
+
+## Documentation
+
+| File | What it is |
+|---|---|
+| `TEST_DESCRIPTION.md` | Plain-language reference for every quantity the suite reports. A copy is placed in each run folder. A test fails if a reported column, degradation or figure is undocumented |
+| `issues/` | Open items, one file per item with its evidence. `issues/README.md` is the index |
+| `README.md` | Setup and the NERSC specifics |
+
+## Source of truth: the metrics document
 
 The "Fluid Metrics Exploration Tracker" (`Table_of_Ideas.tex`) is the working document for the whole project. It lives on Overleaf (edit link): https://www.overleaf.com/5216584535fbvsvrhpfmnd#1f594b
 
-Claude Code cannot read Overleaf directly — when the tracker's content is needed, ask the user to attach or paste the current version rather than guessing at its contents. The tracker contains:
+Claude Code cannot read Overleaf directly — when its content is needed, ask the user to attach or paste the current version rather than guessing. The document contains:
 
 - A **master tracker table** of ~40 candidate metrics, each with a stable ID (e.g. OT-1, NM-2, TD-1). Use these IDs in code, commits, issues, and discussion. Keep the table's `Status` and `Owner` columns current as items move from `Not tested` → `In progress` → `Tested (result)`.
 - Per-item sections with the definition, literature precedent, keywords, known pitfalls, and a promise rating (High/Medium/Low) with justification.
@@ -46,3 +82,39 @@ First-wave priorities (in order of value per effort): IN-4, NM-2 (Ḣ⁻¹ norm)
 - **Cross-mesh comparison (IN-2)**: remap fields conservatively onto a common analysis grid, compare cell averages rather than point samples, and record the remapping operator as part of the metric definition.
 - Cite the source paper and equation/table number in a comment for any equation taken from the literature; the tracker's bibliography has the references.
 - Label new code as prototype or production quality; metric-evaluation code that feeds acceptance decisions should be production quality.
+
+## What exists, and what building it corrected
+
+Three plugin registries, all discovered by name from config, all extended by one decorated
+function: **metrics** (`metrics/`), **degradations** (`degradations/`, 20 operators in 7
+families), and **report renderers** (`fmeval/report/`). Readers live in `fmeval/data/` and are
+a closed set with explicit imports, deliberately unlike the other two.
+
+Five findings from running this on the real data. Each is documented where the code lives, and
+each would have quietly corrupted results:
+
+1. **Rank correlation must be computed per frame, not pooled.** The density perturbation grows
+   six orders of magnitude along the trajectory, so pooling frames measures the flow's
+   evolution rather than the metric's response. Measured: every density axis perfectly ordered
+   within every frame while the pooled value read 0.10 to 0.91.
+2. **Derived fields must be recomputed after a remap, never averaged.** Block-averaging
+   vorticity gives a field that is not the curl of the velocity beside it; the difference is
+   5.6% / 18.3% / 25.9% at coarsening factors 2 / 4 / 8. Related: never mix the solver's
+   stored vorticity with a recomputed one — they differ by 8.1% rms because the solver used a
+   lattice stencil.
+3. **High-pass filters must preserve the spatial mean.** Deleting k=0 on density removes a
+   component four orders of magnitude larger than the cutoff controls; every rung gave an
+   identical damage of 2.7e7 and the axis carried no ordering at all.
+4. **The unrelated-field anchor must be measured, not scavenged.** A 16-cell translation
+   reaches only ~0.6 of the true value, which inflated every damage score by ~1.6x. A distant
+   frame is also wrong: the flow decays, so it has 0.70 of the variance and a different
+   flatness.
+5. **Severity ranges must follow each field's spectrum.** Fixed cutoffs applied to every field
+   alike produce flags that point at the axis rather than the metric. Filed as issue 030 and
+   not yet fixed.
+
+Also worth carrying forward: the IN-4 Gaussian field does **not** catch the L^p family — it
+catches metrics built only on the amplitude spectrum, and MSE rejects it firmly at 0.51–0.80.
+And a high cross-metric rank correlation does not mean two metrics agree in magnitude: MAE and
+MSE correlate at 0.995 across the ladder yet differ by 55x in displacement damage at an eighth
+of a cell, because one is linear and the other quadratic in the displacement.

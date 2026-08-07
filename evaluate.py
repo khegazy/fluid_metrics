@@ -166,6 +166,7 @@ def main(cfg: DictConfig) -> None:
             folder,
             {k: v for k, v in result.maps.items() if k.startswith(prefix)},
         )
+        fio.copy_documentation(folder)
         fio.write_run_meta(
             folder,
             run_id=stamp,
@@ -197,6 +198,7 @@ def main(cfg: DictConfig) -> None:
         fio.write_results(folder, result.rows)
         digest = fio.write_config(folder, cfg, overrides)
         fio.write_maps(folder, result.maps)
+        fio.copy_documentation(folder)
         fio.write_run_meta(
             folder,
             run_id=stamp,
