@@ -73,6 +73,7 @@ LADDERS: dict[str, list[float]] = {
     "additive_noise": [0.01, 0.1, 0.5],
     "multiplicative_noise": [0.01, 0.1, 0.5],
     "gaussian_impostor": [0],
+    "random_large_translation": [0, 1, 2],   # draw indices, not damage levels
     "gain": [0.05, 0.2, 0.5],
     "bias": [0.05, 0.2, 0.5],
 }
@@ -102,10 +103,10 @@ def test_preserves_shape_and_dtype(spec):
 
 def test_zero_severity_is_a_passthrough(spec):
     """Level 0 must be a no-op, or pairwise metrics do not return 0 on the clean rung."""
-    if spec.name in {"gaussian_impostor", "band_attenuate", "lowpass_ideal",
-                     "lowpass_butterworth", "highpass_ideal", "highpass_butterworth",
-                     "median_blur"}:
-        pytest.skip("no meaningful zero severity for this operator")
+    if spec.name in {"gaussian_impostor", "random_large_translation", "band_attenuate",
+                     "lowpass_ideal", "lowpass_butterworth", "highpass_ideal",
+                     "highpass_butterworth", "median_blur"}:
+        pytest.skip("severity 0 is not a no-op for this operator")
     x = synthetic_field(SHAPE, 1, seed=0)
     assert np.allclose(call(spec, x, 0), x, rtol=0, atol=1e-15)
 
@@ -241,6 +242,55 @@ def test_impostor_matches_moments():
     y = call(deg.get("gaussian_impostor"), x, 0)
     assert y.mean() == pytest.approx(x.mean(), rel=1e-9)
     assert y.std() == pytest.approx(x.std(), rel=1e-9)
+
+
+def test_random_large_translation_preserves_every_statistic():
+    """It is a roll, so it is a perfect statistical twin -- that is the whole point."""
+    x = synthetic_field((32, 32), 1, seed=0, noise=0.3)
+    y = call(deg.get("random_large_translation"), x, 0)
+    assert sorted(y.ravel().tolist()) == pytest.approx(sorted(x.ravel().tolist()))
+    assert y.mean() == pytest.approx(x.mean(), rel=1e-12)
+    assert y.std() == pytest.approx(x.std(), rel=1e-12)
+    assert _flatness(y[0]) == pytest.approx(_flatness(x[0]), rel=1e-12)
+    assert np.allclose(np.abs(np.fft.fftn(y[0])), np.abs(np.fft.fftn(x[0])), rtol=1e-8)
+
+
+def _draws(x, n=8, shape=None):
+    spec = deg.get("random_large_translation")
+    g = grid(shape or x.shape[1:])
+    return [
+        spec.fn(x, 0, ctx=FieldContext("v", g, 0, 0.0, fluctuation_rms(x),
+                                       derive_rng(seed, "unc", 0, "v")))
+        for seed in range(n)
+    ]
+
+
+def test_random_large_translation_always_moves_by_at_least_a_quarter_domain():
+    """The guarantee the operator makes: offsets come from the middle half of each axis."""
+    x = np.arange(64 * 64, dtype=float).reshape(1, 64, 64)  # every cell distinguishable
+    for y in _draws(x, shape=(64, 64)):
+        # Recover the offset from where the original first element ended up.
+        idx = int(np.argwhere(y[0] == 0.0)[0][0])
+        assert 16 <= idx <= 48, f"offset {idx} is outside the middle half"
+
+
+def test_random_large_translation_decorrelates_a_broadband_field():
+    """Averaged over draws it reaches the uncorrelated limit on a realistic field.
+
+    Deliberately broadband. A field dominated by one large-scale mode is a known bad case
+    -- see the caveat in the operator docstring -- and the median over draws, not any
+    single draw, is what the anchor uses.
+    """
+    rng = np.random.default_rng(0)
+    x = synthetic_field((64, 64), 1, seed=0, noise=1.0)
+    x += 0.5 * rng.standard_normal(x.shape)
+    corrs = [abs(float(np.corrcoef(x.ravel(), y.ravel())[0, 1])) for y in _draws(x)]
+    assert float(np.median(corrs)) < 0.2, f"median |corr| over draws is {corrs}"
+
+
+def test_random_large_translation_is_not_ordinal():
+    """It is a reference measurement defining D = 1, not a rung on a monotone axis."""
+    assert deg.get("random_large_translation").ordinal is False
 
 
 def test_impostor_is_not_ordinal():

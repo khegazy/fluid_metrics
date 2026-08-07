@@ -42,3 +42,8 @@ ladder:
 
   # IN-4. ordinal=False by declaration: excluded from every rank correlation.
   gaussian_impostor:   {severities: [0]}
+
+  # Measures the value a metric gives two statistically identical but positionally
+  # unrelated fields. This defines D = 1 for the dimensionless damage score, so it is a
+  # reference measurement rather than a rung; several draws average out its variance.
+  uncorrelated:        {op: random_large_translation, severities: [0, 1, 2, 3, 4, 5]}
