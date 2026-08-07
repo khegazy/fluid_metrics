@@ -2,7 +2,7 @@
 
 **Category:** data generation
 **Priority:** high
-**Status:** open
+**Status:** open — accepted, scheduled (2026-08-07)
 
 ## Context
 
@@ -18,6 +18,13 @@ obstacle flow, not a doubly-periodic shocklet field.
 Consequence: the shock-oriented metrics (SH-1 shock detector, SH-2 surface distances, PH-1
 entropy production) have nothing valid to be validated against. The harness will run on
 shocked data unchanged, so this is a data gap and not a code gap.
+
+## Decision
+
+Accepted 2026-08-07: shock datasets will be added later. The shock-oriented metrics are
+therefore *deferred* rather than blocked, and the harness needs no change to accommodate them —
+it is format-agnostic and will run on shocked data unchanged. Until such a dataset exists, do
+not report SH-1, SH-2 or PH-1 as validated.
 
 ## What is needed
 

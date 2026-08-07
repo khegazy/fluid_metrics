@@ -15,7 +15,7 @@ These block criteria that are designed and implemented but cannot be exercised.
 | ID | Title | Priority |
 |---|---|---|
 | [001](001-low-reynolds-reference.md) | The protocol specifies Re ~ 500; no such dataset exists | medium |
-| [002](002-shocklet-dataset.md) | No shocklet-populated compressible turbulence | **high** |
+| [002](002-shocklet-dataset.md) | No shocklet-populated compressible turbulence | accepted, scheduled |
 | [003](003-ensemble-data.md) | CRPS and spread-to-skill need ensembles | low |
 | [004](004-independent-realizations.md) | Only one seed per configuration | medium |
 | [005](005-3d-and-cost-extrapolation.md) | All data is two-dimensional | low |
@@ -47,6 +47,11 @@ Designed, hooks in place, not built.
 | ID | Title | Priority |
 |---|---|---|
 | [020](020-import-name-collision.md) | `metrics` is a very generic top-level import name | low |
-| [021](021-tracker-ids-for-baselines.md) | `NM-0` for the L^p baselines is invented | **decide early** |
 | [022](022-sim-config-parsing.md) | Solver configs carry executable YAML tags | low |
 | [023](023-vendored-kinet-drift.md) | Vendored kinet code is pinned and may drift | low |
+
+## Resolved
+
+| ID | Title | Outcome |
+|---|---|---|
+| [021](021-tracker-ids-for-baselines.md) | Identifier for the L^p baselines | `NM-0` accepted 2026-08-07. One follow-up: add it to the master table in `Table_of_Ideas.tex` |

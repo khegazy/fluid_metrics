@@ -10,8 +10,9 @@ All four are pointwise-decomposable, so each ships a per-cell density map. For a
 sharp feature the MSE map shows two lobes -- one where the feature should be and is not,
 one where it is and should not be -- which is the double penalty as a picture.
 
-`tracker_id="NM-0"` is a reserved slot for pointwise baseline controls. MAE and MSE are not
-rows in Table_of_Ideas.tex; see issues/021-tracker-ids-for-baselines.md.
+`tracker_id="NM-0"` is the reserved identifier for the pointwise baseline controls, accepted
+2026-08-07. It denotes the family of controls the candidate metrics must beat rather than a
+candidate in its own right; see issues/021-tracker-ids-for-baselines.md.
 """
 
 from __future__ import annotations

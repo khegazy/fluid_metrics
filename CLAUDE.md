@@ -82,6 +82,7 @@ First-wave priorities (in order of value per effort): IN-4, NM-2 (Ḣ⁻¹ norm)
 - **Cross-mesh comparison (IN-2)**: remap fields conservatively onto a common analysis grid, compare cell averages rather than point samples, and record the remapping operator as part of the metric definition.
 - Cite the source paper and equation/table number in a comment for any equation taken from the literature; the tracker's bibliography has the references.
 - Label new code as prototype or production quality; metric-evaluation code that feeds acceptance decisions should be production quality.
+- **`NM-0` is the accepted identifier for the pointwise baseline controls** (MAE, MSE, RMSE, NRMSE). It denotes the family the candidates must beat rather than a candidate itself. It is not yet in the master table; adding it there is the one open follow-up on `issues/021`.
 
 ## What exists, and what building it corrected
 
