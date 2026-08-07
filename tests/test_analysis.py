@@ -268,3 +268,43 @@ def test_selectivity_profile_is_one_row_per_metric():
     assert set(profile["metric"]) == {"a", "b"}
     assert {"x", "y"} <= set(profile.columns)
     assert "uncorrelated" not in profile.columns, "probes are not axes"
+
+
+# --- pooled vs per-frame correlation ---------------------------------------------------------
+
+
+def test_per_frame_correlation_survives_a_trend_in_the_field():
+    """The defect this statistic exists to avoid.
+
+    A field whose amplitude grows along the trajectory makes the pooled correlation
+    meaningless: the worst rung early is smaller than the mildest rung late. Measured on
+    the real density field, every axis was perfectly ordered within every frame while the
+    pooled value read between 0.10 and 0.91.
+    """
+    rows = []
+    for frame in range(10):
+        scale = 10.0 ** frame          # six orders of magnitude across the trajectory
+        rows.append(_row("m", "f", "identity", "identity", 0, 0.0, 0.0, frame))
+        for level, step in enumerate([1.0, 2.0, 3.0, 4.0], start=1):
+            rows.append(_row("m", "f", "a", "stochastic", level, float(level),
+                             step * scale, frame))
+    df = pd.DataFrame(rows)
+    for column, dtype in RESULT_DTYPES.items():
+        if column in df.columns:
+            df[column] = df[column].astype(dtype)
+
+    row = an.summarise_axes(df, n_bootstrap=0).iloc[0]
+    assert row["rho"] == pytest.approx(1.0), "per-frame correlation must be unaffected"
+    assert row["monotone_fraction"] == pytest.approx(1.0)
+    assert row["rho_pooled"] < 0.8, (
+        "the pooled value should be visibly degraded here; if it is not, this test no "
+        "longer demonstrates the difference"
+    )
+
+
+def test_per_frame_correlation_still_detects_a_genuinely_bad_axis():
+    """Robustness to a trend must not come at the cost of sensitivity."""
+    df = make_frame(axes={"a": [4.0, 3.0, 2.0, 1.0]})   # exactly inverted
+    row = an.summarise_axes(df, n_bootstrap=0).iloc[0]
+    assert row["rho"] == pytest.approx(-1.0)
+    assert row["monotone_fraction"] == pytest.approx(0.0)

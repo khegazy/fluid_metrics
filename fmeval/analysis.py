@@ -135,12 +135,17 @@ def add_damage(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
 # --- per-axis criteria ------------------------------------------------------------------
 
 
-def summarise_axes(df: pd.DataFrame, *, block_length: int = 10,
-                   n_bootstrap: int = 200, seed: int = 0) -> pd.DataFrame:
+def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
+                   block_length: int = 10, n_bootstrap: int = 200,
+                   seed: int = 0) -> pd.DataFrame:
     """One row per (dataset, metric, field, ladder axis) with the criteria of group A.
 
     Args:
         df: The tidy result frame, with or without a ``damage`` column.
+        norm: Normalisation anchors. When given, the sensitivity and saturation levels are
+            measured against the shared clean-to-unrelated span, which makes them
+            comparable across axes; without it each axis is measured against its own
+            range and the numbers mean different things on different rows.
         block_length: Moving-block bootstrap block length, in frames. The metric trace is
             autocorrelated in time, so an independent bootstrap would give absurdly tight
             intervals.
@@ -149,6 +154,10 @@ def summarise_axes(df: pd.DataFrame, *, block_length: int = 10,
     """
     rng = np.random.default_rng(seed)
     reference = df[df["level"] == 0]
+    spans = (
+        norm.set_index(["dataset", "metric", "field"])["span"].to_dict()
+        if norm is not None else {}
+    )
     rows = []
 
     for (dataset, metric, field, axis), g in df[df["level"] > 0].groupby(
@@ -182,27 +191,52 @@ def summarise_axes(df: pd.DataFrame, *, block_length: int = 10,
 
         if is_probe or g["level"].nunique() < 2:
             record.update(
-                rho=np.nan, rho_ci_lo=np.nan, rho_ci_hi=np.nan,
+                rho=np.nan, rho_frame_min=np.nan, rho_pooled=np.nan,
+                rho_ci_lo=np.nan, rho_ci_hi=np.nan,
                 monotone_fraction=np.nan, separability_auc_min=np.nan,
                 sensitivity_level=np.nan, saturation_level=np.nan,
             )
         else:
-            rho = float(spearmanr(levels, values).statistic)
+            per_frame = _per_frame_rho(g)
             lo, hi = _block_bootstrap_rho(g, rng, block_length, n_bootstrap)
             record.update(
-                rho=rho,
+                rho=float(np.nanmedian(per_frame)) if len(per_frame) else np.nan,
+                rho_frame_min=float(np.nanmin(per_frame)) if len(per_frame) else np.nan,
+                rho_pooled=float(spearmanr(levels, values).statistic),
                 rho_ci_lo=lo,
                 rho_ci_hi=hi,
                 monotone_fraction=_monotone_fraction(g),
                 separability_auc_min=_min_adjacent_auc(g),
-                sensitivity_level=_threshold_level(g, clean, SENSITIVITY_FRACTION),
-                saturation_level=_threshold_level(g, clean, SATURATION_FRACTION),
+                sensitivity_level=_threshold_level(
+                    g, clean, SENSITIVITY_FRACTION, spans.get((dataset, metric, field))),
+                saturation_level=_threshold_level(
+                    g, clean, SATURATION_FRACTION, spans.get((dataset, metric, field))),
             )
         if "damage" in g.columns:
             record["damage_max"] = float(np.nanmax(g["damage"].to_numpy()))
         rows.append(record)
 
     return pd.DataFrame(rows)
+
+
+def _per_frame_rho(g: pd.DataFrame) -> np.ndarray:
+    """Spearman correlation between rung and value, computed separately in each frame.
+
+    **This is the primary statistic, not the pooled one.** Pooling every (level, value)
+    pair across frames conflates the metric's response to severity with any trend in the
+    field itself, and on this data that ruins it: the density perturbation grows six orders
+    of magnitude along the trajectory, so the worst rung early is far smaller than the
+    mildest rung late. Measured consequence -- every density axis is perfectly ordered
+    inside every frame, yet the pooled correlation reads between 0.10 and 0.91 depending on
+    the axis. The pooled value is retained as ``rho_pooled`` for comparison, since a wide
+    gap between the two is itself a signal that the field is non-stationary.
+    """
+    out = []
+    for _, sub in g.groupby("frame_index", observed=True):
+        if sub["level"].nunique() < 2:
+            continue
+        out.append(spearmanr(sub["level"], sub["value"]).statistic)
+    return np.asarray(out, dtype=float)
 
 
 def _monotone_fraction(g: pd.DataFrame) -> float:
@@ -242,13 +276,19 @@ def _min_adjacent_auc(g: pd.DataFrame) -> float:
     return float(min(aucs)) if aucs else float("nan")
 
 
-def _threshold_level(g: pd.DataFrame, clean: float, fraction: float) -> float:
-    """First level whose median reaches ``fraction`` of the clean-to-worst range."""
+def _threshold_level(g: pd.DataFrame, clean: float, fraction: float,
+                     shared_span: float | None = None) -> float:
+    """First level whose median reaches ``fraction`` of the way to the unrelated limit.
+
+    Measured against the shared span when one is available, so "fires at rung 2" means the
+    same thing on every axis. Falling back to each axis's own range would make an axis that
+    barely damages the field appear just as sensitive as one that destroys it.
+    """
     medians = g.groupby("level", observed=True)["value"].median().sort_index()
     if medians.empty:
         return float("nan")
-    span = float(medians.iloc[-1]) - clean
-    if not np.isfinite(span) or span == 0:
+    span = shared_span if shared_span is not None else float(medians.iloc[-1]) - clean
+    if span is None or not np.isfinite(span) or span == 0:
         return float("nan")
     target = clean + fraction * span
     reached = medians[medians >= target]
@@ -258,7 +298,7 @@ def _threshold_level(g: pd.DataFrame, clean: float, fraction: float) -> float:
 def _block_bootstrap_rho(
     g: pd.DataFrame, rng: np.random.Generator, block_length: int, n: int
 ) -> tuple[float, float]:
-    """Percentile interval for Spearman rho, resampling contiguous blocks of frames.
+    """Percentile interval for the per-frame Spearman median, over blocks of frames.
 
     Blocks rather than individual frames because the metric trace is autocorrelated;
     resampling frames independently would understate the interval by a large factor.
@@ -271,14 +311,22 @@ def _block_bootstrap_rho(
     starts = np.arange(len(frames) - block_length + 1)
     by_frame = {f: g[g["frame_index"] == f] for f in frames}
 
+    # Resample the PER-FRAME statistic, matching what `rho` reports.
+    per_frame = {
+        f: spearmanr(sub["level"], sub["value"]).statistic
+        for f, sub in ((f, by_frame[f]) for f in frames)
+        if sub["level"].nunique() >= 2
+    }
+    if not per_frame:
+        return (float("nan"), float("nan"))
+
     draws = []
     for _ in range(n):
         chosen = rng.choice(starts, size=n_blocks)
         picked = np.concatenate([frames[s: s + block_length] for s in chosen])
-        sample = pd.concat([by_frame[f] for f in picked], ignore_index=True)
-        if sample["level"].nunique() < 2:
-            continue
-        draws.append(spearmanr(sample["level"], sample["value"]).statistic)
+        values = [per_frame[f] for f in picked if f in per_frame]
+        if values:
+            draws.append(float(np.nanmedian(values)))
     if not draws:
         return (float("nan"), float("nan"))
     return (float(np.nanpercentile(draws, 5)), float(np.nanpercentile(draws, 95)))
@@ -344,6 +392,7 @@ def report_card(axes: pd.DataFrame, probes: pd.DataFrame,
                 n_axes=("degradation", "nunique"),
                 rho_min=("rho", "min"),
                 rho_median=("rho", "median"),
+                rho_pooled_min=("rho_pooled", "min"),
                 rho_min_axis=("rho", lambda s: s.idxmin()),
                 separability_auc_min=("separability_auc_min", "min"),
                 monotone_fraction_min=("monotone_fraction", "min"),

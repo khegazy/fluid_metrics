@@ -1,5 +1,10 @@
 # 1.7 GB, T=101 sibling of dc804f with an identical schema. The inner-loop config:
 # a full run over it takes seconds.
+#
+# NOT PHYSICALLY REPRESENTATIVE. These are the first 100 solver steps, before the flow has
+# developed: structures still span the domain, so a 16-cell translation costs about 1e-4 of
+# what an unrelated field costs, against 0.51 at t=5000 on the full trajectory. Use this
+# config to exercise the code path quickly; use kinet_re5e4 for any physical conclusion.
 name: kinet_re5e4_dev
 format: kinet_raw
 path: ${paths.data}/kinet/doubly_periodic/weakly_compressible_isoT_fluids/sys_Re-5e4_Ma-1en1/D2Q9_shape-256-256_T-100_H-04a8a1.h5

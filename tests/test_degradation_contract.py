@@ -299,16 +299,20 @@ def test_impostor_is_not_ordinal():
 
 
 def test_lowpass_then_highpass_reconstructs():
-    """Ideal filters at a shared cutoff must partition the spectrum exactly."""
+    """Ideal filters at a shared cutoff partition the spectrum, up to two shared modes.
+
+    Both keep the cutoff band |k| == c, and the high-pass additionally keeps k = 0 on
+    purpose (see highpass_ideal), so each is counted twice and subtracted once.
+    """
+    from degradations.spectral import _apply_filter, _wavenumber_magnitude
+
     x = synthetic_field((32, 32), 1, seed=0, noise=0.3)
     lo = call(deg.get("lowpass_ideal"), x, 8)
     hi = call(deg.get("highpass_ideal"), x, 8)
-    # The cutoff band |k| == 8 belongs to both, so subtract it once.
-    from degradations.spectral import _apply_filter, _wavenumber_magnitude
-
     k = _wavenumber_magnitude((32, 32))
     overlap = _apply_filter(x, (k == 8).astype(float))
-    assert np.allclose(lo + hi - overlap, x, atol=1e-10)
+    mean = np.full_like(x, x.mean())
+    assert np.allclose(lo + hi - overlap - mean, x, atol=1e-10)
 
 
 def test_gain_preserves_the_mean_and_moves_only_amplitude():
@@ -450,3 +454,33 @@ def test_noise_scales_with_the_reference_rms_not_the_raw_rms():
     perturbation = np.abs(out - frame["density"]).mean()
     assert perturbation < 0.5 * frame["density"].mean(), "noise swamped the signal"
     assert perturbation == pytest.approx(0.1 * rms * np.sqrt(2 / np.pi), rel=0.25)
+
+
+def test_highpass_preserves_the_spatial_mean():
+    """Removing k=0 would swamp the ladder on any field with a large mean.
+
+    Density is 1.0 with fluctuations of order 1e-4. Before the mean was preserved, every
+    high-pass rung gave an identical damage 2.7e7 times the unrelated-field level, so the
+    axis carried no ordering and its rank correlation collapsed to 0.10.
+    """
+    x = 1.0 + 1e-3 * synthetic_field((32, 32), 1, seed=0, noise=0.3)
+    for name in ("highpass_ideal", "highpass_butterworth"):
+        for cutoff in (2, 4, 8):
+            y = call(deg.get(name), x, cutoff)
+            assert y.mean() == pytest.approx(x.mean(), rel=1e-10), name
+
+
+def test_highpass_ladder_is_monotone_on_a_field_with_a_large_mean():
+    """Monotone, and on the scale of the fluctuation rather than of the mean."""
+    x = 1.0 + 1e-3 * synthetic_field((32, 32), 1, seed=0, noise=0.3)
+    spec = deg.get("highpass_ideal")
+    damage = [float(((x - call(spec, x, c)) ** 2).mean()) for c in (2, 4, 8, 16)]
+    assert damage == sorted(damage), f"high-pass ladder is not monotone: {damage}"
+    assert damage[-1] > 1.5 * damage[0], f"ladder has little dynamic range: {damage}"
+    # The decisive check: before the fix every rung sat ~1e7 times the fluctuation
+    # variance, because the mean was being deleted.
+    variance = float(np.var(x))
+    assert damage[-1] < variance, (
+        f"damage {damage[-1]:.3e} exceeds the fluctuation variance {variance:.3e}; "
+        "the filter is probably removing the spatial mean"
+    )
