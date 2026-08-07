@@ -1,0 +1,8 @@
+# Compute and write data/ only. For batch runs that will be rendered later with
+# `uv run python make_report.py <folder>`.
+plots: []
+tables: []
+skip: ["*"]
+style: {theme: notebook, dpi: 150, formats: [png]}
+error_map: {enabled: false, frames: [], axes: [], fields: []}
+thresholds: {spearman: 0.90, separability_auc: 0.80, impostor_damage: 0.50, redundancy: 0.95}

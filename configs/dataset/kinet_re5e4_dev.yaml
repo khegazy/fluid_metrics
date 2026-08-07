@@ -1,0 +1,36 @@
+# 1.7 GB, T=101 sibling of dc804f with an identical schema. The inner-loop config:
+# a full run over it takes seconds.
+name: kinet_re5e4_dev
+format: kinet_raw
+path: ${paths.data}/kinet/doubly_periodic/weakly_compressible_isoT_fluids/sys_Re-5e4_Ma-1en1/D2Q9_shape-256-256_T-100_H-04a8a1.h5
+trajectory: D2Q9_shape-256-256_T-100_H-04a8a1
+
+# pressure is omitted: it is density * c_s^2 and carries no independent information, so
+# including it doubles the I/O and injects a guaranteed correlated pair into the
+# cross-metric correlation used for pruning.
+# temperature is omitted: stored (1,1,T,1,1), spatially degenerate, constant 1/3.
+fields: [density, velocity, vorticity]
+
+time:
+  start: 1        # t=0 has all-NaN stability fields and a NaN time_scale[0]
+  stop: null
+  reduction: 1    # evaluate every Nth frame; 1 = all 100 frames here
+  max_frames: null
+
+reader:
+  chunk_cache_mb: 32   # h5py defaults to 1 MB, smaller than one velocity chunk
+  nan_policy: error
+  include_redundant: false
+  periodic: [true, true]
+
+# Recompute derived fields with our own operator even at the native resolution, so the
+# native grid and every coarse grid use the same discretisation.
+recompute_derived: true
+
+complexity:
+  family: reynolds_ladder_2d
+  rank: 0
+  params: {reynolds: 5.0e4, mach: 0.1, resolution: 256, dim: 2}
+  label: "Re = 5\\times10^{4}"
+
+notes: "Re=5e4, Ma=0.1, D2Q9 entropic BGK, 256^2, dimensionless units."

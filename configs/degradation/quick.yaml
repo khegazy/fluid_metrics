@@ -1,0 +1,10 @@
+# Three axes, six variants: for iterating on plots and report layout.
+seed: ${seed}
+include_reference: true
+only: []
+skip: []
+
+ladder:
+  gaussian_blur:      {severities: [1.0, 4.0]}
+  translate_subpixel: {severities: [0.5, 2.0], options: {axis: x}}
+  gaussian_impostor:  {severities: [0]}

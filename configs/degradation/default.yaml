@@ -1,0 +1,44 @@
+# The degradation ladder.
+#
+# Keyed by an instance LABEL, not by operator, so the same operator can appear twice with
+# different options (translate_x, translate_y) and each becomes an independent monotone
+# axis. `op` defaults to the key. The label -- not the family -- is the unit of rank
+# correlation: gaussian_blur and median_blur are separate axes though both are "smoothing".
+#
+# `uv run python -m degradations` lists every operator with its severity units.
+seed: ${seed}
+include_reference: true   # level 0; pairwise error metrics must return exactly 0 here
+only: []                  # if non-empty, run ONLY these labels
+skip: []                  # dropped after `only`
+
+ladder:
+  # --- kernel smoothing ---------------------------------------------------------
+  gaussian_blur:       {severities: [0.5, 1.0, 2.0, 4.0, 8.0]}
+  box_blur:            {severities: [3, 5, 9, 17]}
+  median_blur:         {severities: [3, 5, 9, 15]}
+  disk_blur:           {severities: [2, 4, 8, 16], enabled: false}
+  epanechnikov_blur:   {severities: [2, 4, 8, 16], enabled: false}
+
+  # --- spectral -----------------------------------------------------------------
+  # Cutoffs are sorted into increasing-damage order automatically, so the written order
+  # does not matter; direction is declared by the operator.
+  lowpass_ideal:       {severities: [64, 32, 16, 8]}
+  lowpass_butterworth: {severities: [64, 32, 16, 8], options: {order: 4}}
+  highpass_ideal:      {severities: [2, 4, 8, 16]}
+  band_attenuate:      {severities: [0.8, 0.5, 0.2, 0.0],
+                        options: {k_lo: 16, k_hi: 64}, enabled: false}
+
+  # --- geometric: the double-penalty probe ----------------------------------------
+  translate_x:         {op: translate, severities: [1, 2, 4, 8, 16], options: {axis: x}}
+  translate_y:         {op: translate, severities: [1, 2, 4, 8, 16],
+                        options: {axis: y}, enabled: false}
+  translate_subpixel:  {severities: [0.125, 0.25, 0.5, 1.0, 2.0, 4.0], options: {axis: x}}
+
+  # --- resolution / stochastic / pointwise ------------------------------------------
+  coarsen:             {severities: [2, 4, 8, 16]}
+  subsample:           {severities: [2, 4, 8, 16], enabled: false}
+  additive_noise:      {severities: [0.001, 0.01, 0.1, 0.5]}
+  gain:                {severities: [0.01, 0.05, 0.2, 0.5], enabled: false}
+
+  # IN-4. ordinal=False by declaration: excluded from every rank correlation.
+  gaussian_impostor:   {severities: [0]}

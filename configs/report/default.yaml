@@ -1,0 +1,25 @@
+# Which figures and tables to produce, and how.
+plots: []      # empty means every registered plot whose preconditions are met
+tables: []
+skip: []
+
+style:
+  theme: notebook        # notebook | paper
+  dpi: 150
+  formats: [pdf, png]
+
+# Pointwise metric maps: storing one per frame per variant would be gigabytes, so only
+# these combinations are kept.
+error_map:
+  enabled: true
+  frames: [-1]                                        # positions in the selected frames
+  axes: [translate_x, gaussian_blur, gaussian_impostor]
+  fields: []                                          # empty = all
+
+# Reference thresholds. ADVISORY ONLY: they populate a `flags` column so rows can be
+# found quickly. They never label a metric accepted or rejected -- that is the team's call.
+thresholds:
+  spearman: 0.90
+  separability_auc: 0.80
+  impostor_damage: 0.50
+  redundancy: 0.95
