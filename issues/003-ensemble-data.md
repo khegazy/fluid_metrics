@@ -31,4 +31,4 @@ An ensemble dataset config exists, and PS-2 and PS-3 produce values that differ 
 
 ## Related
 
-PS-2, PS-3 in `Table_of_Ideas.tex`.
+PS-2, PS-3 in the metrics tracker.

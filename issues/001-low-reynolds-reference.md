@@ -32,4 +32,4 @@ agree.
 
 ## Related
 
-The evaluation protocol (IN-3) in `Table_of_Ideas.tex`. Issue 002 for the related mismatch.
+The evaluation protocol (IN-3) in the metrics tracker. Issue 002 for the related mismatch.

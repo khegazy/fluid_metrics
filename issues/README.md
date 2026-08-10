@@ -54,4 +54,4 @@ Designed, hooks in place, not built.
 
 | ID | Title | Outcome |
 |---|---|---|
-| [021](021-tracker-ids-for-baselines.md) | Identifier for the L^p baselines | `NM-0` accepted 2026-08-07. One follow-up: add it to the master table in `Table_of_Ideas.tex` |
+| [021](021-tracker-ids-for-baselines.md) | Identifier for the L^p baselines | `NM-0` accepted 2026-08-07. One follow-up: add it to the master table in the metrics tracker |

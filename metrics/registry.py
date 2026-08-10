@@ -99,7 +99,8 @@ def metric(
 
     Args:
         name: Registry key. Defaults to ``fn.__name__``.
-        tracker_id: Stable ID from ``Table_of_Ideas.tex`` (e.g. ``"NM-2"``).
+        tracker_id: Stable ID from the project's metrics tracker (e.g. ``"NM-2"``).
+            See CLAUDE.md for the identifier scheme and where the tracker lives.
         arity: ``"pairwise"`` for ``fn(reference, candidate)``, ``"single"`` for ``fn(x)``.
         fields: Canonical field names this metric accepts; ``("*",)`` means any.
         returns: ``"scalar"`` for a float, ``"vector"`` for a 1-D array.

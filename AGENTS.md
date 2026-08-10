@@ -40,8 +40,8 @@ re-derive them; keep that habit.
 
 **When a measurement contradicts you, the measurement wins.** If you assert something and then
 find it is wrong, correct it in the code and say so plainly. There are corrections recorded in
-`CLAUDE.md` and in `Table_of_Ideas.tex` that exist because a prediction failed. That is normal
-and useful; hiding it is not.
+`CLAUDE.md` and in several docstrings that exist because a prediction failed. That is normal and
+useful; hiding it is not.
 
 **The suite measures, it does not decide.** No verdict columns, no accept/reject labels. There
 are configured thresholds, and they only populate an advisory `flags` column. **Never tune a
@@ -102,7 +102,7 @@ from metrics.registry import metric, pointwise_map
 
 @metric(
     name="h_minus_one",          # defaults to the function name
-    tracker_id="NM-2",           # the stable ID from Table_of_Ideas.tex
+    tracker_id="NM-2",           # the stable ID from the metrics tracker; see CLAUDE.md
     arity="pairwise",            # "pairwise" -> fn(reference, candidate); "single" -> fn(x)
     fields=("vorticity",),       # canonical fields it accepts; ("*",) for any
     returns="scalar",            # "scalar" -> float; "vector" -> 1-D array
@@ -165,7 +165,9 @@ touch your metric.
    map-reduces-to-metric identity. You do not write any of that.
 3. **Add an entry to `TEST_DESCRIPTION.md`** if your metric introduces a new reported quantity.
    A test fails otherwise.
-4. Update the `Status` column for your tracker ID in `Table_of_Ideas.tex`.
+4. Report the result back to the metrics tracker, so its `Status` column reflects what has
+   actually been measured. Ask the maintainer where the tracker currently lives; do not assume
+   a file in this repository.
 
 ---
 
@@ -426,16 +428,18 @@ it and interpolate it.
 mis-parses paths with more. Figures are referenced without an extension so LaTeX prefers the
 PDF and falls back to the PNG.
 
-### `Table_of_Ideas.tex` is different
+### Hand-written LaTeX, if any appears
 
-That file at the repository root is the project's working document, not generated output — edit
-it directly. Its canonical copy lives on Overleaf, so **the two will diverge the moment either
-is edited**; say so when you change it, and check `latexmk -pdf Table_of_Ideas.tex` compiles
-before committing. Note it needs three passes for references to resolve; a single pass reports
-undefined citations that are not real.
+The rule above applies to *generated* output under `results/`. A `.tex` file elsewhere in the
+repository is a working document and may be edited directly — but check two things first.
 
-When you finish testing a metric, update its `Status` column there, and add the measured
-results to its subsection rather than only a definition.
+Confirm it is not a duplicate of a document maintained elsewhere, typically on Overleaf. If it
+is, **the two diverge the moment either is edited**, so say so explicitly when you change one,
+and prefer handing back a patch to apply at the canonical copy.
+
+Confirm it still compiles: `module load texlive/2024 && latexmk -pdf <file>.tex`. Note that a
+document with a bibliography needs three passes for references to resolve; a single pass reports
+undefined citations that are not real problems.
 
 ---
 
@@ -505,5 +509,4 @@ GIT_SSH_COMMAND="ssh -x -o BatchMode=yes" git push origin <branch>
 | `CLAUDE.md` | Scientific context: the problem framing, the tracker IDs, the evaluation protocol |
 | `TEST_DESCRIPTION.md` | Every quantity the suite reports, in plain language. **Update it when you add a reported quantity — a test enforces this** |
 | `issues/README.md` | Open items with their evidence |
-| `Table_of_Ideas.tex` | The project's working document: candidate metrics, their IDs, ratings and status |
 | `README.md` | Setup, and the NERSC specifics |

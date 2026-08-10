@@ -52,15 +52,20 @@ extra and nothing currently needs it. Weights & Biases is not wired in yet.
 | `issues/` | Open items, one file per item with its evidence. `issues/README.md` is the index |
 | `README.md` | Setup and the NERSC specifics |
 
-## Source of truth: the metrics document
+## Source of truth: the metrics tracker
 
-The "Fluid Metrics Exploration Tracker" (`Table_of_Ideas.tex`) is the working document for the whole project. It lives on Overleaf (edit link): https://www.overleaf.com/5216584535fbvsvrhpfmnd#1f594b
+The project's metrics tracker is the working document for the whole effort. It is maintained
+outside this repository — ask the user where it currently lives and to paste or attach the
+relevant part rather than guessing at its contents, and do not assume a copy exists in the
+repo. It holds:
 
-Claude Code cannot read Overleaf directly — when its content is needed, ask the user to attach or paste the current version rather than guessing. The document contains:
-
-- A **master tracker table** of ~40 candidate metrics, each with a stable ID (e.g. OT-1, NM-2, TD-1). Use these IDs in code, commits, issues, and discussion. Keep the table's `Status` and `Owner` columns current as items move from `Not tested` → `In progress` → `Tested (result)`.
-- Per-item sections with the definition, literature precedent, keywords, known pitfalls, and a promise rating (High/Medium/Low) with justification.
-- A full bibliography. Every implemented metric should cite its source paper (and equation number where applicable) in a code comment.
+- A **master table** of ~40 candidate metrics, each with a stable ID (e.g. OT-1, NM-2, TD-1).
+  Use these IDs in code, commits, issues, and discussion, and report results back so the
+  `Status` column reflects what has been measured.
+- Per-item sections with the definition, literature precedent, keywords, known pitfalls, and a
+  promise rating (High/Medium/Low) with justification.
+- A full bibliography. Every implemented metric should cite its source paper (and equation
+  number where applicable) in a code comment.
 
 ID prefixes: OT (optimal transport), SH (shock geometry), NM (function-space norms), CG (curvature/differential geometry), PH (physics invariants), PD (pattern/feature detection), TD (topological data analysis), BD (basis decompositions), PS (probabilistic/distributional), IN (infrastructure and protocol).
 

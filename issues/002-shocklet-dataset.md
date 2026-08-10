@@ -39,4 +39,4 @@ detector run on it returns a non-trivial mask.
 
 ## Related
 
-SH-1, SH-2, PH-1 in `Table_of_Ideas.tex`. Issue 001.
+SH-1, SH-2, PH-1 in the metrics tracker. Issue 001.

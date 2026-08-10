@@ -12,9 +12,8 @@ correct.
 
 ## Context
 
-MAE, MSE, RMSE and NRMSE are tagged `tracker_id = "NM-0"`. The identifier did not originate in
-`Table_of_Ideas.tex` — it was introduced here as a reserved slot for pointwise baseline
-controls, on the grounds that these are not candidate metrics but the control the candidates
+MAE, MSE, RMSE and NRMSE are tagged `tracker_id = "NM-0"`. The identifier did not originate in the
+metrics tracker — it was introduced here as a reserved slot for pointwise baseline controls, on the grounds that these are not candidate metrics but the control the candidates
 must beat. The identifier lands in every result row and every provenance snapshot, so it
 needed blessing before it spread through the CSVs.
 
@@ -22,18 +21,18 @@ needed blessing before it spread through the CSVs.
 
 ## Remaining action
 
-Add `NM-0` to the master table in `Table_of_Ideas.tex` so the document and the code agree, with
+Add `NM-0` to the master table in the metrics tracker so the document and the code agree, with
 a note that it denotes the pointwise baseline family rather than a candidate metric. Until that
-happens, someone reading the document alone will not find the identifier that appears in every
+happens, someone reading the tracker alone will not find the identifier that appears in every
 result file.
 
 ## Related
 
-`metrics/standard_ml.py`; the master table in `Table_of_Ideas.tex`.
+`metrics/standard_ml.py`; the master table in the metrics tracker.
 
 ---
 
-## Ready-to-paste LaTeX for `Table_of_Ideas.tex`
+## Ready-to-paste LaTeX for the metrics tracker
 
 Claude Code has no Overleaf access, so this is written out for copying by hand. Three
 insertions.

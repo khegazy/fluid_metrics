@@ -66,9 +66,9 @@ with the results, so a reduced run is never mistaken for a full one.
 | [TEST_DESCRIPTION.md](TEST_DESCRIPTION.md) | Plain-language reference for every quantity the suite reports |
 | [issues/](issues/) | Open items and future work, one file each |
 
-The **Fluid Metrics Exploration Tracker** (`Table_of_Ideas.tex`) on Overleaf is the source of
-truth for the candidate metrics and their stable IDs (OT-1, NM-2, TD-1, …). Use those IDs in
-code, commits, and discussion.
+The project's **metrics tracker** is the source of truth for the candidate metrics and their
+stable IDs (OT-1, NM-2, TD-1, …). Use those IDs in code, commits, and discussion; see
+[CLAUDE.md](CLAUDE.md) for the identifier scheme and where the tracker lives.
 
 ## Adding things
 
