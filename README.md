@@ -61,7 +61,8 @@ with the results, so a reduced run is never mistaken for a full one.
 
 | File | What it is |
 |---|---|
-| [CLAUDE.md](CLAUDE.md) | Project conventions, the metric-tracker IDs, and the evaluation protocol |
+| [AGENTS.md](AGENTS.md) | **How to work in this repository** — adding metrics, degradations, data sources and figures; testing; the generated LaTeX; known traps. Read by coding agents, and worth reading yourself |
+| [CLAUDE.md](CLAUDE.md) | Project conventions, the metric IDs, and the evaluation protocol |
 | [TEST_DESCRIPTION.md](TEST_DESCRIPTION.md) | Plain-language reference for every quantity the suite reports |
 | [issues/](issues/) | Open items and future work, one file each |
 

@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository develops and tests metrics that quantify the quality of fluid simulations (especially ML surrogates of compressible, shocked, turbulent flow), with the eventual goal of using validated metrics as evaluation panels and training losses for a scientific foundation model. It is a collaborative research repo shared by several colleagues.
 
+## Read AGENTS.md first
+
+[`AGENTS.md`](AGENTS.md) is the canonical instruction file for every agent working here,
+whichever assistant it is. It covers how to add a metric, a degradation, a data source or a
+report renderer; the testing conventions; how to treat the generated LaTeX; and a table of
+traps that have already caught someone. This file carries the scientific context that
+`AGENTS.md` deliberately does not duplicate.
+
 ## Commands
 
 Environment is `uv` with a committed lockfile. `.venv/bin/python` works everywhere `uv run`

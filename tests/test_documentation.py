@@ -113,3 +113,68 @@ def test_a_copy_is_placed_in_every_run_folder(tmp_path):
     folder = RunFolder(tmp_path / "m_1").create()
     shutil.copy(DOC, folder.root / DOC.name)
     assert (folder.root / "TEST_DESCRIPTION.md").exists()
+
+
+# --- AGENTS.md ---------------------------------------------------------------------------
+
+AGENTS = REPO / "AGENTS.md"
+
+
+def test_agents_file_exists_where_other_tools_look():
+    """AGENTS.md is the cross-agent convention; the others must only point at it."""
+    assert AGENTS.exists()
+    for pointer in (REPO / ".github" / "copilot-instructions.md",
+                    REPO / ".cursor" / "rules" / "repository.mdc"):
+        assert pointer.exists(), f"{pointer} is missing"
+        text = pointer.read_text()
+        assert "AGENTS.md" in text, f"{pointer.name} does not point at AGENTS.md"
+        assert len(text) < 2000, (
+            f"{pointer.name} is long enough to have grown its own content; it must stay a "
+            "pointer so it cannot drift from AGENTS.md"
+        )
+
+
+def test_agents_documents_every_extension_point():
+    """Each registry a contributor might extend must have instructions."""
+    text = AGENTS.read_text()
+    for topic in ("Adding a metric", "Adding a degradation", "Adding a data source",
+                  "Adding a figure or table", "Writing tests",
+                  "How to treat the LaTeX output"):
+        assert topic in text, f"AGENTS.md has no section on {topic!r}"
+
+
+def test_agents_api_claims_match_the_code():
+    """Signatures quoted in the instructions must still exist.
+
+    An instruction file that describes an API the code no longer has is worse than none,
+    because it is followed confidently.
+    """
+    import inspect
+
+    from degradations.registry import degradation
+    from fmeval.report.latex import PACKAGES
+    from metrics.registry import REDUCTIONS, metric
+
+    text = AGENTS.read_text()
+    for name in inspect.signature(metric).parameters:
+        assert name in text, f"metric() parameter {name!r} is undocumented in AGENTS.md"
+    for name in inspect.signature(degradation).parameters:
+        assert name in text, f"degradation() parameter {name!r} is undocumented in AGENTS.md"
+    for name in REDUCTIONS:
+        assert name in text, f"reduction {name!r} is undocumented in AGENTS.md"
+    for package in PACKAGES:
+        assert package in text, f"LaTeX package {package!r} is undocumented in AGENTS.md"
+
+
+def test_agents_states_the_non_negotiables():
+    """The rules whose violation silently corrupts results."""
+    text = AGENTS.read_text()
+    for rule in (
+        "exit code" if "exit code" in text else "RC=$?",   # verify before claiming
+        "Never hand-edit",                                  # generated LaTeX
+        "Never slice the time axis",                        # the multi-GB read
+        "non-square",                                       # the transpose trap
+        "severity_direction",                               # the inverted ladder
+        "does not decide",                                  # no verdicts
+    ):
+        assert rule in text, f"AGENTS.md does not state the rule about {rule!r}"
