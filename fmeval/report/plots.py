@@ -413,6 +413,17 @@ def displacement_response(ctx, df, opts) -> PlotResult:
         tidy.extend({"metric": metric, "distance": d, "damage": v}
                     for d, v in points)
 
+    # Declared before the log scale is set, not after. A metric with no dynamic range has an
+    # all-NaN damage column -- which AGENTS.md section 3 explicitly calls correct for a
+    # single-field invariant rather than a bug -- and matplotlib then raises "Data cannot be
+    # log-scaled because all values are <= 0" from inside the renderer. The contract is that
+    # unavailability is declared with ctx.require, so this is a skip, not an error. issues/039.
+    ctx.require(
+        any(np.isfinite(row["damage"]) for row in tidy),
+        "no finite damage on the displacement axis: the metric has no dynamic range between "
+        "clean and the unrelated-field anchor, so there is nothing to plot against distance",
+    )
+
     ax.axhline(1.0, color="0.3", lw=1)
     ax.text(0.01, 1.0, "unrelated fields", fontsize="x-small", color="0.3",
             va="bottom", transform=ax.get_yaxis_transform())

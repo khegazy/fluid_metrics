@@ -300,8 +300,25 @@ def apply_rung(
     unchanged: set[str] = set()
     removed: dict[str, float] = {}
     changed: dict[str, float] = {}
+
+    if spec.whole_frame:
+        out = _apply_whole_frame(spec, rung, frame, fields, seed=seed,
+                                 reference_rms=reference_rms, calibration=calibration,
+                                 resolved=resolved)
     for name in fields:
         source = frame.fields[name]
+        if spec.whole_frame:
+            # Already produced above, in one call over the whole frame. Only the per-field
+            # bookkeeping below still has to happen.
+            rms = (
+                reference_rms[name]
+                if reference_rms is not None and name in reference_rms
+                else fluctuation_rms(source)
+            )
+            if _is_noop(source, out[name], rms):
+                unchanged.add(name)
+            removed[name], changed[name] = _energy_effect(source, out[name])
+            continue
         if spec.fields != ("*",) and name not in spec.fields:
             out[name] = source
             continue
@@ -343,6 +360,87 @@ def apply_rung(
 #: changes the field by about 2e-2 of its fluctuation RMS, so any threshold in between separates
 #: them cleanly and 1e-8 is nowhere near either.
 NOOP_RELATIVE_TOLERANCE = 1e-8
+
+
+def _apply_whole_frame(
+    spec: DegradationSpec,
+    rung: Rung,
+    frame: Frame,
+    fields: Sequence[str],
+    *,
+    seed: int,
+    reference_rms: Mapping[str, float] | None,
+    calibration: Calibration | None,
+    resolved: dict[str, float],
+) -> dict[str, np.ndarray]:
+    """Apply an operator that declared ``whole_frame=True``, in one call over every field.
+
+    The rare operator that genuinely needs cross-field access -- a Leray projection, a rotation
+    that must rotate the velocity *components* and not merely resample the grid, a
+    density-weighted remap -- cannot work one array at a time. It receives the field mapping and
+    returns one, and its context describes the frame rather than any single field.
+
+    This was declared, defaulted and documented in two places for a long time while
+    :func:`apply_rung` never read it, so such an operator would have received a bare array where
+    it expected a mapping and failed with a message pointing at numpy rather than at the ignored
+    declaration. See issues/036.
+
+    Args:
+        resolved: Filled in with the severity applied to each field, in place.
+
+    Raises:
+        TypeError: If the operator does not return a mapping.
+        KeyError: If it drops a requested field.
+        ValueError: If it changes a field's shape.
+    """
+    severity = resolve_severity(rung, fields[0], calibration) if fields else rung.severity
+    for name in fields:
+        resolved[name] = resolve_severity(rung, name, calibration)
+    if len({resolved[name] for name in fields}) > 1:
+        raise ValueError(
+            f"{rung.op!r} declares whole_frame=True and calibration={rung.calibration!r}, but a "
+            "calibrated severity resolves per field and a whole-frame operator gets one call for "
+            "all of them. Use per-field application, or an absolute severity."
+        )
+
+    ctx = FieldContext(
+        field=",".join(fields),      # the operator sees every field, so no single name fits
+        grid=frame.grid,
+        frame_index=frame.index,
+        time=frame.time,
+        fluctuation_rms=float(np.mean([
+            reference_rms[name] if reference_rms is not None and name in reference_rms
+            else fluctuation_rms(frame.fields[name])
+            for name in fields
+        ])) if fields else 0.0,
+        rng=derive_rng(seed, rung.variant_label, frame.index, "*"),
+    )
+    kwargs = dict(rung.options)
+    if spec.takes_ctx:
+        kwargs["ctx"] = ctx
+
+    source = {name: frame.fields[name] for name in fields}
+    result = spec.fn(source, severity, **kwargs)
+    if not isinstance(result, Mapping):
+        raise TypeError(
+            f"{rung.op!r} declares whole_frame=True so it must return a mapping of field name "
+            f"to array, not {type(result).__name__}"
+        )
+    out: dict[str, np.ndarray] = {}
+    for name in fields:
+        if name not in result:
+            raise KeyError(
+                f"{rung.op!r} declares whole_frame=True and dropped field {name!r}; it must "
+                f"return every field it was given ({sorted(fields)})"
+            )
+        array = np.asarray(result[name], dtype=np.float64)
+        if array.shape != frame.fields[name].shape:
+            raise ValueError(
+                f"{rung.op} changed the shape of {name}: "
+                f"{frame.fields[name].shape} -> {array.shape}"
+            )
+        out[name] = array
+    return out
 
 
 def _energy_effect(source: np.ndarray, result: np.ndarray) -> tuple[float, float]:

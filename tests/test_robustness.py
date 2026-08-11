@@ -127,11 +127,6 @@ def _frame_with_anchor(anchor_values: list[float], **kwargs) -> pd.DataFrame:
 # develop: spectra (BD-1), two-point correlations (BD-2), increment PDFs (OT-5, PS-4).
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/032: the median-based scale collapses to round-off, so the guard "
-           "does not fire; a max-based scale would",
-)
 def test_degeneracy_guard_fires_when_most_rungs_are_round_off():
     """A metric whose anchor is round-off must be reported as having no dynamic range.
 
@@ -164,11 +159,6 @@ def test_degeneracy_guard_fires_when_most_rungs_are_round_off():
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/032: nothing checks that the anchor operator actually moves the "
-           "metric, so `anchor_source` reads 'uncorrelated' as if it were measured",
-)
 def test_damage_is_not_reported_against_an_anchor_the_metric_cannot_see():
     """Damage must be withheld when the anchor is indistinguishable from clean.
 
@@ -207,11 +197,6 @@ def test_damage_is_not_reported_against_an_anchor_the_metric_cannot_see():
 # --- rank correlation ------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/033: summarise_axes has no dynamic-range guard, so it reports a "
-           "Spearman computed from float64 summation-order noise",
-)
 def test_rank_correlation_is_withheld_when_the_variation_is_round_off():
     """A rank correlation over values that differ only in the last ulp is not a signal.
 
@@ -251,11 +236,6 @@ def test_rank_correlation_is_withheld_when_the_variation_is_round_off():
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/034: report_card calls groupby.idxmin() on rho without guarding the "
-           "all-NA case",
-)
 def test_report_card_survives_an_all_nan_rank_correlation():
     """A metric constant on every ordinal axis must produce a card, not an exception.
 
@@ -296,11 +276,6 @@ def test_report_card_survives_an_all_nan_rank_correlation():
 # --- direction ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/035: analysis.py never reads MetricSpec.higher_is_better, so every "
-           "ordering statistic assumes the value rises with damage",
-)
 def test_a_similarity_metric_is_scored_in_its_own_direction():
     """A metric where *larger is better* must not be scored as non-monotone.
 
@@ -362,10 +337,6 @@ def test_a_similarity_metric_is_scored_in_its_own_direction():
 # --- the degradation contract ------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/036: apply_rung never reads DegradationSpec.whole_frame",
-)
 def test_whole_frame_degradation_receives_the_field_dict(temporary_degradation):
     """``whole_frame=True`` is documented and does nothing.
 
@@ -401,8 +372,11 @@ def test_whole_frame_degradation_receives_the_field_dict(temporary_degradation):
         include_reference=False,
     )[0]
 
-    out = apply_rung(rung, frame, ["density"], seed=0)
-    assert set(out) == {"density"}
+    applied = apply_rung(rung, frame, ["density"], seed=0)
+    assert set(applied.fields) == {"density"}
+    # The operator returned its input unchanged, so the harness must see that and say so
+    # rather than counting the rung as an experiment.
+    assert "density" in applied.unchanged
 
 
 # --- the analysis grid as a size knob ------------------------------------------------------
@@ -415,12 +389,7 @@ def test_whole_frame_degradation_receives_the_field_dict(temporary_degradation):
     "resolution",
     [
         32,
-        pytest.param(8, marks=pytest.mark.xfail(
-            strict=True,
-            reason="issues/037: the ladder is never validated against the analysis "
-                   "grid, so coarsen severity 16 on an 8-cell grid aborts the run "
-                   "mid-frame",
-        )),
+        8,
     ],
 )
 def test_the_default_ladder_runs_at_every_analysis_resolution(resolution):
@@ -460,34 +429,27 @@ def test_the_default_ladder_runs_at_every_analysis_resolution(resolution):
     assert len(result.rows) > 0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/037: a severity the analysis grid cannot express becomes an exact "
-           "no-op rung and is still counted and correlated as a rung",
-)
-def test_a_rung_the_grid_cannot_express_is_not_counted_as_a_rung():
-    """A severity that the analysis grid turns into the identity must not be a rung.
+def test_a_no_op_rung_is_flagged_and_excluded_on_an_absolute_severity_axis():
+    """The degenerate-rung detector must cover uncalibrated operators too.
 
-    ``translate_x`` runs to 16 cells in the shipped ladder, and ``analysis_grid.resolution``
-    is a documented knob. On a periodic 16-cell axis ``np.roll(x, 16)`` is exactly ``x``,
-    so that rung reproduces the reference bit for bit: MSE is 0.0 there, identical to level
-    0, and the axis is reported with ``n_levels = 5`` while carrying four.
+    Issue 030's calibration work added ``severity_degenerate``: a rung that resolves to a
+    severity at which the operator does nothing, or that repeats a milder rung's
+    experiment, is flagged in the result frame and dropped by ``summarise_axes`` before any
+    acceptance statistic is computed. Scoring such a rung would read as agreement in the
+    rank correlation and would compare a distribution against itself in the separability.
 
-    The same class of failure was reproduced on the real data through the spectral axes
-    before the issue-030 calibration work began:
+    That work was driven by the *calibrated* spectral and smoothing axes. This checks the
+    same guarantee on an axis whose severities stay absolute cell counts by design, where
+    the no-op arises from the analysis grid rather than from the field's spectrum:
+    ``translate_x`` runs to 16 cells in the shipped ladder, and on a periodic 16-cell axis
+    ``np.roll(x, 16)`` is exactly ``x``. ``analysis_grid.resolution`` is a documented knob,
+    so this configuration is reachable without editing the ladder at all.
 
-        evaluate.py metrics=[mse] dataset=kinet_re5e4_dev analysis_grid.resolution=32 \\
-            'degradation.skip=[coarsen]'
-
-    gave MSE medians of 0.0, 0.0, 0.0, 3.2e-6 across low-pass cutoffs 64, 32, 16, 8 -- the
-    largest |k| a 32-cell grid can represent is about 22.6, so three of the four rungs were
-    the same experiment run three times. Calibrating spectral severities against the
-    measured spectrum fixes that instance; it does not fix the general case, because
-    ``translate``, ``coarsen`` and ``box_blur`` severities remain absolute cell counts by
-    design and can still exceed what the analysis grid can express.
-
-    The property asserted here is the general one: an ordinal axis must not contain a rung
-    that is bit-for-bit identical to the reference.
+    Measured here: level 5 records ``value = 0.0`` and ``energy_changed = 0.0``, is flagged,
+    and is logged as "resolve[d] to a severity at which the operator leaves the field
+    unchanged". Levels 1-4 are untouched. The detector is measurement-based rather than
+    operator-declared, which is why it generalises to an operator that knows nothing about
+    calibration -- and that generality is the thing worth pinning.
     """
     metric_registry.discover()
     deg_registry.discover()
@@ -500,23 +462,33 @@ def test_a_rung_the_grid_cannot_express_is_not_counted_as_a_rung():
         fields=["density"], dataset=DatasetInfo(name="synthetic"), seed=0,
     )
     rows = result.rows[result.rows["degradation"] == "translate_x"]
-    per_level = rows.groupby(["level", "severity"], observed=True)["value"].median()
-    no_ops = per_level[per_level == 0.0]
+    by_level = rows.groupby(["level"], observed=True).agg(
+        value=("value", "median"), flagged=("severity_degenerate", "max")
+    )
 
-    assert no_ops.empty, (
-        f"rung(s) {list(no_ops.index)} of translate_x reproduce the reference exactly on "
-        f"a 16-cell axis, yet the axis is reported with n_levels={len(per_level)} and its "
-        "Spearman is computed over a ladder containing an exact tie with level 0"
+    no_ops = by_level.index[by_level["value"] == 0.0].tolist()
+    assert no_ops == [5], (
+        f"expected only the 16-cell rung to be a no-op on a 16-cell axis, got {no_ops}"
+    )
+    assert bool(by_level.loc[5, "flagged"]), (
+        "the 16-cell rung reproduces the reference bit for bit but was not flagged "
+        "severity_degenerate, so its exact tie with level 0 would be scored as agreement"
+    )
+    assert not by_level.loc[[1, 2, 3, 4], "flagged"].any(), (
+        "a rung that does real damage was flagged degenerate"
+    )
+
+    # And the exclusion actually reaches the acceptance statistics.
+    axes = an.summarise_axes(result.rows, n_bootstrap=0)
+    measured = int(axes.loc[axes["degradation"] == "translate_x", "n_levels"].iloc[0])
+    assert measured == 4, (
+        f"summarise_axes reports n_levels={measured}; the flagged rung was not dropped"
     )
 
 
 # --- the report request --------------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/038: MapRequest.frames is indexed without a bounds check",
-)
 def test_a_map_frame_position_outside_the_selection_is_reported_clearly():
     """An out-of-range error-map position must name the config key, not numpy's axis 0.
 
@@ -545,11 +517,6 @@ def test_a_map_frame_position_outside_the_selection_is_reported_clearly():
 # --- the report renderers ---------------------------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issues/039: displacement_response sets a log x-scale before checking that "
-           "it has any finite data to draw",
-)
 def test_the_displacement_figure_declines_rather_than_crashes_without_damage():
     """A degenerate metric must skip the displacement figure, not error on it.
 

@@ -60,6 +60,8 @@ RESULT_DTYPES: dict[str, str] = {
     "metric": "category",
     "tracker_id": "category",
     "arity": "category",
+    "higher_is_better": "bool",      # so the analysis orients its one-sided statistics by
+                                     # the metric's own direction rather than assuming error
     # how the field was damaged
     "degradation": "category",       # the ladder-entry label: the unit of rank correlation
     "degradation_op": "category",    # the registry name behind it
@@ -167,6 +169,7 @@ def _emit(
         "metric": spec.name,
         "tracker_id": spec.tracker_id or "",
         "arity": spec.arity,
+        "higher_is_better": spec.higher_is_better,
         "degradation": rung.label,
         "degradation_op": rung.op,
         "degradation_family": rung.family,
@@ -243,7 +246,7 @@ def run(
 
     factor = coarsen_factor(trajectory.grid, analysis_resolution)
     grid_size = trajectory.grid.shape[0] // factor
-    keep_frames = {indices[i] for i in maps.frames} if maps.enabled and maps.frames else set()
+    keep_frames = _map_frames(maps, indices)
 
     expensive = [m.name for m in metrics if m.cost == "expensive"]
     if expensive and len(indices) > 500:
@@ -255,6 +258,11 @@ def run(
     calibration = _measure_calibration(
         trajectory, fields, indices, factor, remap_method, calibration_frames
     )
+
+    probe = remap_frame(trajectory.frame(int(indices[0]), fields), factor,
+                        method=remap_method)
+    rungs = _runnable_rungs(rungs, probe, fields, seed=seed, calibration=calibration,
+                            analysis_grid=grid_size)
 
     rows: list[dict[str, Any]] = []
     stored_maps: dict[str, np.ndarray] = {}
@@ -396,6 +404,83 @@ def _log_noop_rungs(df: pd.DataFrame) -> None:
                 "field unchanged, and are excluded from the acceptance statistics.",
                 field, axis, levels,
             )
+
+
+def _map_frames(maps: MapRequest, indices: np.ndarray) -> set[int]:
+    """Resolve ``report.error_map.frames`` positions to trajectory frame indices.
+
+    The positions are *within the selected frames*, so what is valid depends on
+    ``dataset.time.reduction``, ``start``/``stop`` and the trajectory length. Raising the
+    reduction shrinks the selection under a configured position, and indexing it raised
+    ``IndexError: index 7 is out of bounds for axis 0 with size 4`` -- which names neither the
+    setting that was out of range nor the one that shrank the selection. Negative positions count
+    from the end, as elsewhere in numpy, and ``-1`` is the shipped default. See issues/038.
+
+    Raises:
+        ValueError: If a position is outside the selection.
+    """
+    if not (maps.enabled and maps.frames):
+        return set()
+    n = len(indices)
+    out = set()
+    for position in maps.frames:
+        if not -n <= position < n:
+            raise ValueError(
+                f"report.error_map.frames contains {position}, which is outside the "
+                f"{n} selected frame(s). The positions are counted within the selection, so "
+                "they are bounded by dataset.time.reduction, start/stop and max_frames; "
+                f"valid values here are {-n} to {n - 1}."
+            )
+        out.add(int(indices[position]))
+    return out
+
+
+def _runnable_rungs(
+    rungs: Sequence[Rung],
+    probe: Frame,
+    fields: Sequence[str],
+    *,
+    seed: int,
+    calibration: Calibration,
+    analysis_grid: int,
+) -> list[Rung]:
+    """Drop rungs that cannot run on the analysis grid, before the frame loop starts.
+
+    ``analysis_grid.resolution`` is one of the two documented size knobs, and turning it down
+    far enough puts the configured ladder outside what the grid can support: the shipped ladder
+    coarsens by up to 16, so at resolution 8 the run used to die partway through the first frame
+    with ``ValueError: factor 16 does not divide grid (8, 8)`` -- an error naming the operator
+    but not the knob that caused it, raised after the I/O for that frame had been paid. On a long
+    trajectory that is a slow way to learn about a typo. See issues/037.
+
+    The check is a trial application on one already-remapped frame, so it needs no per-operator
+    declaration of what it can support and stays correct as operators are added. Rungs that fail
+    are dropped with a warning naming the knob, and the run proceeds on the rest: an unsupported
+    rung is one missing experiment, not a reason to discard the others.
+
+    Raises:
+        ValueError: If no rung survives, since there is then nothing to measure.
+    """
+    keep: list[Rung] = []
+    for rung in rungs:
+        try:
+            apply_rung(rung, probe, fields, seed=seed, calibration=calibration)
+        except Exception as exc:  # noqa: BLE001 - any failure means the rung cannot run here
+            log.warning(
+                "dropping %s level %d (%s = %g): it cannot run on the %d-cell analysis grid "
+                "(%s). Raise analysis_grid.resolution or lower this severity.",
+                rung.label, rung.level, rung.severity_name, rung.severity,
+                analysis_grid, exc,
+            )
+            continue
+        keep.append(rung)
+
+    if not keep:
+        raise ValueError(
+            f"no ladder rung can run on the {analysis_grid}-cell analysis grid; every "
+            "configured severity was rejected. Raise analysis_grid.resolution."
+        )
+    return keep
 
 
 def _measure_calibration(

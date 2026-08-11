@@ -128,12 +128,28 @@ def h_minus_one(reference, candidate, *, ctx):
 field. Both receive `(C, *spatial)` float64 arrays. The decorator checks the positional
 argument count against the declared arity and raises at import time if they disagree.
 
-A single-field metric will be reported as `no dynamic range` with `rho = -1`, and **that is
-correct, not a bug you should try to fix**. The normalised damage scale is anchored between the
-reference and a *translated* copy of it, which has identical statistics — so a single-field
-quantity takes the same value at both anchors and the span is zero. `rho = -1` follows because
-smoothing reduces such quantities rather than increasing them. If you find yourself
-"fixing" this, stop: you would be removing a true statement.
+A single-field metric will be reported as `no dynamic range`, and **that is correct, not a bug you
+should try to fix**. The normalised damage scale is anchored between the reference and a
+*translated* copy of it, which has identical statistics — so a single-field quantity takes the same
+value at both anchors and the span is zero. On a smoothing axis you will also see `rho = -1`,
+because smoothing reduces such quantities rather than increasing them. If you find yourself
+"fixing" either, stop: you would be removing a true statement.
+
+On an axis the quantity is *invariant* to — a translation, for a quantity that does not depend on
+position — `rho` is reported as **NaN**, not as a number. It used to be a number: `np.roll` cannot
+change enstrophy but it does change the summation order inside `np.mean`, so the rungs differed in
+the last bits, in an arbitrary order, and ranking that produced a confident-looking 0.707 printed
+beside genuine correlations. Anything whose variation across an axis is below a relative
+`analysis.DEGENERATE_SPAN` is now withheld rather than reported. The same applies to the damage
+column when the anchor itself is round-off (issue 032) and to the sensitivity and saturation levels
+when the span is (issue 033).
+
+**Declare `higher_is_better` correctly, because it is now read.** Four statistics are one-sided —
+monotonicity asks whether the value rises, the separability AUC is taken with
+`alternative="greater"`, and the two threshold levels look for the first median to exceed a target.
+The analysis multiplies the value by the declared direction before computing them, so `rho = +1`
+means "responds correctly to damage" whichever convention you use. Declare it wrong and all four
+invert; the symptom is a clean `-1` on every axis at once.
 
 **`ctx` is opt-in.** Declare a keyword-only parameter named `ctx` and you receive a
 `FieldContext` with the grid (spacing, periodicity, dimension names), the frame index, the
@@ -555,6 +571,10 @@ listed so nobody has to rediscover them.
 | **Trusting the dev dataset physically** | It is the first 100 solver steps, before the flow develops. A 16-cell translation costs 1e-4 of what an unrelated field costs, against 0.51 at t=5000 | `configs/dataset/kinet_re5e4_dev.yaml` |
 | **`git push` hanging** | X11 forwarding is attempted and stalls. Use `GIT_SSH_COMMAND="ssh -x" git push` | — |
 | **`import kinet`** | Pulls in `mpi4py`, which cannot load libmpi on a login node. The spectral diagnostics are vendored instead | `fmeval/external/kinet_spectral.py` |
+| **Two definitions of `\|k\|`** | The filters compared a continuous magnitude, the calibration binned into shells of `rint(\|k\|)`, so the diagonal modes fell on opposite sides of one cutoff. On density a low-pass asked to remove 30% removed 99.997% | `fmeval/wavenumbers.py` |
+| **Ranking values that differ only in the last bits** | `np.roll` cannot change a translation-invariant quantity but does change the summation order in `np.mean`. The reported `rho` was 0.707 over a relative 1.6e-16 | `analysis.py::_is_round_off` |
+| **A median as the scale in a degeneracy guard** | When most rungs are round-off the median collapses with them, so the guard compares noise against noise and passes — defeated in exactly the case it exists for. Use the largest value | `analysis.py::normalisation` |
+| **Assuming every metric rises with damage** | Three one-sided statistics scored a perfectly ordered similarity metric at `monotone_fraction = 0`, `AUC = 0`, `rho = -1`, flagging a correct metric on three criteria | `analysis.py::response_direction` |
 
 Two interpretive traps, which are not bugs but produce wrong conclusions:
 

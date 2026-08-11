@@ -295,8 +295,17 @@ def _section_prose(key: str, ctx: ReportContext) -> str:
 
     if key == "reliability" and not ctx.axes.empty:
         ordinal = ctx.axes[~ctx.axes["is_probe"]]
+        ordinal = ordinal[ordinal["rho"].notna()]
         if ordinal.empty:
-            return ""
+            # Every ordinal axis has an undefined correlation. That is what a metric invariant
+            # to the whole ladder produces, and it is a documented-correct configuration rather
+            # than an error, so the section says so instead of taking down the report.
+            return (
+                "Rank correlation is undefined on every ladder axis: the metric's value does "
+                "not vary across the rungs by more than floating-point round-off. For a "
+                "single-field invariant measured against operators that preserve it, that is "
+                "the correct result rather than a defect."
+            )
         best = ordinal.loc[ordinal["rho"].idxmax()]
         worst = ordinal.loc[ordinal["rho"].idxmin()]
         return (

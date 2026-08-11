@@ -462,6 +462,32 @@ share one operator and one family. The family is used only for colour and groupi
 **actually applied** and `severity_name` says what it means (sigma, cutoff, distance);
 `variant_label` is the stable identifier used in filenames.
 
+### `higher_is_better`
+
+**What it is.** The metric's declared direction: `True` when a larger value means a *better*
+match, `False` for an error measure where larger is worse. Copied onto every row from the metric's
+registration, and repeated in the per-axis table so a reader can see which convention a row was
+read under.
+
+**Why we report it.** Three of the ordering statistics are one-sided — monotonicity asks whether
+the value *rises*, the separability AUC is taken with `alternative="greater"`, and the sensitivity
+and saturation levels look for the first median to *exceed* a target. Applied blind they assume
+every metric is an error measure, so a metric where larger is better arrives flagged on three
+criteria at once while behaving perfectly. Measured on an axis falling cleanly from 1.0 to 0.2:
+`rho` −1.0, `monotone_fraction` 0.0, `separability_auc_min` 0.0. Every one of those trips a
+configured threshold. The analysis now multiplies the value by the declared direction before
+computing those four, so **`rho` = +1 always means "responds correctly to damage"** whichever
+convention the metric uses.
+
+**Caveats.** The declaration is trusted, not verified — a metric that declares the wrong direction
+will have all four statistics inverted, and the symptom is a clean −1 correlation on every axis.
+When a run does not record the column (an older result folder), the direction is instead measured
+from the anchor, which is as bad as a field can look by construction: an anchor below the clean
+value means larger is better. That inference is unavailable when the anchor is degenerate, and the
+direction then defaults to "larger is worse".
+
+**Where it appears.** A column in `results.csv` and in the per-axis table.
+
 ### `severity_nominal`, `calibration`
 
 Some severities are written in the config as a *relative* quantity and converted to an absolute

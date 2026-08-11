@@ -21,6 +21,7 @@ declaration. It is a separate probe, not a rung.
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
@@ -43,6 +44,24 @@ SENSITIVITY_FRACTION: float = 0.10
 
 #: Fraction of the uncorrelated limit at which a metric counts as saturated.
 SATURATION_FRACTION: float = 0.90
+
+#: Relative size below which a quantity counts as round-off rather than signal, measured
+#: against the largest value in the same group.
+#:
+#: Two things use it. The damage score needs its ``clean``-to-``uncorrelated`` span to be a
+#: real span, and a metric invariant to the operator the anchor is built from has no span at
+#: all -- most of the position-tolerant family this project exists to develop is invariant to
+#: translation, which is how the anchor is constructed. The rank correlation needs the values
+#: it is ranking to differ by more than the last few bits, and ``np.roll`` changes the
+#: summation order inside ``np.mean`` even when it cannot change the quantity, which was
+#: enough to produce a reported ``rho`` of 0.707 on an axis whose values spanned a relative
+#: 1.6e-16. Both are round-off presented as measurement. See issues/032 and issues/033.
+#:
+#: 1e-9 rather than something nearer the float64 epsilon: accumulated round-off over a 256^2
+#: reduction is several orders of magnitude above 2.2e-16, while the mildest rung that does
+#: real work on this data moves the value by 1e-4 of its range. Nothing measured falls in the
+#: gap between.
+DEGENERATE_SPAN: float = 1e-9
 
 
 # --- normalisation --------------------------------------------------------------------
@@ -83,7 +102,16 @@ def normalisation(df: pd.DataFrame,
             else float("nan")
         high, source = _uncorrelated_anchor(g, uncorrelated_label)
         span = high - clean
-        scale = float(np.nanmedian(np.abs(g["value"]))) or 1.0
+        # The scale is the LARGEST value anywhere in the group, not the median. The median is
+        # defeated in exactly the case this guard exists for: a metric invariant to the
+        # operator the anchor is built from returns round-off on the anchor, on the impostor
+        # and on every translation rung, so more than half the rows are round-off and the
+        # median collapses to round-off with them -- the guard then compares noise against
+        # noise and passes. Measured with a spectral metric of the BD-1 shape on the real
+        # trajectory: the anchor was 1.5e-16 against a genuine blur response of 3.5e-1, and
+        # the impostor was reported at damage 1.17, which reads as "worse than two unrelated
+        # fields" for a metric that cannot separate any of them. See issues/032.
+        scale = float(np.nanmax(np.abs(g["value"].to_numpy()))) or 1.0
         rows.append(
             {
                 "dataset": dataset,
@@ -93,7 +121,7 @@ def normalisation(df: pd.DataFrame,
                 "value_uncorrelated": high,
                 "span": span,
                 "anchor_source": source,
-                "degenerate": not np.isfinite(span) or abs(span) < 1e-12 * scale,
+                "degenerate": not np.isfinite(span) or abs(span) < DEGENERATE_SPAN * scale,
             }
         )
     return pd.DataFrame(rows)
@@ -132,6 +160,51 @@ def add_damage(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
     return out.drop(columns=["value_clean", "span", "degenerate"])
 
 
+def response_direction(df: pd.DataFrame,
+                       norm: pd.DataFrame | None = None) -> dict[tuple, int]:
+    """Which way each metric's value moves as damage rises: ``+1`` up, ``-1`` down.
+
+    Three of the ordering statistics below are one-sided -- monotonicity requires a rising
+    difference, the Mann-Whitney AUC is taken with ``alternative="greater"``, and the
+    threshold levels look for the first median to exceed a target. Applied blind they assume
+    every metric is an error measure. A metric where larger means a better match then arrives
+    in the report card flagged on three criteria at once while being perfectly well behaved:
+    measured on an axis falling cleanly from 1.0 to 0.2, ``rho = -1.0``,
+    ``monotone_fraction = 0.0`` and ``separability_auc_min = 0.0``. That shape is not
+    hypothetical -- it is any correlation, SSIM or skill score, and PS-2/PS-3 when they
+    arrive. See issues/035.
+
+    The direction is taken from the metric's own declaration where the run recorded one, and
+    otherwise measured: the ``uncorrelated`` anchor is by construction as bad as a field can
+    look, so an anchor below the clean value means larger is better. Measuring is the fallback
+    rather than the primary source because the anchor is empty for a metric invariant to the
+    translation it is built from, which is the subject of issues/032.
+
+    Returns:
+        ``{(dataset, metric, field): +1 or -1}``. Missing keys mean ``+1``.
+    """
+    keys = ["dataset", "metric", "field"]
+    out: dict[tuple, int] = {}
+
+    if "higher_is_better" in df.columns:
+        declared = df.groupby(keys, observed=True)["higher_is_better"].agg(
+            lambda s: bool(s.iloc[0])
+        )
+        for key, higher in declared.items():
+            out[key] = -1 if higher else 1
+
+    anchors = norm if norm is not None else normalisation(df)
+    for _, row in anchors.iterrows():
+        key = (row["dataset"], row["metric"], row["field"])
+        if key in out:
+            continue                      # a declaration outranks an inference
+        clean, high = row["value_clean"], row["value_uncorrelated"]
+        if row["degenerate"] or not (np.isfinite(clean) and np.isfinite(high)):
+            continue                      # no usable anchor: leave it at the default
+        out[key] = -1 if high < clean else 1
+    return out
+
+
 # --- per-axis criteria ------------------------------------------------------------------
 
 
@@ -154,6 +227,7 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
     """
     rng = np.random.default_rng(seed)
     reference = df[df["level"] == 0]
+    directions = response_direction(df, norm)
     spans = (
         norm.set_index(["dataset", "metric", "field"])["span"].to_dict()
         if norm is not None else {}
@@ -182,6 +256,11 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
         levels = g["level"].to_numpy()
         values = g["value"].to_numpy()
         is_probe = axis in PROBE_LABELS
+        # Every ordering statistic below is computed on the value multiplied by this sign, so
+        # "rises with damage" holds by construction and the four of them need no direction
+        # argument. The reported values stay in the metric's own units.
+        sign = directions.get((dataset, metric, field), 1)
+        oriented = g.assign(value=sign * g["value"])
         clean = float(
             reference[
                 (reference["dataset"] == dataset)
@@ -206,6 +285,7 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
             "value_min": float(values.min()),
             "value_max": float(values.max()),
             "cost_s": float(g["wall_time_s"].mean()),
+            "higher_is_better": sign < 0,
         }
 
         if is_probe or g["level"].nunique() < 2:
@@ -216,26 +296,48 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
                 sensitivity_level=np.nan, saturation_level=np.nan,
             )
         else:
-            per_frame = _per_frame_rho(g)
-            lo, hi = _block_bootstrap_rho(g, rng, block_length, n_bootstrap)
+            per_frame = _per_frame_rho(oriented)
+            lo, hi = _block_bootstrap_rho(oriented, rng, block_length, n_bootstrap)
+            # An all-NaN per-frame correlation is a documented outcome, not a surprise: it is
+            # what a metric invariant to this axis produces once the round-off guard has done
+            # its job. Suppressed here so it does not read as a numerical accident.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                rho_median = float(np.nanmedian(per_frame)) if len(per_frame) else np.nan
+                rho_worst = float(np.nanmin(per_frame)) if len(per_frame) else np.nan
             record.update(
-                rho=float(np.nanmedian(per_frame)) if len(per_frame) else np.nan,
-                rho_frame_min=float(np.nanmin(per_frame)) if len(per_frame) else np.nan,
-                rho_pooled=float(spearmanr(levels, values).statistic),
+                rho=rho_median,
+                rho_frame_min=rho_worst,
+                rho_pooled=(
+                    np.nan if _is_round_off(values)
+                    else float(sign * spearmanr(levels, values).statistic)
+                ),
                 rho_ci_lo=lo,
                 rho_ci_hi=hi,
-                monotone_fraction=_monotone_fraction(g),
-                separability_auc_min=_min_adjacent_auc(g),
+                monotone_fraction=_monotone_fraction(oriented),
+                separability_auc_min=_min_adjacent_auc(oriented),
                 sensitivity_level=_threshold_level(
-                    g, clean, SENSITIVITY_FRACTION, spans.get((dataset, metric, field))),
+                    oriented, sign * clean, SENSITIVITY_FRACTION,
+                    _signed(spans.get((dataset, metric, field)), sign)),
                 saturation_level=_threshold_level(
-                    g, clean, SATURATION_FRACTION, spans.get((dataset, metric, field))),
+                    oriented, sign * clean, SATURATION_FRACTION,
+                    _signed(spans.get((dataset, metric, field)), sign)),
             )
         if "damage" in g.columns:
-            record["damage_max"] = float(np.nanmax(g["damage"].to_numpy()))
+            damage = g["damage"].to_numpy()
+            # All-NaN whenever the anchor is degenerate, which is the documented outcome for a
+            # metric that cannot tell the unrelated field from the reference.
+            record["damage_max"] = (
+                float(np.nanmax(damage)) if np.isfinite(damage).any() else np.nan
+            )
         rows.append(record)
 
     return pd.DataFrame(rows)
+
+
+def _signed(span: float | None, sign: int) -> float | None:
+    """Orient a shared span, so a threshold on oriented values uses an oriented target."""
+    return None if span is None else sign * span
 
 
 def _per_frame_rho(g: pd.DataFrame) -> np.ndarray:
@@ -254,8 +356,33 @@ def _per_frame_rho(g: pd.DataFrame) -> np.ndarray:
     for _, sub in g.groupby("frame_index", observed=True):
         if sub["level"].nunique() < 2:
             continue
+        if _is_round_off(sub["value"].to_numpy()):
+            out.append(np.nan)
+            continue
         out.append(spearmanr(sub["level"], sub["value"]).statistic)
     return np.asarray(out, dtype=float)
+
+
+def _is_round_off(values: np.ndarray) -> bool:
+    """Whether a set of values differs by no more than floating-point noise.
+
+    A rank correlation is defined for any values that are not exactly tied, and float64
+    arithmetic almost never ties exactly: ``np.roll`` cannot change a translation-invariant
+    quantity, but it does change the summation order inside ``np.mean``, so the rungs come out
+    differing in the last bits and in an arbitrary order. Ranking that gives a number.
+
+    Reproduced end to end -- ``evaluate.py metrics=[enstrophy]`` with a translation-only ladder
+    reported ``rho_min = 0.707`` on ``translate_x`` from values spanning a relative 1.6e-16,
+    printed in the monotonicity heatmap beside genuine correlations and indistinguishable from
+    them. See issues/033.
+    """
+    finite = values[np.isfinite(values)]
+    if len(finite) < 2:
+        return True
+    scale = float(np.max(np.abs(finite)))
+    if scale == 0.0:
+        return True          # every value is exactly zero: no ordering to measure
+    return bool(float(np.ptp(finite)) < DEGENERATE_SPAN * scale)
 
 
 def _monotone_fraction(g: pd.DataFrame) -> float:
@@ -305,6 +432,14 @@ def _threshold_level(g: pd.DataFrame, clean: float, fraction: float,
     """
     medians = g.groupby("level", observed=True)["value"].median().sort_index()
     if medians.empty:
+        return float("nan")
+    if _is_round_off(medians.to_numpy()):
+        # The level at which a metric "first departs from clean" is not defined when it never
+        # departs. Without this the answer is always rung 1, because any target built from a
+        # round-off span is cleared by round-off: measured on enstrophy against a
+        # translation-only ladder, both the sensitivity and saturation levels read 1.0 for a
+        # quantity translation cannot change at all. Same principle as the rank-correlation
+        # guard; see issues/033.
         return float("nan")
     span = shared_span if shared_span is not None else float(medians.iloc[-1]) - clean
     if span is None or not np.isfinite(span) or span == 0:
@@ -415,7 +550,6 @@ def report_card(axes: pd.DataFrame, probes: pd.DataFrame,
                 rho_min=("rho", "min"),
                 rho_median=("rho", "median"),
                 rho_pooled_min=("rho_pooled", "min"),
-                rho_min_axis=("rho", lambda s: s.idxmin()),
                 separability_auc_min=("separability_auc_min", "min"),
                 monotone_fraction_min=("monotone_fraction", "min"),
                 sensitivity_level_median=("sensitivity_level", "median"),
@@ -424,10 +558,20 @@ def report_card(axes: pd.DataFrame, probes: pd.DataFrame,
             )
             .reset_index()
         )
-        worst = ordinal.loc[
-            ordinal.groupby(keys, observed=True)["rho"].idxmin().dropna()
-        ][[*keys, "degradation"]].rename(columns={"degradation": "worst_axis"})
-        base = base.drop(columns=["rho_min_axis"]).merge(worst, on=keys, how="left")
+        # ``idxmin`` raises on an all-NA group rather than returning NA, and a group is
+        # all-NA whenever a metric is exactly invariant to every ordinal operator in the
+        # ladder -- a single-field invariant against a translation-only ladder, say. That is a
+        # legitimate configuration which AGENTS.md explicitly calls correct, and it used to
+        # take down the whole report with a pandas message naming nothing in this codebase,
+        # after the expensive evaluation had already been paid for. See issues/034.
+        rho_defined = ordinal[ordinal["rho"].notna()]
+        if rho_defined.empty:
+            base["worst_axis"] = pd.NA
+        else:
+            worst = rho_defined.loc[
+                rho_defined.groupby(keys, observed=True)["rho"].idxmin()
+            ][[*keys, "degradation"]].rename(columns={"degradation": "worst_axis"})
+            base = base.merge(worst, on=keys, how="left")
 
     for extra in (probes, norm[[*keys, "value_clean", "value_uncorrelated", "span",
                                 "anchor_source", "degenerate"]]):
