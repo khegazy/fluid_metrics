@@ -2,7 +2,7 @@
 
 **Category:** method
 **Priority:** high
-**Status:** open
+**Status:** fixed 2026-08-11 (`create_harness`)
 
 ## The problem in one sentence
 
@@ -111,6 +111,81 @@ saturation, so the two are best looked at together.
 On both density and vorticity, every spectral and smoothing axis shows a monotone ladder in MSE
 with adjacent-rung separability above 0.8 and a damage range spanning at least a factor of five,
 without hand-tuning the config per field. The resolved severities appear in `results.csv`.
+
+## What was done, and what it measured
+
+Severities on those axes are now **relative**, and the pipeline resolves them per field against a
+spectrum it measures from the data (`fmeval/calibration.py`). Smoothing widths are a fraction of
+the field's characteristic scale; filter cutoffs are the fraction of fluctuation energy the filter
+removes, with the operator declaring which side of the cutoff it removes. Both the nominal and the
+resolved absolute severity are on every row, the measurement is written to `data/calibration.csv`,
+and it is measured once per (field, analysis grid) rather than per frame — re-measuring per frame
+would make the ladder drift as the flow evolves and the per-frame rank correlation would then be
+comparing different ladders.
+
+Measured on 15 frames of the production trajectory from t = 5000, on density and vorticity:
+
+| axis | vorticity: rungs, damage range | density: rungs, damage range |
+|---|---|---|
+| `gaussian_blur` | 4, 62x | 4, 617x |
+| `box_blur` | 4, 24x | 4, 265x |
+| `median_blur` | 3, 27x | 3, 82x |
+| `lowpass_ideal` | 4, 10x | 3, 17x |
+| `lowpass_butterworth` | 4, 11x | 4, 14x |
+| `highpass_ideal` | 4, 3.4x | 2, 1.1x |
+| `highpass_butterworth` | 4, 3.1x | 2, 1.1x |
+
+Every one of these is monotone in MSE with a per-frame Spearman of exactly 1.0 and a monotone
+fraction of 1.0, on both fields, from one config that names no field. The old behaviour it
+replaces: the blur axis reached 1.2% of the unrelated-field level on density and carried no signal,
+and the high-pass cutoffs saturated by the second rung there so two of four rungs were the same
+experiment.
+
+**Three problems surfaced only once this was measured, and each was a real defect:**
+
+1. **The low-pass mapping was inverted.** "Fraction removed" was fed to a function returning "the
+   wavenumber below which that fraction lies", so a request to remove 5% resolved to k = 1 and
+   removed 95%. Damage then *fell* with severity. The two sides are now separate declarations
+   (`energy_above` / `energy_below`) precisely because getting this wrong leaves every number
+   plausible.
+2. **Even-width rounding was displacing the field.** A calibrated width of 3.2 cells rounds to an
+   even window, which has no centre cell and is therefore placed asymmetrically — a half-cell
+   shift. On a project whose central concern is that metrics over-punish displacement, that
+   dominated: vorticity damage ran 0.0121, 0.0041, 0.0338, 0.0880, non-monotone. The windowed
+   kernels now round to odd widths.
+3. **A rung can resolve to something that is not an experiment.** Either it lands on the same
+   quantised severity as a milder rung, or it lands where the operator does nothing at all. Both
+   are now detected, recorded per row as `severity_degenerate`, excluded from the statistics, and
+   named in the run log. Left uncounted they do not merely pad the ladder: a repeat makes the rank
+   correlation score a tie as agreement and makes separability compare a distribution against
+   itself, and a no-op contributes an exactly-zero damage that made one axis appear to span eleven
+   orders of magnitude.
+
+## Two limits that calibration does not remove
+
+**Sharp filters cannot resolve four rungs on density.** 69% of its fluctuation energy is in the
+single shell k = 1 and 94% is below k = 3, so there are about three usable shells. A cutoff ladder
+on density has at most about two or three distinct rungs however the config is written; the
+Butterworth pair rolls off smoothly and does resolve four, which is a second reason to keep both
+rather than treating the smooth filter only as a ringing control.
+
+**The high-pass axis does not reach the factor-five damage range, on either field.** It is squeezed
+from both sides: below the k = 1 floor the filter passes every mode and the rung is a no-op, and
+above it the damage is already most of the way to an unrelated field. The configured window is the
+widest measured — 3.4x on vorticity, two usable rungs on density. This is a property of these
+fields' bottom-heavy spectra, not of the severity list, and a field with more energy at high
+wavenumbers would not have it. **So the acceptance criterion above is met on every axis except
+high-pass, where it is not achievable on this data.** Recorded here rather than quietly narrowing
+the criterion.
+
+One cost worth knowing: because the calibration is measured from the frames actually evaluated,
+changing `dataset.time.reduction` moves the resolved severities by about 5e-6 relative. Runs at
+different reductions were already not directly comparable, so this adds no new restriction, but it
+does mean the exact reduction-invariance the seeding gives is not available on a calibrated axis.
+
+Also surfaced: `scale_spread` for vorticity on this trajectory is 21–33% depending on the span,
+above the 0.25 warning threshold. A single calibration is genuinely questionable for that field
+over a long window, and the run now says so instead of averaging over it silently.
 
 ## Related
 

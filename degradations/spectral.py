@@ -9,6 +9,15 @@ ideal filters ring -- Gibbs oscillations near sharp features -- and the Butterwo
 the ringing-free control. The contrast is itself informative for a project whose central
 object is a sharp feature.
 
+**Severities are the fraction of fluctuation energy removed, not a wavenumber.** Both
+directions therefore mean the same thing and rise with damage, and the same config number
+lands in the same relative place on every field. A wavenumber cannot: measured, 99% of the
+density fluctuation energy sits below k = 6 against k = 63 for vorticity, so the previously
+configured cutoffs [2, 4, 8, 16] removed 0.278/0.475/0.684/0.811 of vorticity energy -- a good
+spread -- but 0.697/0.947/0.997/1.000 of density energy, saturating at the second rung so two
+of the four were the same experiment run twice. The ladder resolves the fraction to a cutoff
+per field against the measured spectrum; the resolved wavenumber is recorded on every row.
+
 Note these operators applied per channel to a velocity field break the divergence
 constraint. At Ma = 0.1 that is acceptable and arguably makes the probe harder; isolating
 the effect needs a Leray projection, which kinet does not provide and which is therefore
@@ -50,15 +59,20 @@ def _apply_filter(x: np.ndarray, transfer: np.ndarray,
 
 @degradation(
     family="spectral",
-    severity_name="cutoff",
-    severity_units="wavenumber",
-    severity_direction="decreasing",  # a LOWER cutoff removes more
+    severity_name="energy removed",
+    severity_units="fraction",
+    severity_direction="increasing",
+    calibration="energy_above",
+    quantise=round,          # a sharp cutoff acts on whole wavenumber shells
 )
 def lowpass_ideal(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
-    """Sharp low-pass: zero every mode with |k| > cutoff.
+    """Sharp low-pass: zero every mode above the cutoff, removing the small scales.
 
     Rings near sharp features (Gibbs). Compare against `lowpass_butterworth` to separate
     "lost small scales" from "gained ringing".
+
+    ``severity`` reaches this function already resolved to a cutoff wavenumber by the ladder,
+    from the requested fraction of energy to remove.
     """
     k = _wavenumber_magnitude(ctx.grid.shape)
     return _apply_filter(x, (k <= severity).astype(float))
@@ -66,9 +80,10 @@ def lowpass_ideal(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
 
 @degradation(
     family="spectral",
-    severity_name="cutoff",
-    severity_units="wavenumber",
-    severity_direction="decreasing",
+    severity_name="energy removed",
+    severity_units="fraction",
+    severity_direction="increasing",
+    calibration="energy_above",
     defaults={"order": 4},
 )
 def lowpass_butterworth(x: np.ndarray, severity: float, *, ctx, order: int = 4) -> np.ndarray:
@@ -81,9 +96,11 @@ def lowpass_butterworth(x: np.ndarray, severity: float, *, ctx, order: int = 4) 
 
 @degradation(
     family="spectral",
-    severity_name="cutoff",
-    severity_units="wavenumber",
-    severity_direction="increasing",  # a HIGHER cutoff removes more
+    severity_name="energy removed",
+    severity_units="fraction",
+    severity_direction="increasing",
+    calibration="energy_below",
+    quantise=round,          # a sharp cutoff acts on whole wavenumber shells
 )
 def highpass_ideal(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Sharp high-pass: zero every mode with |k| < cutoff, keeping the spatial mean.
@@ -105,9 +122,10 @@ def highpass_ideal(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
 
 @degradation(
     family="spectral",
-    severity_name="cutoff",
-    severity_units="wavenumber",
+    severity_name="energy removed",
+    severity_units="fraction",
     severity_direction="increasing",
+    calibration="energy_below",
     defaults={"order": 4},
 )
 def highpass_butterworth(

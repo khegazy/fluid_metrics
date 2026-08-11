@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import hydra
+import pandas as pd
 from omegaconf import DictConfig, OmegaConf
 
 from degradations import registry as deg_registry
@@ -197,12 +198,18 @@ def main(cfg: DictConfig) -> None:
         result.metric_seconds,
     )
 
+    # The severity calibration is part of a run's identity: a calibrated axis means nothing
+    # without the measured field properties it was resolved against, and two datasets are only
+    # comparable on such an axis if their calibrations are recorded alongside the numbers.
+    calibration_table = pd.DataFrame(result.calibration.summary())
+
     overrides = _overrides()
     written = []
     for spec in specs:
         subset = result.rows[result.rows["metric"] == spec.name]
         folder = fio.make_run_folder(cfg.paths.results, spec.name, stamp)
         fio.write_results(folder, subset)
+        fio.write_table(folder, calibration_table, "calibration")
         digest = fio.write_config(folder, cfg, overrides)
         prefix = f"{spec.name}:"
         fio.write_maps(
@@ -239,6 +246,7 @@ def main(cfg: DictConfig) -> None:
     if len(specs) > 1:
         folder = fio.make_run_folder(cfg.paths.results, "comparison", stamp)
         fio.write_results(folder, result.rows)
+        fio.write_table(folder, calibration_table, "calibration")
         digest = fio.write_config(folder, cfg, overrides)
         fio.write_maps(folder, result.maps)
         fio.copy_documentation(folder)

@@ -41,6 +41,24 @@ import numpy as np
 
 Direction = Literal["increasing", "decreasing"]
 
+#: What an operator's severity is expressed relative to. ``None`` means absolute units.
+#:
+#: ``"energy_above"`` / ``"energy_below"`` -- the severity is the fraction of the field's
+#: fluctuation energy the operator destroys, resolved to a cutoff wavenumber against the
+#: measured spectrum. The two differ by which side of the cutoff is removed: a low-pass removes
+#: what lies *above* it, a high-pass what lies *below*. Declaring the wrong one silently
+#: inverts the axis, which is why it is the operator's business to say and not the ladder's to
+#: guess: with the sides swapped, "remove 5% of the energy" resolves to the wavenumber holding
+#: 5% of it and removes 95% instead.
+#: ``"scale"`` -- the severity is a fraction of the field's characteristic scale, resolved to a
+#: length in cells.
+#:
+#: Absolute units are right where the number is already field-independent (a coarsening factor,
+#: a displacement in cells) or already relative to something measured (noise as a fraction of
+#: the fluctuation RMS). They are wrong for a wavenumber or a smoothing width, because those
+#: land in completely different places depending on where the field keeps its energy.
+Calibration = Literal["energy_above", "energy_below", "scale"]
+
 #: Coarse grouping, used for plot colour and for the "worst axis" summary. NOT the unit of
 #: rank correlation -- that is the ladder entry, since `gaussian_blur` and `median_blur`
 #: are separate ordinal axes even though both are `smoothing`.
@@ -65,6 +83,8 @@ class DegradationSpec:
     severity_name: str
     severity_units: str
     severity_direction: Direction
+    calibration: Calibration | None
+    quantise: Callable[[float], float] | None
     ordinal: bool
     stochastic: bool
     fields: tuple[str, ...]
@@ -73,6 +93,18 @@ class DegradationSpec:
     module: str
     takes_ctx: bool
     defaults: dict[str, Any] = dc_field(default_factory=dict)
+
+    def quantise_severity(self, severity: float) -> float:
+        """The severity the operator effectively acts on, after its own rounding.
+
+        Two nominal severities that quantise to the same value are the same experiment. Sharp
+        spectral filters act on whole wavenumber shells and windowed kernels on an odd number of
+        cells, so both quantise coarsely; a Gaussian and a Fourier phase shift do not quantise at
+        all and return the value unchanged.
+        """
+        if self.quantise is None:
+            return float(severity)
+        return float(self.quantise(severity))
 
     def sort_severities(self, severities: Sequence[float]) -> list[float]:
         """Order a severity list by increasing damage.
@@ -95,6 +127,8 @@ def degradation(
     severity_name: str = "severity",
     severity_units: str = "",
     severity_direction: Direction = "increasing",
+    calibration: Calibration | None = None,
+    quantise: Callable[[float], float] | None = None,
     ordinal: bool = True,
     stochastic: bool = False,
     fields: Sequence[str] = ("*",),
@@ -110,7 +144,14 @@ def degradation(
             Used as the axis label wherever the ladder is plotted.
         severity_units: e.g. ``"cells"``, ``"wavenumber"``, ``"fraction of rms"``.
         severity_direction: ``"increasing"`` if larger severity means more damage,
-            ``"decreasing"`` if smaller does (a low-pass cutoff).
+            ``"decreasing"`` if smaller does.
+        quantise: How the operator rounds its severity internally, if it does -- an integer
+            wavenumber shell, an odd window width. Used to detect rungs that resolve to the same
+            experiment on a given field. None means the operator uses the severity as given.
+        calibration: What the severity is relative to, or None for absolute units. See
+            :data:`Calibration`. A calibrated severity is resolved per field against a
+            measured spectrum, so the same config number means the same thing on a smooth
+            field and a broadband one.
         ordinal: Whether this operator participates in monotonicity and Spearman. False
             for the IN-4 canary.
         stochastic: Whether to redraw the RNG per frame. A frozen noise field would be a
@@ -153,6 +194,8 @@ def degradation(
             severity_name=severity_name,
             severity_units=severity_units,
             severity_direction=severity_direction,
+            calibration=calibration,
+            quantise=quantise,
             ordinal=ordinal,
             stochastic=stochastic,
             fields=tuple(fields),
@@ -224,6 +267,7 @@ def _main() -> None:
             s.family,
             f"{s.severity_name} [{s.severity_units}]" if s.severity_units
             else s.severity_name,
+            s.calibration or "absolute",
             s.severity_direction,
             "yes" if s.ordinal else "NO (canary)",
             "yes" if s.stochastic else "-",
@@ -231,7 +275,8 @@ def _main() -> None:
         )
         for s in sorted(REGISTRY.values(), key=lambda s: (s.family, s.name))
     ]
-    head = ("degradation", "family", "severity", "direction", "ordinal", "stoch", "fields")
+    head = ("degradation", "family", "severity", "relative to", "direction", "ordinal",
+            "stoch", "fields")
     widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(head)]
     line = "  ".join(h.ljust(w) for h, w in zip(head, widths))
     print(line)

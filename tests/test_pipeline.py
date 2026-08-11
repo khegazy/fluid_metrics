@@ -136,13 +136,33 @@ def test_results_are_reproducible(traj):
 
 def test_reduction_does_not_change_per_frame_values(traj):
     """Seeding from content, not call order: a frame's numbers must not depend on
-    which other frames were selected."""
+    which other frames were selected.
+
+    The guarantee is exact on an uncalibrated axis and only approximate on a calibrated one.
+    A calibrated severity is resolved against a spectrum measured from the frames actually
+    evaluated, so striding the selection samples a slightly different set of frames and moves
+    the resolved cutoffs and widths a little. Measured here, that is a relative shift of about
+    5e-6 -- far above float noise and far below anything a metric comparison would notice. It
+    is a real cost of calibration, and it is consistent with the existing rule that two runs at
+    different reductions are not directly comparable; if it ever needs to be exact, the
+    calibration has to be pinned in config rather than measured.
+    """
     full = evaluate(traj, selection=TimeSelection(start=1)).rows
     strided = evaluate(traj, selection=TimeSelection(start=1, reduction=2)).rows
     key = ["metric", "field", "variant_label", "frame_index"]
     merged = full.merge(strided, on=key, suffixes=("_full", "_red"))
     assert len(merged) > 0
-    np.testing.assert_allclose(merged["value_full"], merged["value_red"], rtol=1e-12)
+
+    calibrated = merged["calibration_full"].astype(str).ne("")
+    np.testing.assert_allclose(
+        merged.loc[~calibrated, "value_full"], merged.loc[~calibrated, "value_red"],
+        rtol=1e-12, err_msg="an uncalibrated axis must be bitwise reproducible",
+    )
+    assert calibrated.any(), "no calibrated axis in the fixture ladder; this test is vacuous"
+    np.testing.assert_allclose(
+        merged.loc[calibrated, "value_full"], merged.loc[calibrated, "value_red"],
+        rtol=1e-3, err_msg="calibration drift between reductions is larger than expected",
+    )
 
 
 def test_empty_selection_raises(traj):

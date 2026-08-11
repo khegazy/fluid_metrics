@@ -13,20 +13,54 @@ skip: []                  # dropped after `only`
 
 ladder:
   # --- kernel smoothing ---------------------------------------------------------
-  gaussian_blur:       {enabled: true, severities: [0.5, 1.0, 2.0, 4.0, 8.0]}
-  box_blur:            {enabled: true, severities: [3, 5, 9, 17]}
-  median_blur:         {enabled: true, severities: [3, 5, 9, 15]}
-  disk_blur:           {severities: [2, 4, 8, 16], enabled: false}
-  epanechnikov_blur:   {severities: [2, 4, 8, 16], enabled: false}
+  # Severities are a FRACTION OF THE FIELD'S CHARACTERISTIC SCALE, resolved to cells per field
+  # against the measured spectrum (`calibration: scale`). A fixed cell count cannot serve both
+  # fields: measured here, density varies on ~160 cells against ~34 for vorticity, so sigmas in
+  # cells that bite on vorticity do almost nothing on density -- the old list reached 1.2% of
+  # the unrelated-field level there, so that axis carried no signal at all.
+  #
+  # A Gaussian takes a fractional sigma and its rungs stay distinct at any spacing. The windowed
+  # kernels round to an ODD number of cells -- an even window has no centre cell, so it displaces
+  # the field by half a cell -- which quantises them coarsely: on a ~34-cell field two fractions
+  # closer than about 0.06 land on the same width. The lists below are spaced to clear that on
+  # both fields, and any rung that collapses anyway is flagged and excluded rather than counted.
+  gaussian_blur:       {enabled: true,  severities: [0.02, 0.05, 0.10, 0.20]}
+  box_blur:            {enabled: true,  severities: [0.06, 0.14, 0.25, 0.40]}
+  median_blur:         {enabled: true,  severities: [0.06, 0.14, 0.22]}
+  disk_blur:           {enabled: false, severities: [0.06, 0.14, 0.25]}
+  epanechnikov_blur:   {enabled: false, severities: [0.06, 0.14, 0.25]}
 
   # --- spectral -----------------------------------------------------------------
-  # Cutoffs are sorted into increasing-damage order automatically, so the written order
-  # does not matter; direction is declared by the operator.
-  lowpass_ideal:       {enabled: true, severities: [64, 32, 16, 8]}
-  lowpass_butterworth: {enabled: true, severities: [64, 32, 16, 8], options: {order: 4}}
-  highpass_ideal:      {enabled: true, severities: [2, 4, 8, 16]}
-  band_attenuate:      {severities: [0.8, 0.5, 0.2, 0.0],
-                        options: {k_lo: 16, k_hi: 64}, enabled: false}
+  # Severities are the FRACTION OF FLUCTUATION ENERGY REMOVED, resolved to a cutoff wavenumber
+  # per field against the measured spectrum. A low-pass removes what lies above its cutoff and a
+  # high-pass what lies below, so the two axes now mean the same thing and both rise with damage.
+  #
+  # A cutoff in absolute wavenumber cannot serve both fields: [2, 4, 8, 16] removed
+  # 0.28/0.48/0.68/0.81 of the vorticity energy but 0.70/0.95/1.00/1.00 of the density energy,
+  # saturating at the second rung so two of four rungs were the same experiment.
+  #
+  # A sharp filter still quantises to whole wavenumber shells and no config can undo that:
+  # density holds 69% of its fluctuation energy in the single shell k=1, so a sharp cutoff on
+  # density has at most about two distinct rungs however these numbers are written. The
+  # Butterworth pair rolls off smoothly and does resolve them, which is a second reason to run
+  # both rather than treating the smooth filter as only a ringing control.
+  #
+  # Both filters are floored at the lowest usable cutoff k=1, and on density k=1 alone holds 69%
+  # of the fluctuation energy. That squeezes the high-pass axis from both sides: below 69% the
+  # cutoff resolves to k=1, where -- with the k=0 mean deliberately preserved -- the filter passes
+  # every mode and the rung is not an experiment at all, while above it the damage is already
+  # most of the way to an unrelated field. The window below is the widest measured: it spans a
+  # factor 3.4 in damage on vorticity and gives density two usable rungs out of four. That is a
+  # property of these fields' bottom-heavy spectra, not something a severity list can fix, and it
+  # is why the high-pass axis alone does not reach the factor-five damage range the other axes do.
+  lowpass_ideal:       {enabled: true,  severities: [0.05, 0.15, 0.30, 0.45]}
+  lowpass_butterworth: {enabled: true,  severities: [0.05, 0.15, 0.30, 0.45],
+                        options: {order: 4}}
+  highpass_ideal:      {enabled: true,  severities: [0.45, 0.70, 0.90, 0.97]}
+  highpass_butterworth: {enabled: true, severities: [0.45, 0.70, 0.90, 0.97],
+                        options: {order: 4}}
+  band_attenuate:      {enabled: false, severities: [0.8, 0.5, 0.2, 0.0],
+                        options: {k_lo: 16, k_hi: 64}}
 
   # --- geometric: the double-penalty probe ----------------------------------------
   translate_x:         {enabled: true, op: translate, severities: [1, 2, 4, 8, 16], options: {axis: x}}

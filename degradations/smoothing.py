@@ -8,6 +8,12 @@ seeing "amount of smoothing", while one that separates them is seeing structure 
 is exactly the discrimination the panel is being selected for.
 
 All kernels wrap at the boundary, matching the doubly periodic domain.
+
+Widths are declared ``calibration="scale"``, so the config gives them as a fraction of the
+field's characteristic scale and the ladder resolves them to cells per field. A fixed cell
+count cannot serve both fields here: measured, density varies on ~136 cells against ~29 for
+vorticity, so the previously configured sigmas reached a damage of 0.142 on vorticity and
+0.012 on density -- an axis that carried no signal at all on the smoother field.
 """
 
 from __future__ import annotations
@@ -16,6 +22,22 @@ import numpy as np
 from scipy.ndimage import convolve, gaussian_filter, median_filter, uniform_filter
 
 from .registry import degradation
+
+
+def _odd_width(severity: float) -> int:
+    """Round a calibrated width to the nearest ODD number of cells, at least 1.
+
+    A window of even width has no centre cell, so ``uniform_filter`` and ``median_filter``
+    place it asymmetrically and the output is displaced by half a cell. For a project whose
+    central concern is that metrics over-punish displacement, that shift dominates: measured on
+    vorticity, calibrated widths that rounded to 2, 3, 6, 13 gave damage 0.0121, 0.0041,
+    0.0338, 0.0880 -- non-monotone, because the even rung carried a half-cell shift the odd one
+    did not. Rounding to odd removes the artefact and the axis becomes monotone.
+    """
+    width = int(round(severity))
+    if width <= 1:
+        return 1
+    return width if width % 2 == 1 else width + 1
 
 
 def _radial_kernel(radius: float, n_spatial: int, profile: str) -> np.ndarray:
@@ -42,6 +64,7 @@ def _radial_kernel(radius: float, n_spatial: int, profile: str) -> np.ndarray:
     severity_name="sigma",
     severity_units="cells",
     severity_direction="increasing",
+    calibration="scale",
 )
 def gaussian_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Isotropic Gaussian kernel smoothing.
@@ -59,6 +82,8 @@ def gaussian_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     severity_name="width",
     severity_units="cells",
     severity_direction="increasing",
+    calibration="scale",
+    quantise=_odd_width,
 )
 def box_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Square top-hat (moving average) smoothing.
@@ -67,7 +92,7 @@ def box_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     rather than attenuated, and the kernel is square rather than isotropic. Both are
     reasons a metric might distinguish it from a Gaussian of matched width.
     """
-    width = int(round(severity))
+    width = _odd_width(severity)
     if width <= 1:
         return x
     size = [1] * x.ndim
@@ -81,6 +106,8 @@ def box_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     severity_name="width",
     severity_units="cells",
     severity_direction="increasing",
+    calibration="scale",
+    quantise=_odd_width,
 )
 def median_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Median filter: nonlinear, and edge-preserving where a Gaussian smears.
@@ -89,7 +116,7 @@ def median_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     smoothing the same at matched width is not seeing the sharp structure that the
     shock-oriented metrics are supposed to target.
     """
-    width = int(round(severity))
+    width = _odd_width(severity)
     if width <= 1:
         return x
     size = [1] * x.ndim
@@ -103,6 +130,7 @@ def median_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     severity_name="radius",
     severity_units="cells",
     severity_direction="increasing",
+    calibration="scale",
 )
 def disk_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Isotropic top-hat: a uniform disk, unlike box_blur's square."""
@@ -117,6 +145,7 @@ def disk_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     severity_name="radius",
     severity_units="cells",
     severity_direction="increasing",
+    calibration="scale",
 )
 def epanechnikov_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Epanechnikov kernel, 3/4 (1 - u^2): the MSE-optimal smoothing kernel."""

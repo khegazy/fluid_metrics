@@ -195,6 +195,8 @@ from degradations.registry import degradation
     severity_name="sigma",           # what the number means; used as an axis label
     severity_units="cells",
     severity_direction="increasing", # "decreasing" if a SMALLER value is worse
+    calibration="scale",             # None if the severity is in absolute units; see below
+    quantise=None,                   # how you round the severity internally, if you do
     ordinal=True,                    # False for a probe that is not on a monotone axis
     stochastic=False,                # True to redraw the RNG per frame
     fields=("*",),
@@ -223,6 +225,34 @@ rank correlation it touches.
 **Express relative severities against the fluctuation, never the raw value.** Density here is
 `1.0 ± 1.8e-4`. A noise amplitude expressed as a fraction of the raw RMS would make the mildest
 rung total destruction and the ladder flat-topped for every metric.
+
+**`calibration` is how you avoid a severity that means different things on different fields.**
+A wavenumber or a smoothing width in cells lands in a completely different place depending on
+where a field keeps its energy, and here those places differ by a factor of five: the density
+fluctuation varies on ~160 cells against ~34 for vorticity. Declare what your severity scales
+with and the ladder resolves it per field against a measured spectrum:
+
+| `calibration` | the config severity is | resolved to |
+|---|---|---|
+| `None` | already field-independent (a factor, a displacement) or already relative to something measured (noise vs the fluctuation RMS) | used as written |
+| `"scale"` | a fraction of the characteristic scale | a length in cells |
+| `"energy_above"` | the fraction of energy to remove from *above* the cutoff — a low-pass | a cutoff wavenumber |
+| `"energy_below"` | the fraction to remove from *below* it — a high-pass | a cutoff wavenumber |
+
+Choosing the wrong side of `energy_above` / `energy_below` silently inverts the axis: "remove
+5%" then resolves to the wavenumber *holding* 5% of the energy and removes the other 95%. Your
+function receives the resolved absolute value, and both it and the nominal one are recorded on
+every row.
+
+**`quantise` is how the harness knows two rungs are the same experiment.** If your operator
+rounds its severity internally — a sharp filter zeroes whole wavenumber shells, a windowed kernel
+takes an odd number of cells — pass that rounding function. Two nominal severities that quantise
+alike are one experiment, and the harness flags the repeat as `severity_degenerate` and excludes
+it. Without the declaration a repeated rung is scored as a genuine fourth point: the rank
+correlation reads a tie as agreement and the separability compares a distribution against itself.
+Operators that use the severity as given (a Gaussian sigma, a Fourier phase shift) leave it
+`None`. A rung that resolves to doing nothing at all is caught separately, by measuring that the
+output moved by more than round-off.
 
 **Then:**
 
@@ -286,6 +316,48 @@ one-character edit and a hundredfold slowdown, and no correctness test would cat
 directly. Vorticity and pressure are computed from them and must be **recomputed** after any
 remap, never averaged — block-averaging vorticity gives a field that is not the curl of the
 velocity beside it, by 5.6% / 18.3% / 25.9% at coarsening factors 2 / 4 / 8.
+
+### Every new dataset needs its severity calibration checked
+
+**The ladder's severities are not absolute numbers, and they are re-measured for every dataset.**
+The smoothing widths and filter cutoffs in `configs/degradation/default.yaml` are fractions — of
+the field's characteristic scale, or of the energy a filter removes — and the pipeline resolves
+them per field against a spectrum it measures from the data itself. Nothing needs to be entered by
+hand and no config edit is required to run a new dataset. What *does* need doing is checking that
+the calibration it measured is usable, because a severity list that resolves well on one flow can
+resolve onto a wall on another.
+
+The run logs one line per field and writes `data/calibration.csv`. Read four things from it:
+
+1. **`characteristic_scale`**, in cells. This is the unit every smoothing width is a fraction of.
+   If it approaches the grid size, the harsher blur rungs are smoothing over the whole domain and
+   are no longer probing anything local.
+2. **`scale_spread`**, the fractional variation across the sampled frames. Above `DRIFT_WARN`
+   (0.25) the run warns, and it means what it says: **a single calibration is not trustworthy for
+   that trajectory.** The flow's spectrum is moving enough over the frames being evaluated that
+   one fixed ladder is a compromise between different flows. Vorticity on the production
+   trajectory sits at 21–33% depending on the span, so this warning fires in normal use — narrow
+   the time window, or treat that field's calibrated axes as approximate and say so.
+3. **`k_energy_50 / 90 / 99`**, the wavenumbers holding those fractions of the fluctuation energy.
+   These tell you immediately how much room a filter ladder has. Density on this data reads
+   1 / 2 / 5: with only about three usable shells, a *sharp* filter cannot produce four distinct
+   rungs on density no matter what the config says.
+4. **The degenerate-rung warnings.** The run names every `(field, axis, level)` that resolved onto
+   a milder rung's severity or onto a no-op, and excludes them. A handful is normal and is a fact
+   about the field. Whole axes collapsing to one rung means the severity list does not suit this
+   data, and the fix is a wider or better-placed list of *fractions* — never a per-field number,
+   which would make the metric gameable.
+
+A field with no fluctuation energy at all cannot be calibrated. The run logs a skip for it and any
+calibrated axis then fails loudly on that field rather than applying an energy fraction as though
+it were a wavenumber.
+
+Two consequences worth knowing before they surprise you. Because the calibration is measured from
+the frames actually evaluated, **changing `dataset.time.reduction` moves the resolved severities
+slightly** — about 5e-6 relative, measured — so runs at different reductions are not bitwise
+comparable, which was already the rule for other reasons. And because the calibration is part of
+what a number means, `data/calibration.csv` belongs with any result you hand to someone: a
+calibrated severity without it is uninterpretable.
 
 ### Test fixtures must be non-square
 

@@ -22,7 +22,14 @@ from fmeval.ladder import (
     ladder_axes,
     ordinal_axes,
 )
+from fmeval.calibration import calibrate_field
 from tests.conftest import synthetic_field
+
+#: Grid for the calibrated operators. Larger and with a red spectrum, because a calibrated
+#: severity is a fraction of a measured property: on a small broadband field the characteristic
+#: scale is a couple of cells, every scale fraction rounds to a no-op, and the direction test
+#: would pass vacuously while checking nothing.
+CALIBRATION_SHAPE = (64, 48)
 
 SHAPE = (32, 16)  # non-square, and divisible by the coarsening factors under test
 
@@ -45,7 +52,44 @@ def ctx_for(x: np.ndarray, seed: int = 0, label: str = "t") -> FieldContext:
     )
 
 
+def smooth_field(shape: tuple[int, ...] = CALIBRATION_SHAPE) -> np.ndarray:
+    """A field with a decaying spectrum, so it has a characteristic scale to calibrate against."""
+    rng = np.random.default_rng(7)
+    noise = rng.standard_normal((1, *shape))
+    axes = np.meshgrid(*[np.fft.fftfreq(n) * n for n in shape], indexing="ij")
+    k = np.sqrt(sum(a ** 2 for a in axes))
+    transfer = 1.0 / (1.0 + k ** 2)
+    return np.real(np.fft.ifftn(np.fft.fftn(noise[0]) * transfer))[None]
+
+
+def resolve_for(spec: deg.DegradationSpec, x: np.ndarray, severity: float) -> float:
+    """Turn a config-facing severity into the value the operator actually receives.
+
+    Calibrated operators take an absolute cutoff or width while their config severity is a
+    fraction, so a test that passes the config number straight to the function is testing a
+    different quantity than the one whose direction is declared.
+    """
+    if spec.calibration is None:
+        return severity
+    measured = calibrate_field([x], grid(x.shape[1:]), "vorticity")
+    if spec.calibration == "scale":
+        return measured.length_for_scale_fraction(severity)
+    side = "above" if spec.calibration == "energy_above" else "below"
+    return measured.cutoff_removing_energy(severity, side)
+
+
 def call(spec: deg.DegradationSpec, x: np.ndarray, severity: float, **kw) -> np.ndarray:
+    """Apply an operator to ``x`` at a config-facing severity, resolving it if calibrated."""
+    return call_absolute(spec, x, resolve_for(spec, x, severity), **kw)
+
+
+def call_absolute(spec: deg.DegradationSpec, x: np.ndarray, severity: float,
+                  **kw) -> np.ndarray:
+    """Apply an operator at a severity already in its own units.
+
+    Used by the tests that are about a filter's spectral behaviour rather than about the
+    ladder, where a wavenumber is the meaningful thing to state.
+    """
     kwargs = dict(spec.defaults)
     kwargs.update(kw)
     if spec.takes_ctx:
@@ -53,18 +97,29 @@ def call(spec: deg.DegradationSpec, x: np.ndarray, severity: float, **kw) -> np.
     return spec.fn(x, severity, **kwargs)
 
 
+def calibration_for(frame, fields: list[str]):
+    """A Calibration covering ``fields``, for the tests that apply a calibrated operator."""
+    from fmeval.calibration import Calibration
+
+    return Calibration(
+        {name: calibrate_field([frame.fields[name]], frame.grid, name) for name in fields}
+    )
+
+
 #: Severities that meaningfully exercise each operator, in increasing-damage order.
 LADDERS: dict[str, list[float]] = {
     "identity": [0],
-    "gaussian_blur": [0.5, 1.0, 2.0, 4.0],
-    "box_blur": [3, 5, 9],
-    "median_blur": [3, 5, 9],
-    "disk_blur": [2, 4, 8],
-    "epanechnikov_blur": [2, 4, 8],
-    "lowpass_ideal": [8, 4, 2],
-    "lowpass_butterworth": [8, 4, 2],
-    "highpass_ideal": [2, 4, 8],
-    "highpass_butterworth": [2, 4, 8],
+    # The calibrated operators take their severities in config units -- a fraction of the
+    # characteristic scale, or of the energy to remove -- and `call` resolves them.
+    "gaussian_blur": [0.02, 0.06, 0.15, 0.30],
+    "box_blur": [0.06, 0.15, 0.30],
+    "median_blur": [0.06, 0.15, 0.30],
+    "disk_blur": [0.06, 0.15, 0.30],
+    "epanechnikov_blur": [0.06, 0.15, 0.30],
+    "lowpass_ideal": [0.05, 0.20, 0.45],
+    "lowpass_butterworth": [0.05, 0.20, 0.45],
+    "highpass_ideal": [0.45, 0.70, 0.90],
+    "highpass_butterworth": [0.45, 0.70, 0.90],
     "band_attenuate": [0.8, 0.4, 0.0],
     "translate": [1, 2, 4],
     "translate_subpixel": [0.25, 0.5, 1.0],
@@ -118,9 +173,14 @@ def test_declared_direction_is_true(spec):
     """
     if not spec.ordinal or spec.name == "identity":
         pytest.skip("not on a monotone axis")
-    x = synthetic_field(SHAPE, 1, seed=0, noise=0.02)
+    x = (smooth_field() if spec.calibration
+         else synthetic_field(SHAPE, 1, seed=0, noise=0.02))
     severities = spec.sort_severities(LADDERS[spec.name])
     damage = [float(((x - call(spec, x, s)) ** 2).mean()) for s in severities]
+    assert damage[-1] > 0, (
+        f"{spec.name}: the harshest test severity does nothing, so this test proves nothing; "
+        "the entry in LADDERS is too mild for the field it is applied to"
+    )
     assert damage == sorted(damage), (
         f"{spec.name}: damage {damage} is not increasing across sorted severities "
         f"{severities}; severity_direction={spec.severity_direction!r} may be wrong"
@@ -307,8 +367,8 @@ def test_lowpass_then_highpass_reconstructs():
     from degradations.spectral import _apply_filter, _wavenumber_magnitude
 
     x = synthetic_field((32, 32), 1, seed=0, noise=0.3)
-    lo = call(deg.get("lowpass_ideal"), x, 8)
-    hi = call(deg.get("highpass_ideal"), x, 8)
+    lo = call_absolute(deg.get("lowpass_ideal"), x, 8)
+    hi = call_absolute(deg.get("highpass_ideal"), x, 8)
     k = _wavenumber_magnitude((32, 32))
     overlap = _apply_filter(x, (k == 8).astype(float))
     mean = np.full_like(x, x.mean())
@@ -350,11 +410,17 @@ def test_build_ladder_expands_entries():
 
 
 def test_build_ladder_sorts_decreasing_direction_correctly():
-    """A cutoff list is worst-last after sorting, whatever order it was written in."""
-    for given in ([64, 32, 16, 8], [8, 16, 32, 64]):
-        rungs = build_ladder({"lowpass_ideal": {"severities": given}},
+    """A decreasing-direction list is worst-last after sorting, however it was written.
+
+    ``band_attenuate`` is the example because its severity is the fraction *retained*, so
+    smaller is worse. The spectral filters used to be the example, but their severity is now
+    the fraction of energy removed, which rises with damage like everything else.
+    """
+    assert deg.get("band_attenuate").severity_direction == "decreasing"
+    for given in ([0.8, 0.5, 0.2, 0.0], [0.0, 0.2, 0.5, 0.8]):
+        rungs = build_ladder({"band_attenuate": {"severities": given}},
                              include_reference=False)
-        assert [r.severity for r in rungs] == [64.0, 32.0, 16.0, 8.0]
+        assert [r.severity for r in rungs] == [0.8, 0.5, 0.2, 0.0]
         assert [r.level for r in rungs] == [1, 2, 3, 4]
 
 
@@ -416,17 +482,21 @@ def _frame() -> Frame:
 
 def test_apply_reference_rung_returns_the_originals():
     frame = _frame()
-    out = apply_rung(REFERENCE_RUNG, frame, ["density", "velocity"], seed=0)
+    out, _, _ = apply_rung(REFERENCE_RUNG, frame, ["density", "velocity"], seed=0)
     for name, arr in out.items():
         assert arr is frame.fields[name]
 
 
 def test_apply_rung_degrades_every_requested_field():
     frame = _frame()
-    rung = build_ladder({"gaussian_blur": {"severities": [2.0]}},
+    rung = build_ladder({"gaussian_blur": {"severities": [0.3]}},
                         include_reference=False)[0]
-    out = apply_rung(rung, frame, ["density", "velocity"], seed=0)
+    out, resolved, _ = apply_rung(
+        rung, frame, ["density", "velocity"], seed=0,
+        calibration=calibration_for(frame, ["density", "velocity"]),
+    )
     assert set(out) == {"density", "velocity"}
+    assert set(resolved) == {"density", "velocity"}
     for name, arr in out.items():
         assert arr.shape == frame.fields[name].shape
         assert not np.allclose(arr, frame.fields[name])
@@ -437,9 +507,9 @@ def test_apply_rung_is_invariant_to_frame_iteration_order():
     frame = _frame()
     rung = build_ladder({"additive_noise": {"severities": [0.1]}},
                         include_reference=False)[0]
-    first = apply_rung(rung, frame, ["density"], seed=11)["density"]
+    first = apply_rung(rung, frame, ["density"], seed=11)[0]["density"]
     _ = apply_rung(rung, frame, ["velocity"], seed=11)  # advance nothing
-    again = apply_rung(rung, frame, ["density"], seed=11)["density"]
+    again = apply_rung(rung, frame, ["density"], seed=11)[0]["density"]
     assert np.array_equal(first, again)
 
 
@@ -450,7 +520,7 @@ def test_noise_scales_with_the_reference_rms_not_the_raw_rms():
                         include_reference=False)[0]
     rms = fluctuation_rms(frame["density"])
     out = apply_rung(rung, frame, ["density"], seed=0,
-                     reference_rms={"density": rms})["density"]
+                     reference_rms={"density": rms})[0]["density"]
     perturbation = np.abs(out - frame["density"]).mean()
     assert perturbation < 0.5 * frame["density"].mean(), "noise swamped the signal"
     assert perturbation == pytest.approx(0.1 * rms * np.sqrt(2 / np.pi), rel=0.25)
@@ -466,7 +536,7 @@ def test_highpass_preserves_the_spatial_mean():
     x = 1.0 + 1e-3 * synthetic_field((32, 32), 1, seed=0, noise=0.3)
     for name in ("highpass_ideal", "highpass_butterworth"):
         for cutoff in (2, 4, 8):
-            y = call(deg.get(name), x, cutoff)
+            y = call_absolute(deg.get(name), x, cutoff)
             assert y.mean() == pytest.approx(x.mean(), rel=1e-10), name
 
 
@@ -474,7 +544,8 @@ def test_highpass_ladder_is_monotone_on_a_field_with_a_large_mean():
     """Monotone, and on the scale of the fluctuation rather than of the mean."""
     x = 1.0 + 1e-3 * synthetic_field((32, 32), 1, seed=0, noise=0.3)
     spec = deg.get("highpass_ideal")
-    damage = [float(((x - call(spec, x, c)) ** 2).mean()) for c in (2, 4, 8, 16)]
+    damage = [float(((x - call_absolute(spec, x, c)) ** 2).mean())
+              for c in (2, 4, 8, 16)]
     assert damage == sorted(damage), f"high-pass ladder is not monotone: {damage}"
     assert damage[-1] > 1.5 * damage[0], f"ladder has little dynamic range: {damage}"
     # The decisive check: before the fix every rung sat ~1e7 times the fluctuation

@@ -160,7 +160,23 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
     )
     rows = []
 
-    for (dataset, metric, field, axis), g in df[df["level"] > 0].groupby(
+    # Rungs that resolved to the same experiment as a milder one are not independent points.
+    # Scoring a tie would read as agreement in the rank correlation and would compare a
+    # distribution against itself in the separability, so they are dropped and counted.
+    ladder = df[df["level"] > 0]
+    n_dropped = 0
+    if "severity_degenerate" in ladder.columns:
+        degenerate = ladder["severity_degenerate"].fillna(False).astype(bool)
+        n_dropped = int(degenerate.sum())
+        ladder = ladder[~degenerate]
+        if n_dropped:
+            log.info(
+                "excluded %d rows on rungs that resolved to a milder rung's severity; "
+                "n_levels below is what was measured, n_levels_configured what was asked for",
+                n_dropped,
+            )
+
+    for (dataset, metric, field, axis), g in ladder.groupby(
         ["dataset", "metric", "field", "degradation"], observed=True
     ):
         levels = g["level"].to_numpy()
@@ -182,6 +198,9 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
             "degradation_family": g["degradation_family"].iloc[0],
             "is_probe": is_probe,
             "n_levels": int(g["level"].nunique()),
+            "n_levels_configured": int(
+                df[(df["field"] == field) & (df["degradation"] == axis)]["level"].nunique()
+            ),
             "n_frames": int(g["frame_index"].nunique()),
             "value_clean": clean,
             "value_min": float(values.min()),

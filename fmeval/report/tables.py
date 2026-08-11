@@ -223,3 +223,57 @@ def provenance_table(ctx, df, opts) -> TableResult:
         note="The full resolved configuration follows below, and is also written to "
              "data/config.yaml.",
     )
+
+
+@table(
+    section=11, order=5, scope="global",
+    title="Resolved ladder severities",
+    requires_columns=("field", "degradation", "level", "severity", "severity_nominal",
+                      "calibration"),
+)
+def calibrated_severities_table(ctx, df, opts) -> TableResult:
+    """What each calibrated config severity became on each field.
+
+    A calibrated axis is uninterpretable without this. The config asks for a fraction -- of the
+    field's characteristic scale, or of the energy a filter removes -- and the harness resolves it
+    per field against a measured spectrum, so the same config number is a different width or
+    cutoff on a smooth field than on a broadband one. That is the point of calibrating, and it
+    means the absolute numbers in the rest of the report belong to this table.
+    """
+    calibrated = df[df["calibration"].astype(str).ne("") & (df["level"] > 0)]
+    ctx.require(len(calibrated) > 0, "no calibrated axis in this run")
+
+    rows = []
+    for (field, axis, level), g in calibrated.groupby(
+        ["field", "degradation", "level"], observed=True
+    ):
+        rows.append({
+            "field": str(field),
+            "axis": str(axis),
+            "relative to": str(g["calibration"].iloc[0]),
+            "level": int(level),
+            "configured": float(g["severity_nominal"].iloc[0]),
+            "applied": float(g["severity"].iloc[0]),
+            "used": "no" if bool(g["severity_degenerate"].iloc[0]) else "yes",
+        })
+    frame = pd.DataFrame(rows).sort_values(["field", "axis", "level"])
+
+    dropped = frame[frame["used"] == "no"]
+    if len(dropped):
+        note = (
+            f"{len(dropped)} of {len(frame)} rungs resolved either onto a milder rung's "
+            "severity or onto a severity at which the operator does nothing, and are excluded "
+            "from the acceptance statistics. That is a limit of the field rather than a "
+            "misconfiguration: a sharp filter acts on whole wavenumber shells and a windowed "
+            "kernel on an odd number of cells, so a field holding its energy in a few "
+            "wavenumbers cannot support as many distinct rungs as the config requests."
+        )
+    else:
+        note = "Every configured rung resolved to a distinct experiment on every field."
+
+    return TableResult(
+        frame=frame,
+        caption="Configured (relative) against applied (absolute) severity, per field.",
+        formats={"field": "code", "axis": "code", "relative to": "code"},
+        note=note,
+    )

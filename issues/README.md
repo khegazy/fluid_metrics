@@ -39,7 +39,7 @@ Designed, hooks in place, not built.
 
 | ID | Title | Priority |
 |---|---|---|
-| [030](030-axis-severity-calibration.md) | Severity ranges should follow each field's spectrum — fixed absolute severities land in different places per field | **high** |
+| [030](030-axis-severity-calibration.md) | Severity ranges should follow each field's spectrum — **fixed**; severities on the smoothing and spectral axes are now relative and resolved per field against a measured spectrum | fixed |
 | [031](031-saturation-never-reached.md) | No ladder rung reaches the unrelated-field level | medium |
 
 ## Technical debt

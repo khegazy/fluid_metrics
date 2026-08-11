@@ -426,6 +426,14 @@ Sample sizes: how many ladder axes contributed to a summary row, how many rungs 
 and how many frames were evaluated. Read the statistics above against these; several of them
 are noisy below about twenty frames.
 
+### `n_levels_configured`
+
+How many rungs the config asked for on that axis, against the `n_levels` that were usable. They
+differ when a rung resolved to the same experiment as a milder one or to no experiment at all —
+see `severity_degenerate`. A gap here is a statement about the field's spectrum, not a mistake:
+the acceptance statistics for that axis were computed from fewer points than the config appears
+to request, and the run log names which levels were dropped.
+
 ### `is_probe`
 
 True for entries that are not monotone axes — the Gaussian field and the unrelated-field
@@ -450,9 +458,61 @@ share one operator and one family. The family is used only for colour and groupi
 
 ### `level`, `severity`, `severity_name`, `variant_label`
 
-`level` is the ordinal rung, 0 being the reference; `severity` is the physical knob value and
-`severity_name` says what it means (sigma, cutoff, distance); `variant_label` is the stable
-identifier used in filenames.
+`level` is the ordinal rung, 0 being the reference; `severity` is the physical knob value
+**actually applied** and `severity_name` says what it means (sigma, cutoff, distance);
+`variant_label` is the stable identifier used in filenames.
+
+### `severity_nominal`, `calibration`
+
+Some severities are written in the config as a *relative* quantity and converted to an absolute
+one per field before use. `calibration` names what the config number is relative to and is empty
+for an operator that takes absolute units:
+
+| `calibration` | the config severity means | resolved to |
+|---|---|---|
+| *(empty)* | an absolute value — a coarsening factor, a displacement in cells, noise as a fraction of the fluctuation RMS | used as written |
+| `scale` | a fraction of the field's characteristic scale | a smoothing width in cells |
+| `energy_above` | the fraction of fluctuation energy to remove from *above* the cutoff (a low-pass) | a cutoff wavenumber |
+| `energy_below` | the fraction to remove from *below* the cutoff (a high-pass) | a cutoff wavenumber |
+
+`severity_nominal` is the number as written in the config and `severity` is what was applied, so
+a calibrated row carries both. They are equal on an uncalibrated axis.
+
+**Why this exists.** A severity in absolute units lands in a completely different place depending
+on where a field keeps its energy, and on this data those places differ by a factor of five: the
+density fluctuation varies on about 160 cells against 34 for vorticity. One fixed list of blur
+widths was therefore simultaneously far too fine for density — the harshest rung reached 1.2% of
+the unrelated-field level, so the axis carried no signal — and about right for vorticity, while
+one fixed list of filter cutoffs saturated by the second rung on density, making two of four
+rungs the same experiment. Expressing them relatively and resolving against a measurement makes
+the same config number mean the same thing on every field.
+
+The calibration itself is measured once per (field, analysis grid) from frames sampled evenly
+across the selection, and then held fixed. Re-measuring per frame would make the ladder drift as
+the flow evolves, so two frames would no longer be running the same experiment and the per-frame
+rank correlation — the primary acceptance statistic — would be comparing different ladders. It is
+recorded in `data/calibration.csv`.
+
+### `severity_degenerate`
+
+True when a rung is **not a distinct experiment**: either it resolved to the same severity as a
+milder rung on the same axis, or it resolved to a severity at which the operator does nothing at
+all. Such rows are excluded from every acceptance statistic.
+
+This happens because a calibrated severity is a real number while most operators act on a
+quantised one — a sharp filter zeroes whole wavenumber shells, and a windowed kernel takes an odd
+number of cells. It is a limit of the field rather than a misconfiguration: density holds 69% of
+its fluctuation energy in the single shell k = 1, so a sharp cutoff on density has at most about
+two distinct rungs however the config is written, and asking a high-pass for less than that much
+removal resolves to a filter that passes every mode.
+
+Left uncounted, both cases corrupt the statistics rather than merely padding them. A repeated
+rung makes the rank correlation score a tie as agreement and makes the adjacent-rung separability
+compare a distribution against itself; a rung that does nothing contributes an exactly-zero
+damage, which made one axis appear to span eleven orders of magnitude.
+
+Compare `n_levels` against `n_levels_configured` to see how many rungs an axis actually
+contributed.
 
 ### `analysis_grid`, `remap_op`
 
@@ -497,20 +557,48 @@ over-regularised surrogate.
 
 | operator | severity | what it does, and why it is separate |
 |---|---|---|
-| `gaussian_blur` | sigma, cells | Attenuates every scale and amplifies none, so it is the well-behaved reference the others are read against |
-| `box_blur` | width, cells | A square moving average. Its transfer function is a sinc, so it *amplifies* some wavenumbers, and it is anisotropic |
-| `median_blur` | width, cells | Nonlinear, and preserves the sharp edges a Gaussian smears. A metric that scores this the same as Gaussian blur at matched width is not seeing sharp structure |
-| `disk_blur` | radius, cells | Isotropic top-hat, unlike the square box |
-| `epanechnikov_blur` | radius, cells | The mean-square-optimal smoothing kernel |
+Every width here is configured as a **fraction of the field's characteristic scale** and resolved
+to cells per field (`calibration: scale`).
+
+| operator | severity | what it does, and why it is separate |
+|---|---|---|
+| `gaussian_blur` | fraction of scale → sigma | Attenuates every scale and amplifies none, so it is the well-behaved reference the others are read against. Takes a fractional sigma, so its rungs stay distinct at any spacing |
+| `box_blur` | fraction of scale → width | A square moving average. Its transfer function is a sinc, so it *amplifies* some wavenumbers, and it is anisotropic. Rounded to an **odd** width |
+| `median_blur` | fraction of scale → width | Nonlinear, and preserves the sharp edges a Gaussian smears. A metric that scores this the same as Gaussian blur at matched width is not seeing sharp structure. Rounded to an **odd** width |
+| `disk_blur` | fraction of scale → radius | Isotropic top-hat, unlike the square box |
+| `epanechnikov_blur` | fraction of scale → radius | The mean-square-optimal smoothing kernel |
+
+**The windowed kernels round to an odd number of cells on purpose.** An even window has no centre
+cell, so it is placed asymmetrically and displaces the field by half a cell. Since the whole
+concern of this project is that metrics over-punish displacement, that artefact dominates:
+measured on vorticity, widths that rounded to 2, 3, 6 and 13 cells gave damage 0.0121, 0.0041,
+0.0338 and 0.0880 — non-monotone, because the even rung carried a half-cell shift the odd one did
+not. It also means two scale fractions closer than about `2 / scale` land on the same width and
+one of them is flagged `severity_degenerate`.
 
 **Spectral** — damage confined to chosen scales.
 
 | operator | severity | notes |
 |---|---|---|
-| `lowpass_ideal` | cutoff, decreasing is worse | Sharp cutoff; rings near sharp features |
-| `lowpass_butterworth` | cutoff, decreasing is worse | Smooth rolloff; the ringing-free control for the above |
-| `highpass_ideal` | cutoff, increasing is worse | Removes large scales. **Keeps the spatial mean deliberately** — deleting it removes a component four orders of magnitude larger than anything the cutoff controls, and before this was fixed every rung gave an identical damage of 2.7e7 and the axis carried no ordering at all |
-| `highpass_butterworth` | cutoff, increasing is worse | As above, smooth |
+Every cutoff here is configured as the **fraction of fluctuation energy the filter removes** and
+resolved to a wavenumber per field. Both directions therefore mean the same thing and both rise
+with damage, which they did not when the severity was an absolute cutoff.
+
+| operator | severity | notes |
+|---|---|---|
+| `lowpass_ideal` | fraction of energy removed | Sharp cutoff, removing the small scales; rings near sharp features |
+| `lowpass_butterworth` | fraction of energy removed | Smooth rolloff; the ringing-free control for the above, and it resolves rungs a sharp filter cannot |
+| `highpass_ideal` | fraction of energy removed | Removes large scales. **Keeps the spatial mean deliberately** — deleting it removes a component four orders of magnitude larger than anything the cutoff controls, and before this was fixed every rung gave an identical damage of 2.7e7 and the axis carried no ordering at all |
+| `highpass_butterworth` | fraction of energy removed | As above, smooth |
+
+**The high-pass axis has a narrow usable window on these fields, and that is a property of the
+data.** Both filters are floored at the lowest usable cutoff k = 1, and on density k = 1 alone
+holds 69% of the fluctuation energy. Asking for less removal than that resolves to a filter that
+passes every mode; asking for more puts the damage already most of the way to an unrelated field.
+The configured window is the widest measured — it spans a factor 3.4 in damage on vorticity and
+gives density two usable rungs of four — so the high-pass axis alone does not reach the factor of
+five that the other axes do. No severity list fixes this; a field with more energy at high
+wavenumbers would.
 | `band_attenuate` | retained fraction | Damages one wavenumber band only. The direct test of whether a metric is scale-selective |
 
 **Geometric** — the double-penalty probe. Shape and amplitude stay exactly correct; only

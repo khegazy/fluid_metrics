@@ -31,9 +31,11 @@ import pandas as pd
 
 from metrics.registry import MetricSpec
 
+from .calibration import Calibration, calibrate
 from .context import FieldContext, derive_rng
 from .data.base import FIELDS, Frame, Trajectory, TimeSelection
-from .ladder import Rung, apply_rung, reference_fluctuation_rms
+from .ladder import (Rung, apply_rung, degenerate_rungs,
+                     reference_fluctuation_rms)
 from .remap import coarsen_factor, remap_frame
 
 log = logging.getLogger(__name__)
@@ -64,7 +66,11 @@ RESULT_DTYPES: dict[str, str] = {
     "degradation_op": "category",    # the registry name behind it
     "degradation_family": "category",
     "level": "int16",
-    "severity": "float64",
+    "severity": "float64",           # the absolute value actually applied
+    "severity_nominal": "float64",   # as written in config; differs for a calibrated operator
+    "calibration": "category",
+    "severity_degenerate": "bool",   # not a distinct experiment: repeats a milder rung, or
+                                     # resolved to a severity at which the operator is a no-op
     "severity_name": "category",
     "variant_label": "category",
     # the number
@@ -127,6 +133,7 @@ class PipelineResult:
     maps: dict[str, np.ndarray] = dc_field(default_factory=dict)
     """``"<field>__<variant>__t<frame>"`` -> pointwise density, for ``error_maps.npz``."""
     n_frames: int = 0
+    calibration: Calibration | None = None
     io_seconds: float = 0.0
     degrade_seconds: float = 0.0
     metric_seconds: float = 0.0
@@ -143,6 +150,8 @@ def _emit(
     seed: int,
     value: Any,
     wall: float,
+    severity: float,
+    degenerate: bool,
 ) -> list[dict[str, Any]]:
     """Expand one metric evaluation into result rows (several if it returns a vector)."""
     base = {
@@ -159,7 +168,10 @@ def _emit(
         "degradation_op": rung.op,
         "degradation_family": rung.family,
         "level": rung.level,
-        "severity": rung.severity,
+        "severity": severity,
+        "severity_nominal": rung.severity,
+        "calibration": rung.calibration or "",
+        "severity_degenerate": degenerate,
         "severity_name": rung.severity_name,
         "variant_label": rung.variant_label,
         "seed": seed,
@@ -194,6 +206,7 @@ def run(
     analysis_resolution: int | None = None,
     remap_method: str = "block_mean",
     maps: MapRequest | None = None,
+    calibration_frames: int = 5,
 ) -> PipelineResult:
     """Evaluate every metric against every rung, over the selected frames.
 
@@ -208,6 +221,11 @@ def run(
         analysis_resolution: IN-2 analysis grid, or None for the native resolution.
         remap_method: ``"block_mean"`` (conservative) or ``"subsample"``.
         maps: Which pointwise maps to retain.
+        calibration_frames: How many frames to average the per-field spectral calibration
+            over. Measured once and then held fixed for the whole run: re-measuring per frame
+            would make the ladder itself drift as the flow evolves, so two frames would no
+            longer be running the same experiment and the per-frame rank correlation would be
+            comparing different ladders.
 
     Returns:
         A :class:`PipelineResult` whose ``rows`` follow :data:`RESULT_DTYPES` exactly.
@@ -229,6 +247,12 @@ def run(
             len(indices), expensive,
         )
 
+    calibration = _measure_calibration(
+        trajectory, fields, indices, factor, remap_method, calibration_frames
+    )
+
+    degenerate = _degenerate_map(rungs, fields, calibration)
+
     rows: list[dict[str, Any]] = []
     stored_maps: dict[str, np.ndarray] = {}
     t_io = t_deg = t_metric = 0.0
@@ -243,8 +267,9 @@ def run(
         available = [f for f in fields if f in frame.fields]
         ref_rms = reference_fluctuation_rms(frame, available)
         variants = {
-            rung.variant_label: (rung, apply_rung(rung, frame, available, seed=seed,
-                                                  reference_rms=ref_rms))
+            rung.variant_label: (rung, *apply_rung(rung, frame, available, seed=seed,
+                                                   reference_rms=ref_rms,
+                                                   calibration=calibration))
             for rung in rungs
         }
         t_deg += time.perf_counter() - t0
@@ -263,8 +288,9 @@ def run(
                 )
                 kwargs = {"ctx": ctx} if spec.takes_ctx else {}
 
-                for label, (rung, degraded) in variants.items():
+                for label, (rung, degraded, resolved, unchanged) in variants.items():
                     candidate = degraded[field]
+                    severity = resolved.get(field, rung.severity)
                     args = (
                         (reference, candidate) if spec.arity == "pairwise" else (candidate,)
                     )
@@ -274,7 +300,9 @@ def run(
                     t_metric += wall
                     rows.extend(
                         _emit(spec, field, frame, rung, dataset, grid_size,
-                              remap_method, seed, value, wall)
+                              remap_method, seed, value, wall, severity,
+                              degenerate.get((field, rung.label, rung.level), False)
+                              or (field in unchanged and not rung.is_reference))
                     )
 
                     if (
@@ -292,14 +320,103 @@ def run(
     # A metric may accept none of the available fields, which is a legitimate no-op
     # rather than an error -- but pd.DataFrame([]) has no columns to coerce.
     df = _coerce(pd.DataFrame(rows)) if rows else empty_results()
+    _log_noop_rungs(df, degenerate)
     return PipelineResult(
         rows=df,
         maps=stored_maps,
         n_frames=len(indices),
+        calibration=calibration,
         io_seconds=t_io,
         degrade_seconds=t_deg,
         metric_seconds=t_metric,
     )
+
+
+def _log_noop_rungs(
+    df: pd.DataFrame, already_reported: Mapping[tuple[str, str, int], bool]
+) -> None:
+    """Log rungs that turned out to leave the field unchanged.
+
+    These are found by measurement rather than by resolving a severity, so they are not in the
+    map logged before the loop, and without this the run log understates what was dropped.
+    """
+    if df.empty:
+        return
+    flagged = df[(df["level"] > 0) & df["severity_degenerate"]]
+    for (field, axis), g in flagged.groupby(["field", "degradation"], observed=True):
+        levels = sorted(
+            int(level) for level in g["level"].unique()
+            if (str(field), str(axis), int(level)) not in already_reported
+        )
+        if levels:
+            log.warning(
+                "%s / %s: level(s) %s resolve to a severity at which the operator leaves the "
+                "field unchanged, and are excluded from the acceptance statistics.",
+                field, axis, levels,
+            )
+
+
+def _degenerate_map(
+    rungs: Sequence[Rung], fields: Sequence[str], calibration: Calibration
+) -> dict[tuple[str, str, int], bool]:
+    """Which ``(field, axis, level)`` triples repeat a milder rung's experiment.
+
+    Logged loudly, because an axis that loses rungs on one field is a real limitation of that
+    field's spectrum rather than a misconfiguration, and the acceptance statistics for it are
+    computed from fewer points than the config appears to request.
+    """
+    out: dict[tuple[str, str, int], bool] = {}
+    for field in fields:
+        if field not in calibration:
+            continue
+        for label, levels in degenerate_rungs(rungs, field, calibration).items():
+            log.warning(
+                "%s / %s: level(s) %s resolve to the same severity as a milder rung and are "
+                "excluded from the acceptance statistics. The field's spectrum cannot resolve "
+                "that many distinct rungs for this operator.",
+                field, label, levels,
+            )
+            for level in levels:
+                out[(field, label, level)] = True
+    return out
+
+
+def _measure_calibration(
+    trajectory: Trajectory,
+    fields: Sequence[str],
+    indices: np.ndarray,
+    factor: int,
+    remap_method: str,
+    n_sample: int,
+) -> Calibration:
+    """Measure each field's spectral properties on the analysis grid, once.
+
+    Sampled evenly across the selected frames rather than from the start, so a trajectory
+    whose spectrum evolves is represented rather than characterised by its beginning.
+    """
+    if n_sample < 1:
+        return Calibration()
+    chosen = indices[np.unique(np.linspace(0, len(indices) - 1, n_sample).astype(int))]
+
+    frames_by_field: dict[str, list[np.ndarray]] = {f: [] for f in fields}
+    grid = None
+    for index in chosen:
+        frame = remap_frame(trajectory.frame(int(index), fields), factor,
+                            method=remap_method)
+        grid = frame.grid
+        for name, array in frame.fields.items():
+            frames_by_field.setdefault(name, []).append(array)
+
+    if grid is None:  # pragma: no cover - indices is non-empty by this point
+        return Calibration()
+    result = calibrate(frames_by_field, grid, fields)
+    for entry in result.summary():
+        log.info(
+            "calibration %s: scale %.1f cells (spread %.0f%%), k(50/90/99%%) = %d/%d/%d",
+            entry["field"], entry["characteristic_scale"], 100 * entry["scale_spread"],
+            entry["k_energy_50"], entry["k_energy_90"], entry["k_energy_99"],
+        )
+    return result
 
 
 def _coerce(df: pd.DataFrame) -> pd.DataFrame:

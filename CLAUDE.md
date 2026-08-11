@@ -125,8 +125,24 @@ each would have quietly corrupted results:
    frame is also wrong: the flow decays, so it has 0.70 of the variance and a different
    flatness.
 5. **Severity ranges must follow each field's spectrum.** Fixed cutoffs applied to every field
-   alike produce flags that point at the axis rather than the metric. Filed as issue 030 and
-   not yet fixed.
+   alike produce flags that point at the axis rather than the metric: the same blur list reached
+   1.2% of the unrelated-field level on density while working well on vorticity, and the same
+   filter cutoffs saturated by the second rung on density. Fixed (issue 030): severities on the
+   smoothing and spectral axes are now *relative* — a fraction of the field's characteristic
+   scale, or of the energy a filter removes — and resolved per field against a spectrum measured
+   from the data. Every calibrated axis is now monotone on both fields from one config that names
+   no field. Three further defects surfaced only when this was measured: a low-pass severity
+   mapped to the wrong side of its cutoff inverted that axis while leaving every number
+   plausible; rounding a calibrated width to an even window displaced the field by half a cell
+   and broke monotonicity; and a rung can resolve onto a milder rung's severity or onto a no-op,
+   which the rank correlation would otherwise score as agreement. Rungs that are not distinct
+   experiments are now detected and excluded (`severity_degenerate`).
+
+   Two limits calibration does not remove, both properties of these fields rather than of the
+   config: density keeps 69% of its fluctuation energy in the single shell k=1, so a *sharp*
+   filter cannot resolve four rungs there at all, and the high-pass axis is squeezed between a
+   no-op below that shell and near-total damage above it, so it alone does not reach the
+   factor-five damage range the other axes do.
 
 Also worth carrying forward: the IN-4 Gaussian field does **not** catch the L^p family — it
 catches metrics built only on the amplitude spectrum, and MSE rejects it firmly at 0.51–0.80.
