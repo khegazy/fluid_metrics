@@ -68,6 +68,8 @@ item with its measurements. An issue written later from memory is worth much les
 
 ```bash
 uv sync --extra dev                 # populate .venv from uv.lock
+uv run python check_setup.py        # confirm the environment; run this FIRST when anything
+                                    # unexpected happens, before debugging code
 
 uv run pytest                       # ~20 s. Skips CFS-reading and LaTeX tests
 uv run pytest -m data               # reads the real files on CFS
@@ -125,6 +127,13 @@ def h_minus_one(reference, candidate, *, ctx):
 **Arity.** `pairwise` takes `(reference, candidate)`; `single` takes `(x)` and characterises one
 field. Both receive `(C, *spatial)` float64 arrays. The decorator checks the positional
 argument count against the declared arity and raises at import time if they disagree.
+
+A single-field metric will be reported as `no dynamic range` with `rho = -1`, and **that is
+correct, not a bug you should try to fix**. The normalised damage scale is anchored between the
+reference and a *translated* copy of it, which has identical statistics — so a single-field
+quantity takes the same value at both anchors and the span is zero. `rho = -1` follows because
+smoothing reduces such quantities rather than increasing them. If you find yourself
+"fixing" this, stop: you would be removing a true statement.
 
 **`ctx` is opt-in.** Declare a keyword-only parameter named `ctx` and you receive a
 `FieldContext` with the grid (spacing, periodicity, dimension names), the frame index, the

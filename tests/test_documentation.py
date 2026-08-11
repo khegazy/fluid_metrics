@@ -178,3 +178,16 @@ def test_agents_states_the_non_negotiables():
         "does not decide",                                  # no verdicts
     ):
         assert rule in text, f"AGENTS.md does not state the rule about {rule!r}"
+
+
+def test_setup_check_runs_and_reports():
+    """`check_setup.py` must work in the environment it is meant to diagnose."""
+    import subprocess
+    import sys
+
+    result = subprocess.run([sys.executable, str(REPO / "check_setup.py")],
+                            capture_output=True, text=True, timeout=180, cwd=REPO)
+    assert result.returncode == 0, result.stdout + result.stderr
+    for expected in ("numpy", "metrics registry", "degradations registry",
+                     "spectral vorticity", "dataset root"):
+        assert expected in result.stdout, f"check_setup.py does not report on {expected!r}"

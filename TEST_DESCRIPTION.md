@@ -397,7 +397,23 @@ If you see `@max`, add the `uncorrelated` entry to the ladder and re-run.
 
 True when the metric has essentially no dynamic range on that field — its clean and unrelated
 values are indistinguishable — so damage cannot be computed and every normalised quantity is
-suppressed.
+suppressed. The `flags` column reads `no dynamic range`.
+
+**This is expected for single-field metrics, and is not a bug.** A single-field metric
+characterises one field rather than comparing two, and the unrelated-field anchor is the
+reference *translated*, which leaves every statistic unchanged. So enstrophy — or any other
+single-field quantity — has exactly the same value on the reference and on the anchor, the span
+is zero, and there is nothing to normalise against. `enstrophy` will therefore appear in the
+summary with `rho = -1`, `no dynamic range`, and no damage figure, on its very first run.
+
+Read that as the suite telling you something true: enstrophy cannot serve as a comparison
+metric between two fields. It is a tripwire on a single field, which is how it is intended.
+`rho = -1` is also correct rather than alarming: smoothing destroys small-scale structure, so
+enstrophy *falls* monotonically as damage increases, and a rank correlation of exactly -1 is
+perfect monotonicity in the direction that quantity runs.
+
+For a *pairwise* metric, `degenerate = True` is a genuine problem and means the metric cannot
+distinguish an unrelated field from the reference at all.
 
 ### `damage_max`
 

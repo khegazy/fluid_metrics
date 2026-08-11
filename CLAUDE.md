@@ -21,6 +21,7 @@ does, and neither needs the repo root as the working directory.
 
 ```bash
 uv sync --extra dev                 # populate .venv from uv.lock
+uv run python check_setup.py        # confirm the environment before anything expensive
 uv run pytest                       # ~20 s; skips the CFS-reading and LaTeX tests
 uv run pytest -m data               # reads the real files on CFS
 module load texlive/2024 && uv run pytest -m slow   # compiles a report with latexmk

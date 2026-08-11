@@ -44,8 +44,51 @@ def open_trajectory(cfg: DictConfig) -> Trajectory:
     fmt = cfg.dataset.format
     if fmt not in READERS:
         raise KeyError(f"unknown dataset format {fmt!r}; available: {sorted(READERS)}")
+
+    path = Path(cfg.dataset.path)
+    if not path.exists():
+        raise FileNotFoundError(_missing_dataset_message(cfg, path))
+
     reader_kwargs = OmegaConf.to_container(cfg.dataset.get("reader", {}), resolve=True)
-    return READERS[fmt](cfg.dataset.path, **reader_kwargs)
+    return READERS[fmt](path, **reader_kwargs)
+
+
+def _missing_dataset_message(cfg: DictConfig, path: Path) -> str:
+    """Explain a missing dataset in terms of the cause, not the failed open.
+
+    A fresh clone has no `datasets` symlink -- it is gitignored, being machine-specific --
+    so this is the first thing a new user hits. Without this the error is a raw h5py
+    traceback that names neither the symlink nor `paths.data`.
+    """
+    root = Path(cfg.paths.data)
+    lines = [
+        f"dataset {cfg.dataset.name!r} is not readable:",
+        f"  {path}",
+        "",
+    ]
+    if not root.exists():
+        lines += [
+            f"The dataset root does not exist: {root}",
+            "",
+            "That path comes from `paths.data` in configs/config.yaml, which defaults to a",
+            "`datasets` symlink in the repository root. The symlink is gitignored because it",
+            "is machine-specific, so a fresh clone does not have it. Either create it:",
+            "",
+            "    ln -s /global/cfs/cdirs/m4790/Data datasets",
+            "",
+            "or point the config at your own location:",
+            "",
+            f"    ... paths.data=/path/to/your/data dataset={cfg.dataset.name}",
+        ]
+    else:
+        lines += [
+            f"The dataset root exists ({root}) but this file does not.",
+            "",
+            "Check `path` in the dataset config, or pick a different dataset:",
+            "",
+            "    ls configs/dataset/",
+        ]
+    return "\n".join(lines)
 
 
 def select_fields(cfg: DictConfig, trajectory: Trajectory,

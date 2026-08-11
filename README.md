@@ -19,8 +19,13 @@ git clone <repo> && cd fluid_metrics
 ln -s /global/cfs/cdirs/m4790/Data datasets   # gitignored; or set paths.data in the config
 
 uv sync --extra dev                            # populates .venv from uv.lock, installs editable
+uv run python check_setup.py                   # confirms the environment; says what to fix
 uv run pytest                                  # seconds; skips the CFS-reading and LaTeX tests
 ```
+
+If anything goes wrong, run `check_setup.py` first — it separates an environment problem from a
+code problem and prints the fix for each failure. The `datasets` symlink and `latexmk` show as
+optional: tests do not need either.
 
 Every command also works without `uv` on `PATH`, since `uv sync` creates a normal venv:
 
