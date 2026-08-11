@@ -62,6 +62,14 @@ class Rendered:
     duration_s: float = 0.0
 
 
+def _read_csv(path) -> pd.DataFrame:
+    """Read an optional analysis CSV, empty if the run does not have it.
+
+    Older run folders lack the newer files, and re-rendering one must not fail because of it.
+    """
+    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
 def build_context(
     folder: RunFolder,
     *,
@@ -80,6 +88,7 @@ def build_context(
     meta = _read_json(folder.data / "run_meta.json")
     config = _read_yaml(folder.data / "config.yaml")
     maps = _read_maps(folder.data / "error_maps.npz")
+    spectrum = _read_csv(folder.data / "calibration_spectrum.csv")
 
     norm = an.normalisation(df)
     scored = an.add_damage(df, norm)
@@ -94,6 +103,7 @@ def build_context(
         axes=axes,
         probes=probes,
         card=card,
+        spectrum=spectrum,
         maps=maps,
         meta=meta,
         config=config,

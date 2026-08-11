@@ -202,6 +202,7 @@ def main(cfg: DictConfig) -> None:
     # without the measured field properties it was resolved against, and two datasets are only
     # comparable on such an axis if their calibrations are recorded alongside the numbers.
     calibration_table = pd.DataFrame(result.calibration.summary())
+    spectrum_table = pd.DataFrame(result.calibration.spectrum_frame())
 
     overrides = _overrides()
     written = []
@@ -210,6 +211,7 @@ def main(cfg: DictConfig) -> None:
         folder = fio.make_run_folder(cfg.paths.results, spec.name, stamp)
         fio.write_results(folder, subset)
         fio.write_table(folder, calibration_table, "calibration")
+        fio.write_table(folder, spectrum_table, "calibration_spectrum")
         digest = fio.write_config(folder, cfg, overrides)
         prefix = f"{spec.name}:"
         fio.write_maps(
@@ -247,6 +249,7 @@ def main(cfg: DictConfig) -> None:
         folder = fio.make_run_folder(cfg.paths.results, "comparison", stamp)
         fio.write_results(folder, result.rows)
         fio.write_table(folder, calibration_table, "calibration")
+        fio.write_table(folder, spectrum_table, "calibration_spectrum")
         digest = fio.write_config(folder, cfg, overrides)
         fio.write_maps(folder, result.maps)
         fio.copy_documentation(folder)

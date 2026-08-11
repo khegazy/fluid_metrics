@@ -179,59 +179,74 @@ def resolve_severity(rung: Rung, field: str,
     raise KeyError(f"unknown calibration kind {rung.calibration!r}")
 
 
-def realised_severities(
-    rungs: Sequence[Rung], field: str, calibration: Calibration | None
-) -> dict[str, list[float]]:
-    """Resolved severity of every rung of every axis, for one field, in level order."""
-    out: dict[str, list[float]] = {}
-    for rung in rungs:
-        if rung.is_reference:
-            continue
-        out.setdefault(rung.label, []).append(resolve_severity(rung, field, calibration))
-    return out
+@dataclass(frozen=True)
+class RungApplication:
+    """The result of applying one rung to one frame, with what it measurably did.
 
-
-def degenerate_rungs(
-    rungs: Sequence[Rung], field: str, calibration: Calibration | None
-) -> dict[str, list[int]]:
-    """Levels whose resolved severity duplicates a milder rung on the same axis.
-
-    A calibrated severity is a real number but most operators act on a quantised one -- a sharp
-    filter zeroes whole wavenumber shells, and a windowed kernel takes an odd number of cells --
-    so two different nominal severities can resolve to the *same experiment*. That is not a
-    tuning mistake; it is a limit of the field. Density keeps 69% of its fluctuation energy in
-    the single shell k=1, so no cutoff ladder on density has more than about two distinct rungs,
-    however the config is written.
-
-    Reporting such a rung as a fourth point would inflate every axis statistic: the rank
-    correlation would score a tie as agreement and the adjacent-rung separability would compare a
-    distribution against itself. They are therefore identified here, recorded per row, and
-    excluded from the acceptance statistics.
-
-    Returns:
-        Mapping of axis label -> the levels (1-based) that duplicate an earlier one.
+    A rung's *requested* severity and its *realised* effect are different numbers, and on a field
+    whose energy is concentrated in a few modes they differ a lot: a sharp filter must land on an
+    available set of modes, so the nearest cutoff to a request can remove far more or far less than
+    was asked for. Measured on density, whose fluctuation energy is 69% in the four diagonal modes
+    at |k| = sqrt(2), the mildest high-pass rung removes 3e-5 of the energy and the next removes
+    0.70. Reporting only the request would leave a reader unable to tell those apart, so the effect
+    is measured per field and carried on every result row.
     """
-    quantised = {}
-    for rung in rungs:
-        if rung.is_reference or rung.calibration is None:
-            continue
-        spec = deg_registry.get(rung.op)
-        severity = resolve_severity(rung, field, calibration)
-        quantised.setdefault(rung.label, []).append(
-            (rung.level, spec.quantise_severity(severity))
-        )
 
-    out: dict[str, list[int]] = {}
-    for label, pairs in quantised.items():
-        seen: set[float] = set()
-        dupes = []
-        for level, value in sorted(pairs):
-            if value in seen:
-                dupes.append(level)
-            seen.add(value)
-        if dupes:
-            out[label] = dupes
-    return out
+    fields: dict[str, np.ndarray]
+    """The degraded arrays."""
+    resolved: dict[str, float]
+    """Absolute severity actually applied, per field. Differs between fields when calibrated."""
+    unchanged: set[str]
+    """Fields the operator left alone to within round-off, so the rung is not an experiment."""
+    energy_removed: dict[str, float]
+    """Fraction of the reference's fluctuation energy the operator eliminated.
+
+    ``1 - var(degraded) / var(reference)``. For a filter this is exactly the energy removed. It is
+    near zero for an operator that relocates rather than removes -- a translation -- and negative
+    for one that adds energy, such as noise; both are informative rather than defects, and are the
+    reason this is reported next to the severity instead of being inferred from it.
+    """
+    energy_changed: dict[str, float]
+    """Fraction of the reference's fluctuation energy sitting in the difference field.
+
+    ``mean((degraded - reference)^2) / var(reference)``. Defined for every operator, including
+    those that move or add energy rather than removing it, so it is the one number comparable
+    across every axis.
+    """
+
+
+@dataclass(frozen=True)
+class RungApplication:
+    """The result of applying one rung to one frame, with what it measurably did.
+
+    A rung's *requested* severity and its *realised* effect are different numbers, and on a field
+    with a steep spectrum they differ a lot: a sharp high-pass asked to remove 45% of the density
+    energy resolves to the lowest available cutoff and removes either none of it or 69%, because
+    69% sits in that one wavenumber shell. Reporting only the request would leave a reader unable
+    to tell those apart, so the effect is measured per field and carried on every result row.
+    """
+
+    fields: dict[str, np.ndarray]
+    """The degraded arrays."""
+    resolved: dict[str, float]
+    """Absolute severity actually applied, per field. Differs between fields when calibrated."""
+    unchanged: set[str]
+    """Fields the operator left alone to within round-off, so the rung is not an experiment."""
+    energy_removed: dict[str, float]
+    """Fraction of the reference's fluctuation energy the operator eliminated.
+
+    ``1 - var(degraded) / var(reference)``. For a filter this is exactly the energy removed. It is
+    near zero for an operator that relocates rather than removes -- a translation -- and negative
+    for one that adds energy, such as noise; both are informative rather than defects, and are the
+    reason this is reported next to the severity instead of being inferred from it.
+    """
+    energy_changed: dict[str, float]
+    """Fraction of the reference's fluctuation energy sitting in the difference field.
+
+    ``mean((degraded - reference)^2) / var(reference)``. Defined for every operator, including
+    those that move or add energy rather than removing it, so it is the one number comparable
+    across every axis.
+    """
 
 
 def apply_rung(
@@ -260,25 +275,31 @@ def apply_rung(
             ``calibration``.
 
     Returns:
-        ``(degraded, resolved, unchanged)`` -- the degraded arrays; the absolute severity
-        actually applied to each field, which differs between fields for a calibrated operator
-        and is recorded on every result row; and the fields the operator left bitwise identical
-        to the reference.
+        A :class:`RungApplication`: the degraded arrays, the absolute severity applied to each
+        field, the fields left untouched, and how much of each field's fluctuation energy the
+        operator removed and changed.
 
         ``unchanged`` exists because a calibrated severity can resolve to a value at which the
-        operator does nothing, and such a rung is not an experiment. Measured: the mildest
-        high-pass rung asks to remove 20% of the density energy, but 69% of it sits in the single
-        shell k=1, so the cutoff floors at k=1 and -- with the k=0 mean deliberately preserved --
-        the filter passes every mode. Left unflagged it contributes an exactly-zero damage that
-        makes the axis appear to span eleven orders of magnitude.
+        operator does nothing, and such a rung is not an experiment. Measured: a mild high-pass
+        request on density floors at the lowest usable cutoff |k| = 1, and since the axis modes
+        there hold only 3e-5 of the energy -- with the k=0 mean deliberately preserved -- the filter
+        passes essentially everything. Left unflagged such a rung contributes an exactly-zero damage
+        that makes the axis appear to span eleven orders of magnitude.
     """
     if rung.is_reference:
-        return {name: frame.fields[name] for name in fields}, {}, set()
+        return RungApplication(
+            fields={name: frame.fields[name] for name in fields},
+            resolved={}, unchanged=set(),
+            energy_removed={name: 0.0 for name in fields},
+            energy_changed={name: 0.0 for name in fields},
+        )
 
     spec = deg_registry.get(rung.op)
     out: dict[str, np.ndarray] = {}
     resolved: dict[str, float] = {}
     unchanged: set[str] = set()
+    removed: dict[str, float] = {}
+    changed: dict[str, float] = {}
     for name in fields:
         source = frame.fields[name]
         if spec.fields != ("*",) and name not in spec.fields:
@@ -310,7 +331,9 @@ def apply_rung(
         out[name] = result
         if _is_noop(source, result, rms):
             unchanged.add(name)
-    return out, resolved, unchanged
+        removed[name], changed[name] = _energy_effect(source, result)
+    return RungApplication(fields=out, resolved=resolved, unchanged=unchanged,
+                           energy_removed=removed, energy_changed=changed)
 
 
 #: Relative change below which an operator is treated as having done nothing. Bitwise equality
@@ -320,6 +343,24 @@ def apply_rung(
 #: changes the field by about 2e-2 of its fluctuation RMS, so any threshold in between separates
 #: them cleanly and 1e-8 is nowhere near either.
 NOOP_RELATIVE_TOLERANCE = 1e-8
+
+
+def _energy_effect(source: np.ndarray, result: np.ndarray) -> tuple[float, float]:
+    """Fraction of the reference fluctuation energy removed, and the fraction changed.
+
+    Both are about the *fluctuation*, with the spatial mean removed, for the same reason the
+    calibration is: on density the mean is four orders of magnitude larger than the fluctuation, so
+    energies computed about zero would say every operator changed nothing.
+    """
+    spatial = tuple(range(1, source.ndim))
+    reference = source - source.mean(axis=spatial, keepdims=True)
+    degraded = result - result.mean(axis=spatial, keepdims=True)
+    total = float((reference**2).mean())
+    if total <= 0:
+        return 0.0, 0.0
+    removed = 1.0 - float((degraded**2).mean()) / total
+    changed = float(((result - source) ** 2).mean()) / total
+    return removed, changed
 
 
 def _is_noop(source: np.ndarray, result: np.ndarray, rms: float) -> bool:

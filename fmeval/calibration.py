@@ -34,6 +34,7 @@ from dataclasses import dataclass, field as dc_field
 import numpy as np
 
 from .data.base import GridSpec
+from .wavenumbers import wavenumber_magnitude
 
 log = logging.getLogger(__name__)
 
@@ -48,8 +49,11 @@ class FieldCalibration:
     Attributes:
         field: Canonical field name.
         n_frames: How many frames the measurement averaged over.
-        cumulative_energy: Cumulative fraction of fluctuation energy at or below each integer
-            wavenumber, index 0 upward. Averaged over the sampled frames.
+        wavenumbers: The distinct wavevector magnitudes present on the grid, ascending. Not
+            integers: the diagonal modes sit between the shells, and a filter cutoff is compared
+            against these exact values.
+        cumulative_energy: Cumulative fraction of fluctuation energy at or below the matching
+            entry of ``wavenumbers``. Averaged over the sampled frames.
         mean_wavenumber: Energy-weighted mean wavenumber.
         characteristic_scale: ``N / mean_wavenumber`` in cells -- the scale the field varies
             on, and the natural unit for a smoothing width.
@@ -59,6 +63,7 @@ class FieldCalibration:
 
     field: str
     n_frames: int
+    wavenumbers: np.ndarray
     cumulative_energy: np.ndarray
     mean_wavenumber: float
     characteristic_scale: float
@@ -77,10 +82,8 @@ class FieldCalibration:
         """
         if not 0.0 <= fraction <= 1.0:
             raise ValueError(f"energy fraction must be in [0, 1], got {fraction}")
-        k_max = len(self.cumulative_energy) - 1
-        shells = np.arange(len(self.cumulative_energy), dtype=float)
-        k = float(np.interp(fraction, self.cumulative_energy, shells))
-        return float(np.clip(k, 1.0, k_max))
+        k = float(np.interp(fraction, self.cumulative_energy, self.wavenumbers))
+        return float(np.clip(k, 1.0, float(self.wavenumbers[-1])))
 
     def cutoff_removing_energy(self, fraction: float, side: str) -> float:
         """Cutoff wavenumber at which a filter removes ``fraction`` of the energy.
@@ -101,15 +104,29 @@ class FieldCalibration:
         raise ValueError(f"side must be 'above' or 'below', got {side!r}")
 
     def energy_removed(self, cutoff: float, side: str) -> float:
-        """Fraction of energy a sharp filter at ``cutoff`` actually removes.
+        """Fraction of energy a sharp filter at ``cutoff`` removes.
 
-        The realised value after rounding, which is what a run should report rather than the
-        nominal request.
+        Exact for an ideal filter, because the curve is tabulated at the same magnitudes the
+        filter compares against. Predicted rather than measured -- the run also records what each
+        rung measurably removed, in the ``energy_removed`` result column.
         """
-        k = int(round(cutoff))
-        k = int(np.clip(k, 0, len(self.cumulative_energy) - 1))
-        below = float(self.cumulative_energy[k])
+        index = int(np.searchsorted(self.wavenumbers, cutoff, side="right")) - 1
+        if index < 0:
+            below = 0.0
+        else:
+            below = float(self.cumulative_energy[min(index, len(self.cumulative_energy) - 1)])
         return below if side == "below" else 1.0 - below
+
+    def quantised_cutoff(self, cutoff: float) -> float:
+        """The largest available magnitude at or below ``cutoff``.
+
+        Two cutoffs that quantise alike select exactly the same modes and are therefore the same
+        experiment, whatever their nominal severities were.
+        """
+        index = int(np.searchsorted(self.wavenumbers, cutoff, side="right")) - 1
+        if index < 0:
+            return 0.0
+        return float(self.wavenumbers[index])
 
     def length_for_scale_fraction(self, fraction: float) -> float:
         """A length in cells, as a fraction of the characteristic scale."""
@@ -129,12 +146,17 @@ class FieldCalibration:
         }
 
 
-def _radial_energy(field: np.ndarray, radius: np.ndarray, n_bins: int) -> np.ndarray:
-    """Energy of the *fluctuation* summed into integer wavenumber shells.
+def _binned_energy(field: np.ndarray, inverse: np.ndarray, n_bins: int) -> np.ndarray:
+    """Energy of the *fluctuation*, grouped by exact wavevector magnitude.
 
-    The spatial mean is removed first. Leaving it in would put an overwhelming spike at k=0
-    for a field like density, which is 1.0 with fluctuations of order 1e-4, and every energy
-    fraction would then resolve to the same wavenumber.
+    The spatial mean is removed first. Leaving it in would put an overwhelming spike at k=0 for a
+    field like density, which is 1.0 with fluctuations of order 1e-4, and every energy fraction
+    would then resolve to the same wavenumber.
+
+    Args:
+        field: ``(C, *spatial)``.
+        inverse: For each mode, the index of its magnitude in the sorted distinct magnitudes.
+        n_bins: How many distinct magnitudes there are.
     """
     spatial = tuple(range(1, field.ndim))
     fluct = field - field.mean(axis=spatial, keepdims=True)
@@ -142,16 +164,18 @@ def _radial_energy(field: np.ndarray, radius: np.ndarray, n_bins: int) -> np.nda
         np.abs(np.fft.fftn(channel, axes=tuple(range(channel.ndim)))) ** 2
         for channel in fluct
     )
-    return np.bincount(radius.ravel(), power.ravel(), minlength=n_bins)
+    return np.bincount(inverse.ravel(), power.ravel(), minlength=n_bins)
 
 
-def _wavenumber_radius(grid: GridSpec) -> tuple[np.ndarray, int]:
-    """Integer wavenumber magnitude on the grid, and the number of shells."""
-    axes = np.meshgrid(
-        *[np.fft.fftfreq(n) * n for n in grid.shape], indexing="ij"
-    )
-    radius = np.rint(np.sqrt(sum(a**2 for a in axes))).astype(int)
-    return radius, int(radius.max()) + 1
+def _magnitude_bins(grid: GridSpec) -> tuple[np.ndarray, np.ndarray]:
+    """The distinct wavevector magnitudes on the grid, and each mode's index into them.
+
+    Grouping by exact magnitude rather than by rounded shell is what keeps the calibration and
+    the filters talking about the same thing; see :mod:`fmeval.wavenumbers`.
+    """
+    magnitude = wavenumber_magnitude(tuple(grid.shape))
+    values, inverse = np.unique(np.round(magnitude, 9), return_inverse=True)
+    return values, inverse.reshape(magnitude.shape)
 
 
 def calibrate_field(frames: Sequence[np.ndarray], grid: GridSpec,
@@ -170,12 +194,12 @@ def calibrate_field(frames: Sequence[np.ndarray], grid: GridSpec,
     if not frames:
         raise ValueError(f"cannot calibrate {field!r} without any frames")
 
-    radius, n_bins = _wavenumber_radius(grid)
-    shells = np.arange(n_bins, dtype=float)
+    shells, inverse = _magnitude_bins(grid)
+    n_bins = len(shells)
 
     energies, scales = [], []
     for frame in frames:
-        energy = _radial_energy(frame, radius, n_bins)
+        energy = _binned_energy(frame, inverse, n_bins)
         total = energy.sum()
         if total <= 0:
             continue
@@ -209,6 +233,7 @@ def calibrate_field(frames: Sequence[np.ndarray], grid: GridSpec,
     return FieldCalibration(
         field=field,
         n_frames=len(energies),
+        wavenumbers=shells,
         cumulative_energy=cumulative,
         mean_wavenumber=mean_k,
         characteristic_scale=scale,
@@ -235,6 +260,24 @@ class Calibration:
 
     def summary(self) -> list[dict[str, float | int | str]]:
         return [c.summary() for c in self.fields.values()]
+
+    def spectrum_frame(self) -> list[dict[str, float | int | str]]:
+        """The cumulative energy curve as flat rows, one per (field, wavenumber).
+
+        Written out so a reader can see *why* a cutoff ladder has the resolution it has. On this
+        data the curve is what makes the density case obvious at a glance: its fluctuation energy
+        is 69% in the four diagonal modes at |k| = sqrt(2) and only 3e-5 in the axis modes just
+        below them, so consecutive available cutoffs there differ by most of the field.
+        """
+        rows = []
+        for cal in self.fields.values():
+            for k, fraction in zip(cal.wavenumbers, cal.cumulative_energy):
+                rows.append({
+                    "field": cal.field,
+                    "wavenumber": float(k),
+                    "cumulative_energy_below": float(fraction),
+                })
+        return rows
 
 
 def calibrate(frames_by_field: dict[str, list[np.ndarray]], grid: GridSpec,

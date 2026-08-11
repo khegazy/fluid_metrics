@@ -482,7 +482,7 @@ def _frame() -> Frame:
 
 def test_apply_reference_rung_returns_the_originals():
     frame = _frame()
-    out, _, _ = apply_rung(REFERENCE_RUNG, frame, ["density", "velocity"], seed=0)
+    out = apply_rung(REFERENCE_RUNG, frame, ["density", "velocity"], seed=0).fields
     for name, arr in out.items():
         assert arr is frame.fields[name]
 
@@ -491,12 +491,14 @@ def test_apply_rung_degrades_every_requested_field():
     frame = _frame()
     rung = build_ladder({"gaussian_blur": {"severities": [0.3]}},
                         include_reference=False)[0]
-    out, resolved, _ = apply_rung(
+    applied = apply_rung(
         rung, frame, ["density", "velocity"], seed=0,
         calibration=calibration_for(frame, ["density", "velocity"]),
     )
+    out = applied.fields
     assert set(out) == {"density", "velocity"}
-    assert set(resolved) == {"density", "velocity"}
+    assert set(applied.resolved) == {"density", "velocity"}
+    assert set(applied.energy_removed) == {"density", "velocity"}
     for name, arr in out.items():
         assert arr.shape == frame.fields[name].shape
         assert not np.allclose(arr, frame.fields[name])
@@ -507,9 +509,9 @@ def test_apply_rung_is_invariant_to_frame_iteration_order():
     frame = _frame()
     rung = build_ladder({"additive_noise": {"severities": [0.1]}},
                         include_reference=False)[0]
-    first = apply_rung(rung, frame, ["density"], seed=11)[0]["density"]
+    first = apply_rung(rung, frame, ["density"], seed=11).fields["density"]
     _ = apply_rung(rung, frame, ["velocity"], seed=11)  # advance nothing
-    again = apply_rung(rung, frame, ["density"], seed=11)[0]["density"]
+    again = apply_rung(rung, frame, ["density"], seed=11).fields["density"]
     assert np.array_equal(first, again)
 
 
@@ -520,7 +522,7 @@ def test_noise_scales_with_the_reference_rms_not_the_raw_rms():
                         include_reference=False)[0]
     rms = fluctuation_rms(frame["density"])
     out = apply_rung(rung, frame, ["density"], seed=0,
-                     reference_rms={"density": rms})[0]["density"]
+                     reference_rms={"density": rms}).fields["density"]
     perturbation = np.abs(out - frame["density"]).mean()
     assert perturbation < 0.5 * frame["density"].mean(), "noise swamped the signal"
     assert perturbation == pytest.approx(0.1 * rms * np.sqrt(2 / np.pi), rel=0.25)

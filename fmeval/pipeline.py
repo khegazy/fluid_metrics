@@ -34,8 +34,7 @@ from metrics.registry import MetricSpec
 from .calibration import Calibration, calibrate
 from .context import FieldContext, derive_rng
 from .data.base import FIELDS, Frame, Trajectory, TimeSelection
-from .ladder import (Rung, apply_rung, degenerate_rungs,
-                     reference_fluctuation_rms)
+from .ladder import Rung, apply_rung, reference_fluctuation_rms
 from .remap import coarsen_factor, remap_frame
 
 log = logging.getLogger(__name__)
@@ -71,6 +70,8 @@ RESULT_DTYPES: dict[str, str] = {
     "calibration": "category",
     "severity_degenerate": "bool",   # not a distinct experiment: repeats a milder rung, or
                                      # resolved to a severity at which the operator is a no-op
+    "energy_removed": "float64",     # what the rung MEASURABLY did, as opposed to what it asked
+    "energy_changed": "float64",     # for: both are fractions of the reference fluctuation
     "severity_name": "category",
     "variant_label": "category",
     # the number
@@ -152,6 +153,8 @@ def _emit(
     wall: float,
     severity: float,
     degenerate: bool,
+    energy_removed: float,
+    energy_changed: float,
 ) -> list[dict[str, Any]]:
     """Expand one metric evaluation into result rows (several if it returns a vector)."""
     base = {
@@ -172,6 +175,8 @@ def _emit(
         "severity_nominal": rung.severity,
         "calibration": rung.calibration or "",
         "severity_degenerate": degenerate,
+        "energy_removed": energy_removed,
+        "energy_changed": energy_changed,
         "severity_name": rung.severity_name,
         "variant_label": rung.variant_label,
         "seed": seed,
@@ -251,8 +256,6 @@ def run(
         trajectory, fields, indices, factor, remap_method, calibration_frames
     )
 
-    degenerate = _degenerate_map(rungs, fields, calibration)
-
     rows: list[dict[str, Any]] = []
     stored_maps: dict[str, np.ndarray] = {}
     t_io = t_deg = t_metric = 0.0
@@ -267,9 +270,9 @@ def run(
         available = [f for f in fields if f in frame.fields]
         ref_rms = reference_fluctuation_rms(frame, available)
         variants = {
-            rung.variant_label: (rung, *apply_rung(rung, frame, available, seed=seed,
-                                                   reference_rms=ref_rms,
-                                                   calibration=calibration))
+            rung.variant_label: (rung, apply_rung(rung, frame, available, seed=seed,
+                                                  reference_rms=ref_rms,
+                                                  calibration=calibration))
             for rung in rungs
         }
         t_deg += time.perf_counter() - t0
@@ -288,9 +291,9 @@ def run(
                 )
                 kwargs = {"ctx": ctx} if spec.takes_ctx else {}
 
-                for label, (rung, degraded, resolved, unchanged) in variants.items():
-                    candidate = degraded[field]
-                    severity = resolved.get(field, rung.severity)
+                for label, (rung, applied) in variants.items():
+                    candidate = applied.fields[field]
+                    severity = applied.resolved.get(field, rung.severity)
                     args = (
                         (reference, candidate) if spec.arity == "pairwise" else (candidate,)
                     )
@@ -301,8 +304,9 @@ def run(
                     rows.extend(
                         _emit(spec, field, frame, rung, dataset, grid_size,
                               remap_method, seed, value, wall, severity,
-                              degenerate.get((field, rung.label, rung.level), False)
-                              or (field in unchanged and not rung.is_reference))
+                              field in applied.unchanged and not rung.is_reference,
+                              applied.energy_removed.get(field, float("nan")),
+                              applied.energy_changed.get(field, float("nan")))
                     )
 
                     if (
@@ -320,7 +324,7 @@ def run(
     # A metric may accept none of the available fields, which is a legitimate no-op
     # rather than an error -- but pd.DataFrame([]) has no columns to coerce.
     df = _coerce(pd.DataFrame(rows)) if rows else empty_results()
-    _log_noop_rungs(df, degenerate)
+    df = _flag_repeated_rungs(df)
     return PipelineResult(
         rows=df,
         maps=stored_maps,
@@ -332,53 +336,66 @@ def run(
     )
 
 
-def _log_noop_rungs(
-    df: pd.DataFrame, already_reported: Mapping[tuple[str, str, int], bool]
-) -> None:
-    """Log rungs that turned out to leave the field unchanged.
+def _flag_repeated_rungs(df: pd.DataFrame) -> pd.DataFrame:
+    """Mark rungs that turn out to be the same experiment as a milder rung, and log them.
 
-    These are found by measurement rather than by resolving a severity, so they are not in the
-    map logged before the loop, and without this the run log understates what was dropped.
+    Detected by measurement rather than by declaration: two rungs whose severities resolve to the
+    same quantised operation produce a bitwise identical field, hence an exactly equal
+    ``energy_changed``. That is a stronger test than asking each operator to describe how it
+    rounds, and it needs no such description -- it catches a sharp filter landing twice on the same
+    set of modes, and a windowed kernel landing twice on the same odd width, alike.
+
+    Such a rung is not padding, it is corruption: the rank correlation would score the tie as
+    agreement and the adjacent-rung separability would compare a distribution against itself. It is
+    also not a misconfiguration: 69% of density's fluctuation energy is in the four diagonal modes
+    at |k| = sqrt(2), so the available cutoffs there are few and far apart and a sharp ladder has
+    only a couple of distinct rungs however it is written.
     """
     if df.empty:
-        return
+        return df
+
+    repeated = pd.Series(False, index=df.index)
+    for (field, axis), g in df[df["level"] > 0].groupby(
+        ["field", "degradation"], observed=True
+    ):
+        seen: dict[float, int] = {}
+        levels = []
+        for level in sorted(g["level"].unique()):
+            effect = float(g.loc[g["level"] == level, "energy_changed"].iloc[0])
+            if effect in seen:
+                repeated.loc[g.index[g["level"] == level]] = True
+                levels.append((int(level), seen[effect]))
+            else:
+                seen[effect] = int(level)
+        if levels:
+            log.warning(
+                "%s / %s: level(s) %s repeat the experiment of level(s) %s and are excluded "
+                "from the acceptance statistics. The field's spectrum cannot resolve that many "
+                "distinct rungs for this operator.",
+                field, axis, [a for a, _ in levels], [b for _, b in levels],
+            )
+
+    _log_noop_rungs(df)          # before the merge, so the two reasons stay distinguishable
+    df = df.copy()
+    df["severity_degenerate"] = df["severity_degenerate"] | repeated
+    return df
+
+
+def _log_noop_rungs(df: pd.DataFrame) -> None:
+    """Log rungs whose severity resolved to one at which the operator does nothing.
+
+    Measured, not modelled: an operator is treated as having done nothing when it moved the field
+    by less than round-off relative to its own fluctuation.
+    """
     flagged = df[(df["level"] > 0) & df["severity_degenerate"]]
     for (field, axis), g in flagged.groupby(["field", "degradation"], observed=True):
-        levels = sorted(
-            int(level) for level in g["level"].unique()
-            if (str(field), str(axis), int(level)) not in already_reported
-        )
+        levels = sorted(int(level) for level in g["level"].unique())
         if levels:
             log.warning(
                 "%s / %s: level(s) %s resolve to a severity at which the operator leaves the "
                 "field unchanged, and are excluded from the acceptance statistics.",
                 field, axis, levels,
             )
-
-
-def _degenerate_map(
-    rungs: Sequence[Rung], fields: Sequence[str], calibration: Calibration
-) -> dict[tuple[str, str, int], bool]:
-    """Which ``(field, axis, level)`` triples repeat a milder rung's experiment.
-
-    Logged loudly, because an axis that loses rungs on one field is a real limitation of that
-    field's spectrum rather than a misconfiguration, and the acceptance statistics for it are
-    computed from fewer points than the config appears to request.
-    """
-    out: dict[tuple[str, str, int], bool] = {}
-    for field in fields:
-        if field not in calibration:
-            continue
-        for label, levels in degenerate_rungs(rungs, field, calibration).items():
-            log.warning(
-                "%s / %s: level(s) %s resolve to the same severity as a milder rung and are "
-                "excluded from the acceptance statistics. The field's spectrum cannot resolve "
-                "that many distinct rungs for this operator.",
-                field, label, levels,
-            )
-            for level in levels:
-                out[(field, label, level)] = True
-    return out
 
 
 def _measure_calibration(

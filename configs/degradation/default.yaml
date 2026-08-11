@@ -39,20 +39,23 @@ ladder:
   # 0.28/0.48/0.68/0.81 of the vorticity energy but 0.70/0.95/1.00/1.00 of the density energy,
   # saturating at the second rung so two of four rungs were the same experiment.
   #
-  # A sharp filter still quantises to whole wavenumber shells and no config can undo that:
-  # density holds 69% of its fluctuation energy in the single shell k=1, so a sharp cutoff on
-  # density has at most about two distinct rungs however these numbers are written. The
-  # Butterworth pair rolls off smoothly and does resolve them, which is a second reason to run
-  # both rather than treating the smooth filter as only a ringing control.
+  # A sharp filter must still land on an available set of modes, and no config can undo that.
+  # Density's fluctuation energy is 69% in the four diagonal modes at |k| = sqrt(2) and only 3e-5
+  # in the axis modes at |k| = 1 just below them, so two consecutive available cutoffs there
+  # differ by most of the field and a sharp ladder has only a couple of distinct rungs however
+  # these numbers are written. The Butterworth pair rolls off smoothly and does resolve them,
+  # which is a second reason to run both rather than treating the smooth filter as only a ringing
+  # control. The report prints the fraction each rung actually removed beside the fraction it was
+  # asked for, so a rung that landed on the wrong side of those diagonal modes is visible.
   #
-  # Both filters are floored at the lowest usable cutoff k=1, and on density k=1 alone holds 69%
-  # of the fluctuation energy. That squeezes the high-pass axis from both sides: below 69% the
-  # cutoff resolves to k=1, where -- with the k=0 mean deliberately preserved -- the filter passes
-  # every mode and the rung is not an experiment at all, while above it the damage is already
-  # most of the way to an unrelated field. The window below is the widest measured: it spans a
-  # factor 3.4 in damage on vorticity and gives density two usable rungs out of four. That is a
-  # property of these fields' bottom-heavy spectra, not something a severity list can fix, and it
-  # is why the high-pass axis alone does not reach the factor-five damage range the other axes do.
+  # Both filters are floored at the lowest usable cutoff, |k| = 1. That squeezes the high-pass
+  # axis from both sides on a bottom-heavy field: at the floor the filter passes essentially
+  # everything -- with the k=0 mean deliberately preserved -- so the rung is not an experiment at
+  # all, while one step above it the damage is already most of the way to an unrelated field. The
+  # window below is the widest measured: it spans a factor 3.4 in damage on vorticity and gives
+  # density two clearly separated rungs of four. That is a property of these fields' spectra, not
+  # something a severity list can fix, and it is why the high-pass axis alone does not reach the
+  # factor-five damage range the other axes do.
   lowpass_ideal:       {enabled: true,  severities: [0.05, 0.15, 0.30, 0.45]}
   lowpass_butterworth: {enabled: true,  severities: [0.05, 0.15, 0.30, 0.45],
                         options: {order: 4}}

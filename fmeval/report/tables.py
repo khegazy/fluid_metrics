@@ -225,11 +225,17 @@ def provenance_table(ctx, df, opts) -> TableResult:
     )
 
 
+#: Absolute gap between a requested energy fraction and the realised one, above which the report
+#: says so. Not a threshold on acceptance -- the rung is a real experiment either way -- only on
+#: whether its nominal severity describes it honestly.
+MISSED_REQUEST = 0.15
+
+
 @table(
     section=11, order=5, scope="global",
     title="Resolved ladder severities",
     requires_columns=("field", "degradation", "level", "severity", "severity_nominal",
-                      "calibration"),
+                      "calibration", "energy_removed", "energy_changed"),
 )
 def calibrated_severities_table(ctx, df, opts) -> TableResult:
     """What each calibrated config severity became on each field.
@@ -239,6 +245,13 @@ def calibrated_severities_table(ctx, df, opts) -> TableResult:
     per field against a measured spectrum, so the same config number is a different width or
     cutoff on a smooth field than on a broadband one. That is the point of calibrating, and it
     means the absolute numbers in the rest of the report belong to this table.
+
+    The last two columns are what the rung *measurably did*, which is not the same as what it asked
+    for. A cutoff must land on an available set of modes, so where a field's energy is concentrated
+    the realised removal jumps rather than following the request: 69% of density's fluctuation
+    energy is in the four diagonal modes at |k| = sqrt(2) and 3e-5 of it below them, so two
+    consecutive cutoffs there differ by most of the field. Without these columns a reader cannot
+    tell a rung that did what was asked from one that overshot to the next set of modes.
     """
     calibrated = df[df["calibration"].astype(str).ne("") & (df["level"] > 0)]
     ctx.require(len(calibrated) > 0, "no calibrated axis in this run")
@@ -254,9 +267,20 @@ def calibrated_severities_table(ctx, df, opts) -> TableResult:
             "level": int(level),
             "configured": float(g["severity_nominal"].iloc[0]),
             "applied": float(g["severity"].iloc[0]),
+            "energy removed": float(g["energy_removed"].median()),
+            "energy changed": float(g["energy_changed"].median()),
             "used": "no" if bool(g["severity_degenerate"].iloc[0]) else "yes",
         })
     frame = pd.DataFrame(rows).sort_values(["field", "axis", "level"])
+
+    # A rung can be a perfectly valid experiment and still not be the one that was requested.
+    # A cutoff selects whole sets of modes, so where a field's energy is concentrated the nearest
+    # available cutoff can remove far more or far less than the fraction asked for. That is worth
+    # naming, because the nominal severity is what appears on every axis label in the report.
+    spectral = frame[frame["relative to"].str.startswith("energy")]
+    missed = spectral[
+        (spectral["energy removed"] - spectral["configured"]).abs() > MISSED_REQUEST
+    ]
 
     dropped = frame[frame["used"] == "no"]
     if len(dropped):
@@ -271,9 +295,33 @@ def calibrated_severities_table(ctx, df, opts) -> TableResult:
     else:
         note = "Every configured rung resolved to a distinct experiment on every field."
 
+    if len(missed):
+        worst = ", ".join(
+            f"{r['field']}/{r['axis']} level {r['level']} asked for "
+            f"{r['configured']:.2f} and removed {r['energy removed']:.3f}"
+            for _, r in missed.sort_values("level").iterrows()
+        )
+        note += (
+            f" {len(missed)} spectral rung(s) removed a fraction differing from the request by "
+            f"more than {MISSED_REQUEST:g}, because a cutoff selects whole sets of modes and the "
+            "nearest available one was not close: " + worst + ". These are still valid "
+            "experiments, but their nominal severity understates or overstates what they did."
+        )
+
     return TableResult(
         frame=frame,
-        caption="Configured (relative) against applied (absolute) severity, per field.",
+        caption="Configured (relative) against applied (absolute) severity and the realised "
+                "effect, per field.",
         formats={"field": "code", "axis": "code", "relative to": "code"},
+        headers={"energy removed": "energy removed", "energy changed": "energy changed"},
         note=note,
+        notes=[
+            "\\emph{energy removed} is $1 - \\mathrm{var}(\\text{degraded}) / "
+            "\\mathrm{var}(\\text{reference})$ and \\emph{energy changed} is "
+            "$\\langle(\\text{degraded}-\\text{reference})^2\\rangle / "
+            "\\mathrm{var}(\\text{reference})$, both about the spatial mean and both "
+            "medians over frames. For a filter the first is exactly the fraction of energy it "
+            "deleted; it is near zero for an operator that relocates energy rather than removing "
+            "it, and negative for one that adds energy.",
+        ],
     )

@@ -66,6 +66,13 @@ class ReportContext:
     axes: pd.DataFrame
     probes: pd.DataFrame
     card: pd.DataFrame
+    spectrum: pd.DataFrame = dc_field(default_factory=pd.DataFrame)
+    """Cumulative fluctuation energy against wavenumber, per field, as measured.
+
+    Empty when the run predates the severity calibration. It is what explains the resolution a
+    filter ladder has: a field holding most of its energy in one or two wavenumber shells cannot
+    support a finely spaced cutoff ladder, and the curve shows that at a glance.
+    """
     maps: dict[str, np.ndarray] = dc_field(default_factory=dict)
     meta: dict[str, Any] = dc_field(default_factory=dict)
     config: dict[str, Any] = dc_field(default_factory=dict)

@@ -479,3 +479,76 @@ def _use_log(values: pd.Series, setting) -> bool:
     if len(positive) < 3:
         return False
     return bool(positive.max() / positive.min() > 100)
+
+
+@plot(
+    section=3, order=5, scope="per_field",
+    title="Where the field keeps its energy",
+    requires_columns=("field", "severity", "calibration"),
+)
+def energy_spectrum(ctx, df, opts) -> PlotResult:
+    """Cumulative fluctuation energy against wavenumber, with the applied cutoffs marked.
+
+    This is the figure that explains the resolution of every filter ladder in the report. A
+    severity on a spectral axis is a fraction of energy to remove, and the harness converts it to
+    a cutoff using exactly this curve -- so where the curve is steep, neighbouring rungs land on
+    the same wavenumber shell and cannot be separated, and where it is shallow they spread out.
+
+    Read the steepness first. Measured on this data the density curve is almost a step: 3e-5 of its
+    fluctuation energy lies at or below |k| = 1 and 69% at |k| = sqrt(2), so two consecutive
+    available cutoffs differ by most of the field and a sharp filter has only a couple of usable
+    rungs there however the ladder is configured. Vorticity rises gradually -- 50% by |k| = 3.2,
+    90% by 23, 99% by 51 -- and its cutoffs spread over more than a factor of ten as a result.
+    """
+    ctx.require(not ctx.spectrum.empty,
+                "no measured spectrum in this run (it predates severity calibration)")
+    field = str(df["field"].iloc[0])
+    curve = ctx.spectrum[ctx.spectrum["field"] == field].sort_values("wavenumber")
+    ctx.require(not curve.empty, f"no measured spectrum for {field}")
+
+    cuts = df[df["calibration"].astype(str).str.startswith("energy") & (df["level"] > 0)]
+
+    fig, axgrid = ctx.style.figure(1, 1)
+    ax = axgrid[0, 0]
+    k = curve["wavenumber"].to_numpy()
+    cumulative = curve["cumulative_energy_below"].to_numpy()
+    ax.plot(k, cumulative, marker="o", markersize=2.5, lw=1.4, color="black",
+            label="cumulative energy below $k$")
+    ax.set_xscale("symlog", linthresh=1)
+    ax.set_xlim(0, max(k.max(), 2))
+    ax.set_ylim(0, 1.02)
+    ax.set_xlabel("wavenumber $k$")
+    ax.set_ylabel("fraction of fluctuation energy below $k$")
+
+    # The applied cutoffs, so a reader can see which rungs share a shell.
+    rows = []
+    for axis, g in cuts.groupby("degradation", observed=True):
+        colour = ctx.style.axis_colour(str(axis))
+        for level, h in g.groupby("level", observed=True):
+            cutoff = float(h["severity"].iloc[0])
+            removed = float(h["energy_removed"].median())
+            degenerate = bool(h["severity_degenerate"].iloc[0])
+            ax.axvline(cutoff, color=colour, lw=1.0,
+                       ls=":" if degenerate else "--", alpha=0.85)
+            rows.append({"axis": str(axis), "level": int(level), "cutoff": cutoff,
+                         "energy_removed": removed, "excluded": degenerate})
+        ax.plot([], [], color=colour, ls="--", label=f"{ctx.label(str(axis))} cutoffs")
+
+    ax.legend(fontsize="xx-small", loc="lower right")
+    ax.set_title(f"Fluctuation energy distribution — {field}")
+
+    note = (
+        "Dashed lines are the cutoffs the configured severities resolved to; dotted lines are "
+        "rungs excluded because they landed on the same shell as a milder rung or on a no-op."
+    )
+    return PlotResult(
+        figures=[FigureItem(
+            fig=fig, keys={"field": field},
+            caption=f"Cumulative fluctuation energy for {field}, with the applied spectral "
+                    "cutoffs. The steeper the curve, the fewer distinct rungs a sharp filter "
+                    "can produce.",
+            data=pd.concat([curve.assign(kind="spectrum"),
+                            pd.DataFrame(rows).assign(kind="cutoff")], ignore_index=True),
+        )],
+        notes=[note],
+    )

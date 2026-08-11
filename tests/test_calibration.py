@@ -14,7 +14,7 @@ import pytest
 from degradations import registry as deg
 from fmeval.calibration import DRIFT_WARN, calibrate, calibrate_field
 from fmeval.data.base import GridSpec
-from fmeval.ladder import Rung, build_ladder, degenerate_rungs, resolve_severity
+from fmeval.ladder import build_ladder, resolve_severity
 
 SHAPE = (64, 48)  # non-square, so an axis mix-up in the wavenumber grid shows up
 
@@ -44,9 +44,14 @@ def test_cumulative_energy_reaches_one_and_is_monotone():
 
 
 def test_a_band_limited_field_has_no_energy_above_its_band():
-    """The measurement must localise energy where it actually is."""
+    """The measurement must localise energy where it actually is.
+
+    Note the curve is indexed by position in the list of distinct magnitudes, not by wavenumber,
+    so it is read through the accessors rather than by integer index.
+    """
     cal = calibrate_field([band_limited(8.0)], grid(), "vorticity")
-    assert cal.cumulative_energy[8] == pytest.approx(1.0, abs=1e-12)
+    assert cal.energy_removed(8.0, "below") == pytest.approx(1.0, abs=1e-12)
+    assert cal.energy_removed(8.0, "above") == pytest.approx(0.0, abs=1e-12)
     assert cal.wavenumber_for_energy_fraction(0.999) <= 8.0
 
 
@@ -167,43 +172,162 @@ def test_the_same_config_severity_resolves_differently_per_field():
 
 
 # --- degenerate rungs -----------------------------------------------------------------
+#
+# Detected by measurement, in the pipeline: two rungs whose severities resolve to the same
+# quantised operation produce a bitwise identical field and therefore an exactly equal
+# energy_changed. See tests/test_pipeline.py for the end-to-end check; here we verify the
+# property the detection relies on.
 
 
-def test_rungs_that_round_onto_one_wavenumber_shell_are_flagged():
-    """Density-like case: with the energy in a couple of shells, rungs collapse.
+def test_two_cutoffs_inside_one_shell_are_the_same_experiment():
+    """The premise of the duplicate detection, and the density case in miniature.
 
-    Reporting the repeat as a distinct rung would let the rank correlation score a tie as
-    agreement and make the separability compare a distribution against itself.
+    Requests of 45% and 70% removal on a field whose energy lives below |k| = 1.5 both resolve
+    inside the same gap between available magnitudes, so they select identical modes.
     """
-    cal = calibrate({"density": [band_limited(2.0)]}, grid(), ["density"])
-    rungs = build_ladder({"highpass_ideal": {"severities": [0.90, 0.95, 0.97, 0.99]}},
-                         include_reference=False)
-    flagged = degenerate_rungs(rungs, "density", cal)
-    assert flagged.get("highpass_ideal"), (
-        "four sharp-cutoff rungs cannot all be distinct on a field with a two-shell spectrum"
+    x = band_limited(2.0, seed=9)
+    a = apply("highpass_ideal", [0.45], "density", x)
+    b = apply("highpass_ideal", [0.55], "density", x)
+    assert a.energy_changed["density"] == b.energy_changed["density"], (
+        "two cutoffs selecting the same modes must give exactly equal measured effect, or the "
+        "duplicate detection cannot see them"
     )
 
 
-def test_a_broadband_field_keeps_all_its_rungs():
-    cal = calibrate({"vorticity": [band_limited(30.0)]}, grid(), ["vorticity"])
-    rungs = build_ladder({"highpass_ideal": {"severities": [0.45, 0.70, 0.90, 0.97]}},
-                         include_reference=False)
-    assert degenerate_rungs(rungs, "vorticity", cal) == {}
+def test_two_widths_rounding_to_one_odd_window_are_the_same_experiment():
+    x = band_limited(6.0, seed=10)
+    cal_scale = calibrate_field([x], grid(), "vorticity").characteristic_scale
+    # Two fractions whose widths differ by less than a cell either side of the same odd number.
+    fractions = [3.0 / cal_scale, 3.4 / cal_scale]
+    effects = [apply("box_blur", [f], "vorticity", x).energy_changed["vorticity"]
+               for f in fractions]
+    assert effects[0] == effects[1]
 
 
-def test_an_uncalibrated_axis_is_never_flagged():
-    rungs = build_ladder({"translate_x": {"op": "translate", "severities": [1, 2, 4]}},
-                         include_reference=False)
-    assert degenerate_rungs(rungs, "density", None) == {}
+def test_distinct_experiments_do_not_collide():
+    """The detection must not fold together rungs that really differ."""
+    x = band_limited(24.0, seed=11)
+    effects = [apply("lowpass_ideal", [f], "vorticity", x).energy_changed["vorticity"]
+               for f in (0.05, 0.2, 0.45)]
+    assert len(set(effects)) == 3
 
 
-def test_the_windowed_kernels_quantise_to_odd_widths():
-    """An even window has no centre cell, so it displaces the field by half a cell."""
-    for name in ("box_blur", "median_blur"):
-        spec = deg.get(name)
-        widths = [spec.quantise_severity(s) for s in (1.4, 2.0, 3.2, 4.9, 6.1)]
-        assert all(w % 2 == 1 for w in widths), (name, widths)
+def test_a_cutoff_quantises_to_an_available_magnitude():
+    cal = calibrate_field([band_limited(20.0)], grid(), "vorticity")
+    for cutoff in (1.2, 3.7, 9.9):
+        snapped = cal.quantised_cutoff(cutoff)
+        assert snapped <= cutoff
+        assert snapped in set(cal.wavenumbers)
 
 
-def test_an_operator_with_no_quantisation_returns_the_severity_unchanged():
-    assert deg.get("gaussian_blur").quantise_severity(3.7) == pytest.approx(3.7)
+# --- the realised effect of a rung ------------------------------------------------------
+
+
+def _frame_of(field: str, array: np.ndarray):
+    from fmeval.data.base import Frame
+
+    return Frame(index=0, time=0.0, grid=grid(array.shape[1:]), fields={field: array})
+
+
+def apply(label: str, severities: list[float], field: str, array: np.ndarray):
+    """Apply the first rung of a one-entry ladder, calibrating from the array itself."""
+    from fmeval.calibration import Calibration
+    from fmeval.ladder import apply_rung
+
+    frame = _frame_of(field, array)
+    rung = build_ladder({label: {"severities": severities}}, include_reference=False)[0]
+    cal = Calibration({field: calibrate_field([array], frame.grid, field)})
+    return apply_rung(rung, frame, [field], seed=0, calibration=cal)
+
+
+def test_a_sharp_lowpass_removes_the_energy_it_was_asked_to():
+    """Parseval: for a projection, the energy removed is exactly the requested fraction.
+
+    This is the check that the requested and realised fractions agree when the spectrum is
+    broad enough to resolve the request -- the case density does not satisfy.
+    """
+    x = band_limited(24.0, seed=3)
+    applied = apply("lowpass_ideal", [0.3], "vorticity", x)
+    assert applied.energy_removed["vorticity"] == pytest.approx(0.3, abs=0.06)
+    # For an ideal filter the removed energy and the difference energy are the same thing.
+    assert applied.energy_changed["vorticity"] == pytest.approx(
+        applied.energy_removed["vorticity"], rel=1e-6
+    )
+
+
+def test_a_steep_spectrum_makes_the_realised_removal_miss_the_request():
+    """The density case, and the reason this is measured rather than inferred from the severity.
+
+    A sharp filter cannot cut inside a wavenumber shell. Where a field's energy is concentrated in
+    a few shells the realised removal therefore lands wherever the nearest shell boundary puts it,
+    which can be far from what was asked for in either direction, while the same request is met
+    closely on a broadband field.
+    """
+    steep = apply("highpass_ideal", [0.45], "density", band_limited(2.0, seed=4))
+    broad = apply("highpass_ideal", [0.45], "vorticity", band_limited(24.0, seed=4))
+
+    steep_error = abs(steep.energy_removed["density"] - 0.45)
+    broad_error = abs(broad.energy_removed["vorticity"] - 0.45)
+    assert broad_error < 0.06, (
+        f"a broadband field should meet the request closely, missed by {broad_error:.3f}"
+    )
+    assert steep_error > 5 * broad_error, (
+        "a two-shell spectrum should miss the request by far more than a broadband one does; "
+        f"missed by {steep_error:.3f} against {broad_error:.3f}"
+    )
+
+
+def test_a_translation_relocates_energy_rather_than_removing_it():
+    """energy_removed near zero with energy_changed large is the signature, not a defect."""
+    from fmeval.ladder import apply_rung
+
+    x = band_limited(12.0, seed=5)
+    frame = _frame_of("vorticity", x)
+    rung = build_ladder({"translate_x": {"op": "translate", "severities": [6],
+                                         "options": {"axis": "x"}}},
+                        include_reference=False)[0]
+    applied = apply_rung(rung, frame, ["vorticity"], seed=0)
+    assert applied.energy_removed["vorticity"] == pytest.approx(0.0, abs=1e-10)
+    assert applied.energy_changed["vorticity"] > 0.1
+
+
+def test_additive_noise_adds_energy_so_the_removed_fraction_is_negative():
+    from fmeval.ladder import apply_rung
+
+    x = band_limited(12.0, seed=6)
+    frame = _frame_of("vorticity", x)
+    rung = build_ladder({"additive_noise": {"severities": [0.5]}},
+                        include_reference=False)[0]
+    applied = apply_rung(rung, frame, ["vorticity"], seed=0)
+    assert applied.energy_removed["vorticity"] < 0
+    assert applied.energy_changed["vorticity"] > 0
+
+
+def test_the_reference_rung_removes_and_changes_nothing():
+    from fmeval.ladder import REFERENCE_RUNG, apply_rung
+
+    x = band_limited(12.0, seed=7)
+    applied = apply_rung(REFERENCE_RUNG, _frame_of("vorticity", x), ["vorticity"], seed=0)
+    assert applied.energy_removed["vorticity"] == 0.0
+    assert applied.energy_changed["vorticity"] == 0.0
+
+
+def test_the_effect_is_measured_about_the_spatial_mean():
+    """A large mean must not hide the effect, as it would if energies were taken about zero."""
+    from fmeval.ladder import apply_rung
+
+    fluctuation = band_limited(12.0, seed=8)
+    frame_small = _frame_of("density", fluctuation)
+    frame_large = _frame_of("density", fluctuation + 1000.0)
+    rung = build_ladder({"lowpass_butterworth": {"severities": [0.3]}},
+                        include_reference=False)[0]
+    from fmeval.calibration import Calibration
+
+    def removed(frame):
+        cal = Calibration(
+            {"density": calibrate_field([frame.fields["density"]], frame.grid, "density")}
+        )
+        return apply_rung(rung, frame, ["density"], seed=0,
+                          calibration=cal).energy_removed["density"]
+
+    assert removed(frame_large) == pytest.approx(removed(frame_small), rel=1e-6)

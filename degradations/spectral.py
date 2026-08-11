@@ -28,15 +28,15 @@ from __future__ import annotations
 
 import numpy as np
 
+from fmeval.wavenumbers import wavenumber_magnitude
+
 from .registry import degradation
 
 
-def _wavenumber_magnitude(shape: tuple[int, ...]) -> np.ndarray:
-    """Grid of |k| in integer wavenumber units (cycles across the domain)."""
-    axes = np.meshgrid(
-        *[np.fft.fftfreq(n) * n for n in shape], indexing="ij"
-    )
-    return np.sqrt(sum(a**2 for a in axes))
+#: Re-exported under its old private name so the filters below read unchanged. The definition
+#: lives in fmeval so the severity calibration compares against exactly the same magnitudes; two
+#: definitions of |k| silently disagreed about the diagonal modes. See fmeval/wavenumbers.py.
+_wavenumber_magnitude = wavenumber_magnitude
 
 
 def _apply_filter(x: np.ndarray, transfer: np.ndarray,
@@ -63,7 +63,6 @@ def _apply_filter(x: np.ndarray, transfer: np.ndarray,
     severity_units="fraction",
     severity_direction="increasing",
     calibration="energy_above",
-    quantise=round,          # a sharp cutoff acts on whole wavenumber shells
 )
 def lowpass_ideal(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Sharp low-pass: zero every mode above the cutoff, removing the small scales.
@@ -100,7 +99,6 @@ def lowpass_butterworth(x: np.ndarray, severity: float, *, ctx, order: int = 4) 
     severity_units="fraction",
     severity_direction="increasing",
     calibration="energy_below",
-    quantise=round,          # a sharp cutoff acts on whole wavenumber shells
 )
 def highpass_ideal(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Sharp high-pass: zero every mode with |k| < cutoff, keeping the spatial mean.

@@ -83,7 +83,6 @@ def gaussian_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     severity_units="cells",
     severity_direction="increasing",
     calibration="scale",
-    quantise=_odd_width,
 )
 def box_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Square top-hat (moving average) smoothing.
@@ -107,7 +106,6 @@ def box_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     severity_units="cells",
     severity_direction="increasing",
     calibration="scale",
-    quantise=_odd_width,
 )
 def median_blur(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     """Median filter: nonlinear, and edge-preserving where a Gaussian smears.

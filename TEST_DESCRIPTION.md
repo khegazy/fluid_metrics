@@ -493,18 +493,73 @@ the flow evolves, so two frames would no longer be running the same experiment a
 rank correlation — the primary acceptance statistic — would be comparing different ladders. It is
 recorded in `data/calibration.csv`.
 
+### `energy_removed`, `energy_changed`
+
+**What they are.** What a rung *measurably did* to the field, as opposed to what its severity
+asked for. `energy_removed` is the fraction of the reference's fluctuation energy the operator
+eliminated; `energy_changed` is the fraction of it sitting in the difference between the degraded
+field and the reference.
+
+**How they are computed.** Both about the spatial mean, since on a field like density the mean is
+four orders of magnitude larger than the fluctuation and energies about zero would say nothing
+happened:
+
+- `energy_removed` = 1 − var(degraded) / var(reference)
+- `energy_changed` = ⟨(degraded − reference)²⟩ / var(reference)
+
+Recorded per frame; the report shows the median over frames.
+
+**Range and what to expect.** Both are dimensionless fractions. `energy_changed` is non-negative
+and unbounded above — an operator can put more energy in the difference than the reference
+contains. `energy_removed` runs from 0 to 1 for anything that only takes energy away, and is
+**informatively wrong-looking for operators that do something else**: near zero for a translation,
+which relocates energy rather than removing it, and negative for additive noise, which adds
+energy. Those are not defects; they are the distinction between an operator that destroys structure
+and one that displaces or contaminates it.
+
+**Why we report them.** Because a severity is a request and these are the outcome, and on a field
+whose energy is concentrated in a few modes the two come apart. A cutoff has to land on an
+available set of modes, so the realised removal jumps rather than tracking the request: 69% of
+density's fluctuation energy is in the four diagonal modes at |k| = √2 and only 3×10⁻⁵ of it in
+the axis modes just below them, so two consecutive available cutoffs there differ by most of the
+field. Measured, the mildest sharp high-pass rung on density asks to remove 45% and removes
+3×10⁻⁵, and one density low-pass rung asks for 45% and removes 99.997%. Only these columns reveal
+that. They are also the honest way to compare a rung across fields, since the same width or cutoff
+does very different amounts of damage on a smooth field than on a broadband one.
+
+**Caveats.** `energy_removed` is only a statement about *how much* energy went, never about
+*which* energy — a low-pass and a high-pass removing the same fraction are entirely different
+experiments. For a nonlinear operator such as a median filter, energy is not partitioned cleanly
+between what is kept and what is removed, so read the number as descriptive rather than as an
+exact decomposition.
+
+**Where they appear.** Columns in `results.csv`; both in the resolved-severity table in the
+reproducibility section, and `energy_removed` annotated on the `energy_spectrum` figure.
+
 ### `severity_degenerate`
 
 True when a rung is **not a distinct experiment**: either it resolved to the same severity as a
 milder rung on the same axis, or it resolved to a severity at which the operator does nothing at
 all. Such rows are excluded from every acceptance statistic.
 
-This happens because a calibrated severity is a real number while most operators act on a
-quantised one — a sharp filter zeroes whole wavenumber shells, and a windowed kernel takes an odd
-number of cells. It is a limit of the field rather than a misconfiguration: density holds 69% of
-its fluctuation energy in the single shell k = 1, so a sharp cutoff on density has at most about
-two distinct rungs however the config is written, and asking a high-pass for less than that much
-removal resolves to a filter that passes every mode.
+This happens because a calibrated severity is a real number while many operators act on a
+quantised one — a sharp filter selects whole sets of modes, and a windowed kernel takes an odd
+number of cells. It is detected by measurement rather than by declaration: two rungs performing
+the same operation produce a bitwise identical field and therefore an exactly equal
+`energy_changed`.
+
+It is a limit of the field rather than a misconfiguration. 69% of density's fluctuation energy sits
+in the four diagonal modes at |k| = √2 and only 3×10⁻⁵ of it below them, so the available cutoffs
+there are few and far apart and a sharp filter supports only a couple of distinct rungs however the
+config is written. Asking a high-pass for less removal than the lowest available cutoff provides
+resolves to a filter that passes essentially every mode.
+
+A related case that is **not** flagged, because the rung is a genuine experiment: a cutoff can be
+distinct from its neighbours and still be far from the fraction that was requested, since it must
+land on an available set of modes. The resolved-severity table reports the requested and realised
+fractions side by side and names any rung where they differ substantially — measured here, one
+density low-pass rung asked to remove 45% removes 99.997%, because the nearest available cutoff
+below it excludes the diagonal modes that hold most of the field.
 
 Left uncounted, both cases corrupt the statistics rather than merely padding them. A repeated
 rung makes the rank correlation score a tie as agreement and makes the adjacent-rung separability
@@ -592,9 +647,10 @@ with damage, which they did not when the severity was an absolute cutoff.
 | `highpass_butterworth` | fraction of energy removed | As above, smooth |
 
 **The high-pass axis has a narrow usable window on these fields, and that is a property of the
-data.** Both filters are floored at the lowest usable cutoff k = 1, and on density k = 1 alone
-holds 69% of the fluctuation energy. Asking for less removal than that resolves to a filter that
-passes every mode; asking for more puts the damage already most of the way to an unrelated field.
+data.** Both filters are floored at the lowest usable cutoff, |k| = 1, and on density the modes
+at that magnitude hold almost nothing while the diagonal modes just above them hold 69% of the
+fluctuation energy. A mild request therefore resolves to a filter that passes essentially every
+mode; one step harsher puts the damage already most of the way to an unrelated field.
 The configured window is the widest measured — it spans a factor 3.4 in damage on vorticity and
 gives density two usable rungs of four — so the high-pass axis alone does not reach the factor of
 five that the other axes do. No severity list fixes this; a field with more energy at high
@@ -639,6 +695,7 @@ position changes.
 
 | figure | section | what it shows, and how to read it |
 |---|---|---|
+| `energy_spectrum` | 3 | Cumulative fluctuation energy against wavenumber, per field, with the applied spectral cutoffs drawn on. This sets the resolution of every filter ladder: a spectral severity is a fraction of energy to remove and is converted to a cutoff using exactly this curve, so where the curve rises sharply neighbouring rungs land on the same set of modes and become the same experiment. The density curve is almost a step — 3×10⁻⁵ of its fluctuation energy at or below |k| = 1 and 69% at |k| = √2 — which is why a sharp filter has only a couple of usable rungs there; vorticity rises gradually, 50% by |k| = 3.2 and 99% by 51, and its cutoffs spread over more than a factor of ten. Dashed lines are cutoffs in use, dotted lines rungs excluded for repeating a milder rung or for doing nothing. It says nothing about phase — two fields with identical curves can look entirely different, which is the premise of the impostor test |
 | `ladder_curves` | 3 | Value against rung for every axis, with an interquartile band over frames. The curve the correlation summarises. Flat means blind to that failure mode |
 | `monotonicity_heatmap` | 4 | `rho` for every metric against every axis. Down a column: is this metric monotone? Across a row: what does it detect? Hatched cells fall below the reference value |
 | `rung_separation` | 5 | The spread of each rung across frames, as violins. Where neighbouring violins overlap, the metric cannot rank models one rung apart |

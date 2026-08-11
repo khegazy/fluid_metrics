@@ -84,7 +84,6 @@ class DegradationSpec:
     severity_units: str
     severity_direction: Direction
     calibration: Calibration | None
-    quantise: Callable[[float], float] | None
     ordinal: bool
     stochastic: bool
     fields: tuple[str, ...]
@@ -93,18 +92,6 @@ class DegradationSpec:
     module: str
     takes_ctx: bool
     defaults: dict[str, Any] = dc_field(default_factory=dict)
-
-    def quantise_severity(self, severity: float) -> float:
-        """The severity the operator effectively acts on, after its own rounding.
-
-        Two nominal severities that quantise to the same value are the same experiment. Sharp
-        spectral filters act on whole wavenumber shells and windowed kernels on an odd number of
-        cells, so both quantise coarsely; a Gaussian and a Fourier phase shift do not quantise at
-        all and return the value unchanged.
-        """
-        if self.quantise is None:
-            return float(severity)
-        return float(self.quantise(severity))
 
     def sort_severities(self, severities: Sequence[float]) -> list[float]:
         """Order a severity list by increasing damage.
@@ -128,7 +115,6 @@ def degradation(
     severity_units: str = "",
     severity_direction: Direction = "increasing",
     calibration: Calibration | None = None,
-    quantise: Callable[[float], float] | None = None,
     ordinal: bool = True,
     stochastic: bool = False,
     fields: Sequence[str] = ("*",),
@@ -145,9 +131,6 @@ def degradation(
         severity_units: e.g. ``"cells"``, ``"wavenumber"``, ``"fraction of rms"``.
         severity_direction: ``"increasing"`` if larger severity means more damage,
             ``"decreasing"`` if smaller does.
-        quantise: How the operator rounds its severity internally, if it does -- an integer
-            wavenumber shell, an odd window width. Used to detect rungs that resolve to the same
-            experiment on a given field. None means the operator uses the severity as given.
         calibration: What the severity is relative to, or None for absolute units. See
             :data:`Calibration`. A calibrated severity is resolved per field against a
             measured spectrum, so the same config number means the same thing on a smooth
@@ -195,7 +178,6 @@ def degradation(
             severity_units=severity_units,
             severity_direction=severity_direction,
             calibration=calibration,
-            quantise=quantise,
             ordinal=ordinal,
             stochastic=stochastic,
             fields=tuple(fields),

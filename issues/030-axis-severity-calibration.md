@@ -161,13 +161,48 @@ experiment.
    itself, and a no-op contributes an exactly-zero damage that made one axis appear to span eleven
    orders of magnitude.
 
+### A fourth defect, found by reporting the realised removal
+
+Adding the realised energy removal to the report immediately exposed one more, and it was the worst
+of the four because every number it produced looked reasonable. **There were two definitions of
+wavenumber magnitude and they disagreed.** The spectral operators compared a continuous `|k|`
+against their cutoff, while the calibration binned energy into shells of `rint(|k|)`; the diagonal
+modes therefore fell on opposite sides of the same number, since `(1, 1)` has `|k| = 1.414` and
+belongs to shell 1.
+
+On density that is not a rounding nuisance, because its fluctuation energy is almost entirely in
+those diagonal modes. A low-pass asked to remove 30% removed 99.997%:
+
+| field | axis | requested | realised, before | realised, after |
+|---|---|---|---|---|
+| density | `lowpass_ideal` | 0.05 / 0.15 / 0.30 | 0.057 / 0.176 / **1.000** | 0.057 / 0.175 / 0.303 |
+| vorticity | `lowpass_ideal` | 0.05 / 0.15 / 0.30 / 0.45 | 0.049 / 0.157 / 0.307 / 0.495 | 0.048 / 0.150 / 0.298 / 0.451 |
+
+There is now one definition, in `fmeval/wavenumbers.py`, used by both sides, and the calibration
+curve is tabulated at the exact magnitudes present on the grid rather than at integer shells. The
+requested and realised fractions now agree to within a few percent wherever the spectrum can
+resolve the request.
+
+The same measurement also replaced the duplicate-rung detection. It had been based on each operator
+*declaring* how it rounds its severity, which is a declaration that can be wrong and which was
+wrong for the sharp filters (they were declared as rounding to integer shells). Two rungs performing
+the same operation produce a bitwise identical field and therefore an exactly equal
+`energy_changed`, so the repeat is now detected by measurement and no declaration is needed.
+
+One case is deliberately **not** excluded: a cutoff can be distinct from its neighbours and still be
+far from the fraction requested, because it must land on an available set of modes. That is a valid
+experiment whose nominal severity misdescribes it, so the report names it rather than dropping it.
+Measured, one density low-pass rung asks to remove 45% and removes 99.997%, and the mildest sharp
+high-pass rung on density asks for 45% and removes 3e-5.
+
 ## Two limits that calibration does not remove
 
-**Sharp filters cannot resolve four rungs on density.** 69% of its fluctuation energy is in the
-single shell k = 1 and 94% is below k = 3, so there are about three usable shells. A cutoff ladder
-on density has at most about two or three distinct rungs however the config is written; the
-Butterworth pair rolls off smoothly and does resolve four, which is a second reason to keep both
-rather than treating the smooth filter only as a ringing control.
+**Sharp filters cannot resolve four rungs on density.** Its fluctuation energy is 69% in the four
+diagonal modes at |k| = √2, only 3e-5 in the axis modes at |k| = 1 just below them, and 88% by
+|k| = 3. Two consecutive available cutoffs therefore differ by most of the field, so a sharp ladder
+on density has at most two or three distinct rungs however the config is written. The Butterworth
+pair rolls off smoothly and does resolve four, which is a second reason to keep both rather than
+treating the smooth filter only as a ringing control.
 
 **The high-pass axis does not reach the factor-five damage range, on either field.** It is squeezed
 from both sides: below the k = 1 floor the filter passes every mode and the rung is a no-op, and

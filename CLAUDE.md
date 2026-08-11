@@ -139,10 +139,19 @@ each would have quietly corrupted results:
    experiments are now detected and excluded (`severity_degenerate`).
 
    Two limits calibration does not remove, both properties of these fields rather than of the
-   config: density keeps 69% of its fluctuation energy in the single shell k=1, so a *sharp*
-   filter cannot resolve four rungs there at all, and the high-pass axis is squeezed between a
-   no-op below that shell and near-total damage above it, so it alone does not reach the
-   factor-five damage range the other axes do.
+   config: 69% of density's fluctuation energy sits in the four diagonal modes at |k| = √2 and
+   only 3e-5 of it in the axis modes at |k| = 1, so the available cutoffs there are few and far
+   apart and a *sharp* filter cannot resolve four rungs at all. The high-pass axis is squeezed
+   between a no-op below those diagonal modes and near-total damage above them, so it alone does
+   not reach the factor-five damage range the other axes do.
+
+   A related correction, found while reporting the realised energy removal: the calibration and
+   the filters had **two different definitions of |k|** — the filters compared a continuous
+   magnitude, the calibration binned into shells of `rint(|k|)` — which put the diagonal modes on
+   opposite sides of the same cutoff. On density that made a low-pass asked to remove 30% remove
+   99.997%, with every intermediate number looking plausible. There is now one definition, in
+   `fmeval/wavenumbers.py`, and the requested and realised fractions agree to within a few
+   percent wherever the spectrum can resolve the request.
 
 Also worth carrying forward: the IN-4 Gaussian field does **not** catch the L^p family — it
 catches metrics built only on the amplitude spectrum, and MSE rejects it firmly at 0.51–0.80.

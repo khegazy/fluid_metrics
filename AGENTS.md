@@ -196,7 +196,6 @@ from degradations.registry import degradation
     severity_units="cells",
     severity_direction="increasing", # "decreasing" if a SMALLER value is worse
     calibration="scale",             # None if the severity is in absolute units; see below
-    quantise=None,                   # how you round the severity internally, if you do
     ordinal=True,                    # False for a probe that is not on a monotone axis
     stochastic=False,                # True to redraw the RNG per frame
     fields=("*",),
@@ -244,15 +243,25 @@ Choosing the wrong side of `energy_above` / `energy_below` silently inverts the 
 function receives the resolved absolute value, and both it and the nominal one are recorded on
 every row.
 
-**`quantise` is how the harness knows two rungs are the same experiment.** If your operator
-rounds its severity internally — a sharp filter zeroes whole wavenumber shells, a windowed kernel
-takes an odd number of cells — pass that rounding function. Two nominal severities that quantise
-alike are one experiment, and the harness flags the repeat as `severity_degenerate` and excludes
-it. Without the declaration a repeated rung is scored as a genuine fourth point: the rank
-correlation reads a tie as agreement and the separability compares a distribution against itself.
-Operators that use the severity as given (a Gaussian sigma, a Fourier phase shift) leave it
-`None`. A rung that resolves to doing nothing at all is caught separately, by measuring that the
-output moved by more than round-off.
+**You do not have to declare how your operator rounds its severity.** A calibrated severity is a
+real number while many operators act on a quantised one — a sharp filter selects whole sets of
+modes, a windowed kernel takes an odd number of cells — so two different nominal severities can
+resolve to the *same experiment*. The harness detects that by measurement rather than by
+declaration: identical operations produce a bitwise identical field and therefore an exactly equal
+`energy_changed`, so the repeat is flagged as `severity_degenerate` and excluded. A rung that
+resolves to doing nothing at all is caught the same way, by measuring that the output moved by more
+than round-off relative to the field's own fluctuation.
+
+What this means for you is only that **your operator must be deterministic in its severity** if it
+is calibrated: given the same input and severity it must return the same array, or the detection
+cannot tell a repeat from a fresh draw. Stochastic operators are exempt because they are never
+calibrated.
+
+**If you write a spectral operator, take `|k|` from `fmeval.wavenumbers`.** There were two
+definitions of wavenumber magnitude and they disagreed about the diagonal modes: the filters
+compared against a continuous `|k|` while the calibration binned into shells of `rint(|k|)`. On
+density, whose energy is concentrated in the lowest modes, a low-pass asked to remove 30% removed
+99.997% — and every intermediate number looked plausible. One definition, shared by both sides.
 
 **Then:**
 
