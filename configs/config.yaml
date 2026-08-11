@@ -30,10 +30,17 @@ analysis_grid:
 seed: 20260807
 
 hydra:
+  # Hydra's own bookkeeping (resolved config, job log) goes out of the way; the run folders
+  # this project actually produces are written under `paths.results` by evaluate.py.
+  #
+  # These are plain relative paths on purpose. `${paths.results}` would interpolate
+  # `${hydra:runtime.cwd}`, and `hydra.sweep.dir` is resolved BEFORE HydraConfig exists, so
+  # a multirun would fail with "HydraConfig was not set". Relative is safe because
+  # `job.chdir` is false, so it resolves against the directory you launched from.
   run:
-    dir: ${paths.results}/.hydra/${now:%Y-%m-%d_%H-%M-%S}
+    dir: results/.hydra/${now:%Y-%m-%d_%H-%M-%S}
   sweep:
-    dir: ${paths.results}/.hydra/multirun/${now:%Y-%m-%d_%H-%M-%S}
+    dir: results/.hydra/multirun/${now:%Y-%m-%d_%H-%M-%S}
     subdir: ${hydra.job.num}
   job:
     # REQUIRED. With chdir=true the relative `datasets` symlink and the package imports
