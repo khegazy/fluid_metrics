@@ -16,7 +16,7 @@ that the values it is ranking differ by more than floating-point noise.
 Reproduced with the real command:
 
 ```bash
-uv run python evaluate.py metrics=[enstrophy] dataset=kinet_re5e4_dev \
+python evaluate.py metrics=[enstrophy] dataset=kinet_re5e4_dev \
     dataset.time.reduction=20 'degradation.only=[translate_x,uncorrelated]'
 ```
 

@@ -5,7 +5,7 @@
 # axis. `op` defaults to the key. The label -- not the family -- is the unit of rank
 # correlation: gaussian_blur and median_blur are separate axes though both are "smoothing".
 #
-# `uv run python -m degradations` lists every operator with its severity units.
+# `python -m degradations` lists every operator with its severity units.
 seed: ${seed}
 include_reference: true   # level 0; pairwise error metrics must return exactly 0 here
 only: []                  # if non-empty, run ONLY these labels

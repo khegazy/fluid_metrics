@@ -30,7 +30,7 @@ the output. In particular, never write `pytest | tail` and chain on `&&` — a p
 status is the *last* command's, so failures pass silently. Use:
 
 ```bash
-uv run pytest -q > /tmp/pt.txt 2>&1; RC=$?; tail -3 /tmp/pt.txt; [ $RC -eq 0 ] || exit 1
+pytest -q > /tmp/pt.txt 2>&1; RC=$?; tail -3 /tmp/pt.txt; [ $RC -eq 0 ] || exit 1
 ```
 
 **Measure; do not assume.** If you state a number in a docstring, a commit message, or a
@@ -64,23 +64,27 @@ item with its measurements. An issue written later from memory is worth much les
 
 ## 2. Environment and commands
 
-`uv` with a committed lockfile. `.venv/bin/python` works anywhere `uv run` does.
+**Every command here is a plain `python` or `pytest` call.** Contributors use different
+environment tools, so activate whichever one you have and run them as written; do not add a
+`uv run` prefix back into documentation or code comments. `uv sync --extra dev` populates
+`.venv` from the committed lockfile, and `pip install -e '.[dev]'` works the same way in a plain
+venv or a conda env. Python 3.12 or newer. Neither the commands nor the imports need the repo
+root as the working directory.
 
 ```bash
-uv sync --extra dev                 # populate .venv from uv.lock
-uv run python check_setup.py        # confirm the environment; run this FIRST when anything
+python check_setup.py               # confirm the environment; run this FIRST when anything
                                     # unexpected happens, before debugging code
 
-uv run pytest                       # ~20 s. Skips CFS-reading and LaTeX tests
-uv run pytest -m data               # reads the real files on CFS
-module load texlive/2024 && uv run pytest -m slow   # compiles a report
-uv run pytest tests/test_analysis.py -k spearman    # one file, one pattern
+pytest                              # ~20 s. Skips CFS-reading and LaTeX tests
+pytest -m data                      # reads the real files on CFS
+module load texlive/2024 && pytest -m slow   # compiles a report
+pytest tests/test_analysis.py -k spearman    # one file, one pattern
 
-uv run python -m metrics            # list registered metrics
-uv run python -m degradations       # list registered degradations, with units
+python -m metrics                   # list registered metrics
+python -m degradations              # list registered degradations, with units
 
-uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
-uv run python make_report.py results/mse_<time> --compile --zip
+python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
+python make_report.py results/mse_<time> --compile --zip
 ```
 
 Use `dataset=kinet_re5e4_dev` for the inner loop: it is the 1.7 GB sibling and a full run takes
@@ -183,8 +187,8 @@ touch your metric.
 
 **Then, before you are done:**
 
-1. `uv run python -m metrics` — confirm it appears with the metadata you expect.
-2. `uv run pytest` — the contract test is parametrized over the whole registry, so your metric
+1. `python -m metrics` — confirm it appears with the metadata you expect.
+2. `pytest` — the contract test is parametrized over the whole registry, so your metric
    is now automatically checked for `d(x,x) == 0`, declared symmetry, return type, shape
    rejection, float32/float64 agreement, monotonicity on a synthetic blur ladder, and the
    map-reduces-to-metric identity. You do not write any of that.
@@ -283,7 +287,7 @@ density, whose energy is concentrated in the lowest modes, a low-pass asked to r
 
 1. **Add your operator to `LADDERS` in `tests/test_degradation_contract.py`.** A test fails
    until you do, deliberately — otherwise your operator escapes every check below it.
-2. `uv run pytest` — you now get shape and dtype preservation, passthrough at zero severity,
+2. `pytest` — you now get shape and dtype preservation, passthrough at zero severity,
    direction verification, and seed reproducibility for free.
 3. Add a row to the degradation table in `TEST_DESCRIPTION.md`. A test enforces this.
 4. Add it to `configs/degradation/default.yaml` if it should run by default, with `enabled:
@@ -460,7 +464,7 @@ that no number appears in the report without a machine-readable source in the sa
 
 ## 7. Writing tests
 
-Run with `uv run pytest`. Markers: `data` reads real files on CFS, `slow` needs LaTeX; both are
+Run with `pytest`. Markers: `data` reads real files on CFS, `slow` needs LaTeX; both are
 excluded by default.
 
 **Prefer a contract test parametrized over a registry** to a test of one implementation. The
@@ -497,9 +501,9 @@ renderer or the analysis and re-run `make_report.py`. A hand-patched report is i
 from a correct one and will be trusted.
 
 ```bash
-uv run python make_report.py results/mse_<time>            # re-render from saved numbers
-uv run python make_report.py results/mse_<time> --compile  # also run latexmk
-uv run python make_report.py results/mse_<time> --zip      # Overleaf-ready archive
+python make_report.py results/mse_<time>            # re-render from saved numbers
+python make_report.py results/mse_<time> --compile  # also run latexmk
+python make_report.py results/mse_<time> --zip      # Overleaf-ready archive
 ```
 
 Re-rendering never recomputes a metric, so iterating on presentation is instant. `evaluate.py`

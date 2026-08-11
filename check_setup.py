@@ -1,6 +1,6 @@
 """Confirm the environment is usable, before running anything expensive.
 
-    uv run python check_setup.py
+    python check_setup.py
 
 Reports what works and what does not, with the fix for each failure, and exits non-zero if
 anything essential is missing. Written so a new user can tell an environment problem from a
@@ -29,7 +29,7 @@ def main() -> int:
     if sys.version_info >= (3, 12):
         record(OK, f"python {version}")
     else:
-        record(FAIL, f"python {version}", "needs >= 3.12; run `uv sync`")
+        record(FAIL, f"python {version}", "needs >= 3.12; recreate the environment")
 
     for module in ("numpy", "scipy", "h5py", "pandas", "matplotlib", "hydra", "omegaconf",
                    "yaml", "pytest"):
@@ -37,7 +37,8 @@ def main() -> int:
             mod = importlib.import_module(module)
             record(OK, module, getattr(mod, "__version__", ""))
         except ImportError:
-            record(FAIL, module, "missing; run `uv sync --extra dev`")
+            record(FAIL, module, "missing; install the dev extra "
+                   "(`uv sync --extra dev`, or `pip install -e '.[dev]'`)")
 
     # --- the project's own packages ---------------------------------------------------
     try:
@@ -53,7 +54,9 @@ def main() -> int:
                 record(WARN, f"{name} import errors",
                        ", ".join(f"{m}: {e!r}" for m, e in errors.items()))
     except ImportError as exc:
-        record(FAIL, "project packages", f"{exc}; run `uv sync --extra dev`")
+        record(FAIL, "project packages",
+               f"{exc}; install the project editable "
+               "(`uv sync --extra dev`, or `pip install -e '.[dev]'`)")
 
     # --- the vendored spectral code, validated against an analytic result -------------
     try:
@@ -108,8 +111,8 @@ def main() -> int:
         print(f"{len(failures)} problem(s) must be fixed before the suite will run.")
         return 1
     print("Environment is usable." + (f" {len(warnings)} optional item(s) missing." if warnings else ""))
-    print("Next: `uv run pytest` (~20 s), then "
-          "`uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev`.")
+    print("Next: `pytest` (~20 s), then "
+          "`python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev`.")
     return 0
 
 

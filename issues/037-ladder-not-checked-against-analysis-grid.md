@@ -15,7 +15,7 @@ not the knob.
 ## Evidence
 
 ```bash
-uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev \
+python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev \
     dataset.time.reduction=50 analysis_grid.resolution=8
 ```
 

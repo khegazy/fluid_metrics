@@ -1,5 +1,5 @@
 # Compute and write data/ only. For batch runs that will be rendered later with
-# `uv run python make_report.py <folder>`.
+# `python make_report.py <folder>`.
 plots: []
 tables: []
 skip: ["*"]

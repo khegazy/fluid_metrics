@@ -1,10 +1,10 @@
 """Evaluate metrics against a degradation ladder and write a run folder per metric.
 
-    uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
-    uv run python evaluate.py 'metrics=[mae,mse,nrmse]' dataset=kinet_re5e4 \\
+    python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
+    python evaluate.py 'metrics=[mae,mse,nrmse]' dataset=kinet_re5e4 \\
         dataset.time.reduction=100
-    uv run python evaluate.py metrics=[mse] degradation=quick
-    uv run python evaluate.py metrics=[mse] analysis_grid.resolution=128
+    python evaluate.py metrics=[mse] degradation=quick
+    python evaluate.py metrics=[mse] analysis_grid.resolution=128
 
 Each metric gets its own ``results/<metric>_<time>/`` folder, all sharing one timestamp so
 a multi-metric run is obviously one experiment. The folders carry the raw numbers, the

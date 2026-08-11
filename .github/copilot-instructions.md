@@ -12,6 +12,6 @@ Two rules worth repeating because they are easy to violate by accident:
 
 - **Verify before claiming.** `pytest | tail` masks the exit code, so a `&&` chain passes with
   failing tests. Use
-  `uv run pytest -q > /tmp/pt.txt 2>&1; RC=$?; tail -3 /tmp/pt.txt; [ $RC -eq 0 ] || exit 1`.
+  `pytest -q > /tmp/pt.txt 2>&1; RC=$?; tail -3 /tmp/pt.txt; [ $RC -eq 0 ] || exit 1`.
 - **Never hand-edit anything under `results/`.** It is generated. Fix the renderer and re-run
   `make_report.py`.

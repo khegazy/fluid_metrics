@@ -629,7 +629,7 @@ and re-flagging needs no recomputation, so changing your mind is a config edit.
 
 ## The degradation axes
 
-Twenty operators in seven families. `uv run python -m degradations` lists them with their
+Twenty-one operators in seven families. `python -m degradations` lists them with their
 severity units. Which failure modes you probe determines what the measurements mean, so this
 list is as important as the metric list.
 

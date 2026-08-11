@@ -12,39 +12,49 @@ attention. Whether a metric joins the panel is the team's call.
 ## Quickstart
 
 ```bash
-# One-time, if uv is not already available (installs to ~/.local/bin — add it to PATH)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
 git clone <repo> && cd fluid_metrics
 ln -s /global/cfs/cdirs/m4790/Data datasets   # gitignored; or set paths.data in the config
+```
 
-uv sync --extra dev                            # populates .venv from uv.lock, installs editable
-uv run python check_setup.py                   # confirms the environment; says what to fix
-uv run pytest                                  # seconds; skips the CFS-reading and LaTeX tests
+Then install into whatever environment you use. **Every command in this README is a plain
+`python` or `pytest` call**, so activate your environment first and the rest follows; nothing
+here assumes a particular tool.
+
+```bash
+# uv (recommended: uv.lock is committed, so everyone gets the same versions)
+uv sync --extra dev && source .venv/bin/activate
+
+# a plain venv
+python -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'
+
+# conda
+conda create -n fluid_metrics python=3.12 && conda activate fluid_metrics
+pip install -e '.[dev]'
+```
+
+Requires Python 3.12 or newer. Then:
+
+```bash
+python check_setup.py     # confirms the environment; says what to fix
+pytest                    # seconds; skips the CFS-reading and LaTeX tests
 ```
 
 If anything goes wrong, run `check_setup.py` first — it separates an environment problem from a
 code problem and prints the fix for each failure. The `datasets` symlink and `latexmk` show as
 optional: tests do not need either.
 
-Every command also works without `uv` on `PATH`, since `uv sync` creates a normal venv:
-
-```bash
-.venv/bin/python -m pytest
-```
-
-`uv.lock` is committed, so `uv sync` gives everyone the same versions rather than resolving
-differently per machine.
+Not activating is fine too: `uv run <command>` and `.venv/bin/python <script>` both work
+without it, so prefix the commands below however you prefer.
 
 ### NERSC notes
 
-- **`uv` needs a Python 3.12.** `uv python install 3.12` downloads one, or
-  `module load python/3.12-26.1.0` supplies one. The download is more reproducible.
-- **Do not run `uv sync` inside an activated conda env** — deactivate first, or a live
+- **Python 3.12 or newer.** `module load python/3.12-26.1.0` supplies one, and
+  `uv python install 3.12` downloads one — the download is the more reproducible of the two.
+- **Do not build the venv inside an activated conda env** — deactivate first, or a live
   `CONDA_PREFIX` confuses interpreter discovery.
-- **Home has a quota and the uv cache grows.** Set `UV_CACHE_DIR` to a project or scratch
-  path if home is tight; the cache is disposable.
-- **`torch` is an optional extra on purpose** (`uv sync --extra torch`). Nothing in the
+- **Home has a quota and package caches grow.** Set `UV_CACHE_DIR` (or `PIP_CACHE_DIR`) to a
+  project or scratch path if home is tight; the cache is disposable.
+- **`torch` is an optional extra on purpose** (`pip install -e '.[torch]'`). Nothing in the
   current suite needs it, and the default PyPI wheel is not the build you want for
   Perlmutter GPUs.
 
@@ -55,16 +65,16 @@ to test is the one thing you will override most often**, so start here:
 
 ```bash
 # The standard test, with the metric chosen on the command line
-uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
+python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
 
 # Several metrics in one run: each gets its own folder, plus a comparison folder
-uv run python evaluate.py 'metrics=[mae,mse,nrmse]' dataset=kinet_re5e4_dev
+python evaluate.py 'metrics=[mae,mse,nrmse]' dataset=kinet_re5e4_dev
 ```
 
 Quote the argument (`'metrics=[mae,mse]'`) whenever the list has commas, or the shell will
 split it. A single-element list needs no quoting.
 
-`uv run python -m metrics` lists the names you can put there. An unknown name fails
+`python -m metrics` lists the names you can put there. An unknown name fails
 immediately with the available list, rather than part-way through a run.
 
 Results land in `results/<metric>_<time>/`, one folder per metric, each self-contained:
@@ -90,17 +100,17 @@ There are two different ways to change something, and the distinction matters:
 **Choose a group option** with `group=option`. This swaps in a whole file:
 
 ```bash
-uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4    # the 167 GiB trajectory
-uv run python evaluate.py metrics=[mse] degradation=quick      # 3 axes instead of 14
-uv run python evaluate.py metrics=[mse] report=none            # write data/ only
+python evaluate.py metrics=[mse] dataset=kinet_re5e4    # the 167 GiB trajectory
+python evaluate.py metrics=[mse] degradation=quick      # 3 axes instead of 14
+python evaluate.py metrics=[mse] report=none            # write data/ only
 ```
 
 **Override a single value** with a dotted path. This reaches into whichever file was selected:
 
 ```bash
-uv run python evaluate.py metrics=[mse] dataset.time.reduction=100
-uv run python evaluate.py metrics=[mse] analysis_grid.resolution=128
-uv run python evaluate.py metrics=[mse] 'degradation.ladder.gaussian_blur.severities=[1,2,4]'
+python evaluate.py metrics=[mse] dataset.time.reduction=100
+python evaluate.py metrics=[mse] analysis_grid.resolution=128
+python evaluate.py metrics=[mse] 'degradation.ladder.gaussian_blur.severities=[1,2,4]'
 ```
 
 **`metrics` is deliberately not a config group.** It is a plain list, so choosing a metric is
@@ -140,17 +150,17 @@ paths — interpolating `paths.results` into them breaks every multirun, because
 
 ```bash
 # Smoke test: one metric, small ladder, three frames. A few seconds.
-uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev \
+python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev \
     degradation=quick dataset.time.max_frames=3
 
 # A real run: three metrics on the developed flow, every 400th frame,
 # vorticity only, on a 128^2 analysis grid.
-uv run python evaluate.py 'metrics=[mae,mse,nrmse]' dataset=kinet_re5e4 \
+python evaluate.py 'metrics=[mae,mse,nrmse]' dataset=kinet_re5e4 \
     dataset.time.start=2000 dataset.time.reduction=400 \
     'fields=[vorticity]' analysis_grid.resolution=128
 
 # Then build the cross-metric report and compile it.
-uv run python make_report.py results/comparison_<time> --compile
+python make_report.py results/comparison_<time> --compile
 ```
 
 **Use `kinet_re5e4_dev` only for smoke tests.** It is the first 100 solver steps, before the
@@ -163,7 +173,7 @@ intend to report should use `dataset=kinet_re5e4` with `dataset.time.start=2000`
 Hydra's multirun (`-m`) sweeps a group, running once per option:
 
 ```bash
-uv run python evaluate.py -m metrics=[mse] dataset=kinet_re5e4_dev,well_re5e4
+python evaluate.py -m metrics=[mse] dataset=kinet_re5e4_dev,well_re5e4
 ```
 
 Each run writes its own folder. `fmeval.io.load_runs("mse_*")` concatenates them into one
@@ -207,6 +217,6 @@ Datasets are added as a YAML file under `configs/dataset/`, and new file formats
 in `fmeval/data/`.
 
 ```bash
-uv run python -m metrics.registry        # what metrics exist
-uv run python -m degradations.registry   # what degradations exist, with severity units
+python -m metrics.registry        # what metrics exist
+python -m degradations.registry   # what degradations exist, with severity units
 ```

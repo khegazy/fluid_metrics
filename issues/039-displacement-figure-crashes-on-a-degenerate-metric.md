@@ -15,9 +15,9 @@ a bug — produces a renderer error instead of a declared skip.
 ## Evidence
 
 ```bash
-uv run python evaluate.py metrics=[enstrophy] dataset=kinet_re5e4_dev \
+python evaluate.py metrics=[enstrophy] dataset=kinet_re5e4_dev \
     dataset.time.reduction=20 'degradation.only=[translate_x,translate_subpixel,uncorrelated]'
-uv run python make_report.py results/enstrophy_<stamp>
+python make_report.py results/enstrophy_<stamp>
 ```
 
 ```

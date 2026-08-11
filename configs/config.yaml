@@ -1,6 +1,6 @@
 # Top-level evaluation config.
 #
-#   uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
+#   python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
 #
 # `metrics` is deliberately a plain list rather than a Hydra config group: a group would
 # force one YAML file per metric, which is exactly the friction the registry removes.
@@ -14,7 +14,7 @@ paths:
   data: ${hydra:runtime.cwd}/datasets
   results: ${hydra:runtime.cwd}/results
 
-# Metric names resolved against the registry. `uv run python -m metrics` lists them.
+# Metric names resolved against the registry. `python -m metrics` lists them.
 metrics: [mae, mse, nrmse]
 
 # Canonical fields to evaluate. null means "every field the dataset provides that at

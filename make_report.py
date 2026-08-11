@@ -1,9 +1,9 @@
 """Build a LaTeX report from a run folder, without recomputing any metric.
 
-    uv run python make_report.py results/mse_1786224531
-    uv run python make_report.py results/mse_1786224531 --style paper --compile
-    uv run python make_report.py results/mse_1786224531 --zip
-    uv run python make_report.py results/mse_1786224531 --only ladder_curves
+    python make_report.py results/mse_1786224531
+    python make_report.py results/mse_1786224531 --style paper --compile
+    python make_report.py results/mse_1786224531 --zip
+    python make_report.py results/mse_1786224531 --only ladder_curves
 
 Re-rendering from saved numbers is what you do repeatedly while writing a paper, and it is
 also what keeps the generator honest: ``evaluate.py`` calls the same entry point, so there

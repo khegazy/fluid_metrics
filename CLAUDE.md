@@ -16,22 +16,24 @@ traps that have already caught someone. This file carries the scientific context
 
 ## Commands
 
-Environment is `uv` with a committed lockfile. `.venv/bin/python` works everywhere `uv run`
-does, and neither needs the repo root as the working directory.
+Commands are plain `python` and `pytest` calls, run in whatever environment the contributor
+has activated — colleagues use uv, plain venvs and conda, so **do not reintroduce a `uv run`
+prefix** anywhere. `uv sync --extra dev` populates `.venv` from the committed lockfile;
+`pip install -e '.[dev]'` does the same elsewhere. Nothing needs the repo root as the working
+directory.
 
 ```bash
-uv sync --extra dev                 # populate .venv from uv.lock
-uv run python check_setup.py        # confirm the environment before anything expensive
-uv run pytest                       # ~20 s; skips the CFS-reading and LaTeX tests
-uv run pytest -m data               # reads the real files on CFS
-module load texlive/2024 && uv run pytest -m slow   # compiles a report with latexmk
-uv run pytest tests/test_analysis.py -q -k spearman # one file, one pattern
+python check_setup.py                        # confirm the environment before anything expensive
+pytest                                       # ~20 s; skips the CFS-reading and LaTeX tests
+pytest -m data                               # reads the real files on CFS
+module load texlive/2024 && pytest -m slow   # compiles a report with latexmk
+pytest tests/test_analysis.py -q -k spearman # one file, one pattern
 
-uv run python -m metrics            # what metrics exist
-uv run python -m degradations       # what degradations exist, with severity units
+python -m metrics                            # what metrics exist
+python -m degradations                       # what degradations exist, with severity units
 
-uv run python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
-uv run python make_report.py results/mse_<time> --compile --zip
+python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
+python make_report.py results/mse_<time> --compile --zip
 ```
 
 `evaluate.py` writes one `results/<metric>_<time>/` folder per metric plus a

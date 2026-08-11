@@ -180,7 +180,7 @@ def run_folder(tmp_path):
     write_run_meta(folder, run_id=1, config_hash=digest, metric="mse",
                    dataset="synthetic_d", n_frames=8, fields=["vorticity"],
                    analysis_grid=16, ladder_axes=["gaussian_blur"], n_rungs=12, seed=1,
-                   command="uv run python evaluate.py metrics=[mse]")
+                   command="python evaluate.py metrics=[mse]")
     return folder
 
 
