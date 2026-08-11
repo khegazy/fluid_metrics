@@ -278,7 +278,7 @@ def test_the_impostor_is_scored_perfectly_by_a_spectrum_only_metric(temporary_me
 
     What the *report* then does with that value is a separate matter, and it is broken --
     see ``test_damage_is_not_reported_against_an_anchor_the_metric_cannot_see`` in
-    ``tests/test_robustness.py`` and issues/032. The two tests together locate the problem
+    ``tests/test_robustness.py``. The two tests together locate the problem
     precisely: the canary construction is sound, the normalisation it is read through is
     not.
     """

@@ -39,11 +39,7 @@ Designed, hooks in place, not built.
 
 | ID | Title | Priority |
 |---|---|---|
-| [030](030-axis-severity-calibration.md) | Severity ranges should follow each field's spectrum — **fixed**; severities on the smoothing and spectral axes are now relative and resolved per field against a measured spectrum | fixed |
 | [031](031-saturation-never-reached.md) | No ladder rung reaches the unrelated-field level | medium |
-| [032](032-translation-invariant-anchor.md) | The `D = 1` anchor is empty for a translation-invariant metric — **fixed**; the degeneracy guard now scales against the largest response, so damage is withheld rather than reported from round-off | fixed |
-| [033](033-rank-correlation-over-round-off.md) | A rank correlation computed from float64 round-off is reported as a measurement — **fixed**; `rho` and the threshold levels are withheld below a relative 1e-9 | fixed |
-| [035](035-higher-is-better-is-never-read.md) | `higher_is_better` is declared on every metric and consumed by no analysis — **fixed**; the four one-sided statistics are oriented by the metric's own direction | fixed |
 
 ## Technical debt
 
@@ -52,20 +48,17 @@ Designed, hooks in place, not built.
 | [020](020-import-name-collision.md) | `metrics` is a very generic top-level import name | low |
 | [022](022-sim-config-parsing.md) | Solver configs carry executable YAML tags | low |
 | [023](023-vendored-kinet-drift.md) | Vendored kinet code is pinned and may drift | low |
-| [034](034-report-card-all-na-rho.md) | `report_card` raises when every ordinal axis has an undefined `rho` — **fixed**, along with two more all-NA reductions downstream of it | fixed |
-| [036](036-whole-frame-degradations.md) | `whole_frame=True` is documented in two places and implemented in none — **fixed**; `apply_rung` dispatches on it and validates what comes back | fixed |
-| [037](037-ladder-not-checked-against-analysis-grid.md) | The ladder is never checked against the analysis grid, so a size knob aborts the run — **fixed**; a pre-flight drops rungs that cannot run there, naming the knob | fixed |
-| [038](038-error-map-frame-position-bounds.md) | An out-of-range `error_map.frames` position fails as a raw numpy `IndexError` — **fixed** | fixed |
-| [039](039-displacement-figure-crashes-on-a-degenerate-metric.md) | `displacement_response` errors on a metric the documentation calls correct — **fixed**; it declares the skip with `ctx.require` | fixed |
 
-Issues 032–039 were found by running the harness against inputs the existing tests do not
-reach: a metric invariant to the operator the `D = 1` anchor is built from, a metric that improves
-as damage rises, an analysis grid the configured ladder does not fit on. Each carries a test in
-`tests/test_robustness.py` and all of them now pass; the `xfail(strict=True)` markers that recorded
-them have been removed as each was fixed, which is what strict mode is for. **Follow the same
-pattern for a new defect**: reproduce it, write the test, mark it `xfail(strict=True)` naming the
-issue file, and let strict mode send whoever fixes it back here. Do not delete a marker without
-fixing the issue it names.
+**When a defect is fixed, delete its file.** This folder holds what is *open*; the write-up,
+its measurements and the fix all stay together in the commit that closed it, which is where they
+are useful. `git log --diff-filter=D --stat -- issues/` lists what has been closed and points at
+those commits.
+
+**The pattern for a new defect**: reproduce it, write the test, mark it `xfail(strict=True)`
+naming the issue file, and write the issue with the measurement in front of you. Strict mode is
+what makes the loop close — fixing the defect makes the test pass, strict mode turns an
+unexpected pass into a failure, and whoever fixed it is sent back to remove the marker and the
+issue. Do not delete a marker without fixing the issue it names.
 
 ## Resolved
 

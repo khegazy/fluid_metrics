@@ -129,7 +129,7 @@ each would have quietly corrupted results:
 5. **Severity ranges must follow each field's spectrum.** Fixed cutoffs applied to every field
    alike produce flags that point at the axis rather than the metric: the same blur list reached
    1.2% of the unrelated-field level on density while working well on vorticity, and the same
-   filter cutoffs saturated by the second rung on density. Fixed (issue 030): severities on the
+   filter cutoffs saturated by the second rung on density. Fixed: severities on the
    smoothing and spectral axes are now *relative* — a fraction of the field's characteristic
    scale, or of the energy a filter removes — and resolved per field against a spectrum measured
    from the data. Every calibrated axis is now monotone on both fields from one config that names

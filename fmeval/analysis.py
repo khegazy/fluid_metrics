@@ -55,7 +55,7 @@ SATURATION_FRACTION: float = 0.90
 #: it is ranking to differ by more than the last few bits, and ``np.roll`` changes the
 #: summation order inside ``np.mean`` even when it cannot change the quantity, which was
 #: enough to produce a reported ``rho`` of 0.707 on an axis whose values spanned a relative
-#: 1.6e-16. Both are round-off presented as measurement. See issues/032 and issues/033.
+#: 1.6e-16. Both are round-off presented as measurement.
 #:
 #: 1e-9 rather than something nearer the float64 epsilon: accumulated round-off over a 256^2
 #: reduction is several orders of magnitude above 2.2e-16, while the mildest rung that does
@@ -110,7 +110,7 @@ def normalisation(df: pd.DataFrame,
         # noise and passes. Measured with a spectral metric of the BD-1 shape on the real
         # trajectory: the anchor was 1.5e-16 against a genuine blur response of 3.5e-1, and
         # the impostor was reported at damage 1.17, which reads as "worse than two unrelated
-        # fields" for a metric that cannot separate any of them. See issues/032.
+        # fields" for a metric that cannot separate any of them.
         scale = float(np.nanmax(np.abs(g["value"].to_numpy()))) or 1.0
         rows.append(
             {
@@ -172,13 +172,13 @@ def response_direction(df: pd.DataFrame,
     measured on an axis falling cleanly from 1.0 to 0.2, ``rho = -1.0``,
     ``monotone_fraction = 0.0`` and ``separability_auc_min = 0.0``. That shape is not
     hypothetical -- it is any correlation, SSIM or skill score, and PS-2/PS-3 when they
-    arrive. See issues/035.
+    arrive.
 
     The direction is taken from the metric's own declaration where the run recorded one, and
     otherwise measured: the ``uncorrelated`` anchor is by construction as bad as a field can
     look, so an anchor below the clean value means larger is better. Measuring is the fallback
     rather than the primary source because the anchor is empty for a metric invariant to the
-    translation it is built from, which is the subject of issues/032.
+    translation it is built from -- the case the degeneracy guard above exists for.
 
     Returns:
         ``{(dataset, metric, field): +1 or -1}``. Missing keys mean ``+1``.
@@ -374,7 +374,7 @@ def _is_round_off(values: np.ndarray) -> bool:
     Reproduced end to end -- ``evaluate.py metrics=[enstrophy]`` with a translation-only ladder
     reported ``rho_min = 0.707`` on ``translate_x`` from values spanning a relative 1.6e-16,
     printed in the monotonicity heatmap beside genuine correlations and indistinguishable from
-    them. See issues/033.
+    them.
     """
     finite = values[np.isfinite(values)]
     if len(finite) < 2:
@@ -439,7 +439,7 @@ def _threshold_level(g: pd.DataFrame, clean: float, fraction: float,
         # round-off span is cleared by round-off: measured on enstrophy against a
         # translation-only ladder, both the sensitivity and saturation levels read 1.0 for a
         # quantity translation cannot change at all. Same principle as the rank-correlation
-        # guard; see issues/033.
+        # guard.
         return float("nan")
     span = shared_span if shared_span is not None else float(medians.iloc[-1]) - clean
     if span is None or not np.isfinite(span) or span == 0:
@@ -563,7 +563,7 @@ def report_card(axes: pd.DataFrame, probes: pd.DataFrame,
         # ladder -- a single-field invariant against a translation-only ladder, say. That is a
         # legitimate configuration which AGENTS.md explicitly calls correct, and it used to
         # take down the whole report with a pandas message naming nothing in this codebase,
-        # after the expensive evaluation had already been paid for. See issues/034.
+        # after the expensive evaluation had already been paid for.
         rho_defined = ordinal[ordinal["rho"].notna()]
         if rho_defined.empty:
             base["worst_axis"] = pd.NA

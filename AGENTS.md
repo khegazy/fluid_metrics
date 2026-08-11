@@ -145,8 +145,8 @@ change enstrophy but it does change the summation order inside `np.mean`, so the
 the last bits, in an arbitrary order, and ranking that produced a confident-looking 0.707 printed
 beside genuine correlations. Anything whose variation across an axis is below a relative
 `analysis.DEGENERATE_SPAN` is now withheld rather than reported. The same applies to the damage
-column when the anchor itself is round-off (issue 032) and to the sensitivity and saturation levels
-when the span is (issue 033).
+column when the anchor itself is round-off, and to the sensitivity and saturation levels when the
+span is.
 
 **Declare `higher_is_better` correctly, because it is now read.** Four statistics are one-sided —
 monotonicity asks whether the value rises, the separability AUC is taken with

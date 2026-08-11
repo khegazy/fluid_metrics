@@ -414,7 +414,7 @@ def _map_frames(maps: MapRequest, indices: np.ndarray) -> set[int]:
     reduction shrinks the selection under a configured position, and indexing it raised
     ``IndexError: index 7 is out of bounds for axis 0 with size 4`` -- which names neither the
     setting that was out of range nor the one that shrank the selection. Negative positions count
-    from the end, as elsewhere in numpy, and ``-1`` is the shipped default. See issues/038.
+    from the end, as elsewhere in numpy, and ``-1`` is the shipped default.
 
     Raises:
         ValueError: If a position is outside the selection.
@@ -451,7 +451,7 @@ def _runnable_rungs(
     coarsens by up to 16, so at resolution 8 the run used to die partway through the first frame
     with ``ValueError: factor 16 does not divide grid (8, 8)`` -- an error naming the operator
     but not the knob that caused it, raised after the I/O for that frame had been paid. On a long
-    trajectory that is a slow way to learn about a typo. See issues/037.
+    trajectory that is a slow way to learn about a typo.
 
     The check is a trial application on one already-remapped frame, so it needs no per-operator
     declaration of what it can support and stays correct as operators are added. Rungs that fail

@@ -135,7 +135,6 @@ def test_degeneracy_guard_fires_when_most_rungs_are_round_off():
     group, so when most rungs are round-off the scale collapses to round-off too and the
     guard compares noise against noise. It is defeated in exactly the case it exists for.
 
-    See issues/032-translation-invariant-anchor.md for the measurement on real data.
     """
     # One axis with genuine response (a blur, which a spectral metric does see) and three
     # axes at the float64 noise floor (translation, the impostor, and the anchor -- all of

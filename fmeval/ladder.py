@@ -383,7 +383,7 @@ def _apply_whole_frame(
     This was declared, defaulted and documented in two places for a long time while
     :func:`apply_rung` never read it, so such an operator would have received a bare array where
     it expected a mapping and failed with a message pointing at numpy rather than at the ignored
-    declaration. See issues/036.
+    declaration.
 
     Args:
         resolved: Filled in with the severity applied to each field, in place.
