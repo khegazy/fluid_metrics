@@ -197,6 +197,7 @@ Hydra writes its own bookkeeping — the resolved config and the job log — to
 | [CLAUDE.md](CLAUDE.md) | Project conventions, the metric IDs, and the evaluation protocol |
 | [TEST_DESCRIPTION.md](TEST_DESCRIPTION.md) | Plain-language reference for every quantity the suite reports |
 | [issues/](issues/) | Open items and future work, one file each |
+| [.github/workflows/tests.yml](.github/workflows/tests.yml) | CI: runs the default test suite on every push to a pull request. It has no CFS and no TeX Live, so `pytest -m data` and `pytest -m slow` stay a local responsibility |
 
 The project's **metrics tracker** is the source of truth for the candidate metrics and their
 stable IDs (OT-1, NM-2, TD-1, …). Use those IDs in code, commits, and discussion; see

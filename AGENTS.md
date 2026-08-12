@@ -467,6 +467,18 @@ that no number appears in the report without a machine-readable source in the sa
 Run with `pytest`. Markers: `data` reads real files on CFS, `slow` needs LaTeX; both are
 excluded by default.
 
+**CI runs the default suite on every push to a pull request** — `.github/workflows/tests.yml`,
+which builds the environment from the committed lockfile, puts `.venv/bin` on PATH so its steps
+are the same plain commands written above, and runs `check_setup.py`, both registry listings and
+`pytest -ra`.
+
+It cannot run the other two markers: a GitHub runner has no CFS and no TeX Live. So a green PR
+says nothing about a `data`-marked test, and **verifying those stays a local responsibility** —
+run `pytest -m data` yourself before asking for review on anything touching a reader, a remap or
+an anchor. The LaTeX side is less exposed than it looks: the check that actually bites,
+`test_no_unescaped_underscore_survives_into_any_generated_tex`, is an ordinary test and does run
+in CI. Only the `latexmk` compile is left to `module load texlive/2024 && pytest -m slow`.
+
 **Prefer a contract test parametrized over a registry** to a test of one implementation. The
 metric, degradation and loader contracts are each parametrized over their whole registry, so
 every future contribution inherits them. That is the single highest-leverage pattern here.
@@ -624,3 +636,4 @@ GIT_SSH_COMMAND="ssh -x -o BatchMode=yes" git push origin <branch>
 | `TEST_DESCRIPTION.md` | Every quantity the suite reports, in plain language. **Update it when you add a reported quantity — a test enforces this** |
 | `issues/README.md` | Open items with their evidence |
 | `README.md` | Setup, and the NERSC specifics |
+| `.github/workflows/tests.yml` | CI. Runs the default suite on every push to a PR; cannot run `-m data` or `-m slow` |

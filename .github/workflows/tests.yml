@@ -51,6 +51,20 @@ jobs:
       # dependency edit that was never locked is caught here rather than by the next person
       # to run `uv sync`. The interpreter comes from `.python-version` (3.12); uv installs
       # it if the runner does not have it.
+      #
+      # If this step fails on the LOCKFILE rather than on a dependency: uv.lock is written
+      # in format `version = 1`, and a uv new enough to want to rewrite it will refuse under
+      # `--locked`. That is a format complaint, not a broken dependency. Fix it by running
+      # `uv lock` locally and committing the result, or change `--locked` to `--frozen`,
+      # which uses the lockfile as-is without asserting it is current. `--locked` is the
+      # default here because a dependency edit that was never locked is worth failing on.
+      #
+      # This is the one step in the file that was never executed before it was committed:
+      # uv is not installed on the NERSC login nodes this repository is developed on, and
+      # there is no module for it. What was checked instead is that uv.lock's `requires-dist`
+      # matches pyproject.toml specifier for specifier and that both declare
+      # `requires-python = ">=3.12"`, so the resolution itself should not need to change.
+      # Every other step was run against `.venv/bin` on PATH, which is what this one builds.
       - name: Install the locked environment
         run: uv sync --extra dev --locked
 
