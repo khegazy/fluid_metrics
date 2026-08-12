@@ -1,0 +1,9 @@
+# Warm start for comparing metrics across datasets of increasing physical complexity.
+# Not yet consumed by evaluate.py -- see issues/011-cross-dataset-comparison.md.
+#
+# On disk at datasets/kinet/doubly_periodic/old/ : five runs at Re = 5e4, 6.25e4, 7.5e4,
+# 8.75e4 and 1e5, all at Ma = 0.1 with identical initial conditions, so Reynolds number
+# is the only varying parameter. Native resolutions differ (mostly 512^2), which is why
+# the analysis grid must be pinned for any comparison across them.
+members: [kinet_re5e4, kinet_re625e2, kinet_re75e3, kinet_re875e2, kinet_re1e5]
+analysis_grid: {resolution: 128, method: block_mean}

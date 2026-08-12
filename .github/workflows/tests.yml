@@ -1,0 +1,99 @@
+# Run the test suite on every push to a pull request.
+#
+# `pull_request` fires on opened / synchronize / reopened by default, and `synchronize` is
+# exactly "someone pushed another commit to the PR", so no `types:` filter is needed.
+#
+# The environment is created once with uv and then put on PATH, so every step below is the
+# same plain `python` / `pytest` call AGENTS.md section 2 documents. That is deliberate: CI
+# then exercises the commands a colleague actually runs rather than a uv-specific spelling
+# of them, and nothing here needs updating if the recommended installer changes.
+#
+# What this job deliberately does NOT run:
+#
+#   pytest -m data   reads the real trajectories on CFS, which exist only on NERSC
+#   pytest -m slow   compiles a report with latexmk, which needs a TeX Live install
+#
+# Both are excluded by `addopts` in pyproject.toml, so plain `pytest` already skips them and
+# the job needs no marker arguments. The protection that matters most from the LaTeX side is
+# not lost: `test_no_unescaped_underscore_survives_into_any_generated_tex` is an ordinary
+# test and runs here. Only the actual latexmk compile is left to a local
+# `module load texlive/2024 && pytest -m slow`.
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A second push to the same PR supersedes the first; cancel the run it replaced rather than
+# paying for both.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: pytest (offline suite)
+    runs-on: ubuntu-latest
+    # The suite is ~25 s; the rest is the environment. This is a runaway guard, not a target.
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      # `--locked` fails if uv.lock would have to change to satisfy pyproject.toml, so a
+      # dependency edit that was never locked is caught here rather than by the next person
+      # to run `uv sync`. The interpreter comes from `.python-version` (3.12); uv installs
+      # it if the runner does not have it.
+      #
+      # If this step fails on the LOCKFILE rather than on a dependency: uv.lock is written
+      # in format `version = 1`, and a uv new enough to want to rewrite it will refuse under
+      # `--locked`. That is a format complaint, not a broken dependency. Fix it by running
+      # `uv lock` locally and committing the result, or change `--locked` to `--frozen`,
+      # which uses the lockfile as-is without asserting it is current. `--locked` is the
+      # default here because a dependency edit that was never locked is worth failing on.
+      #
+      # This is the one step in the file that was never executed before it was committed:
+      # uv is not installed on the NERSC login nodes this repository is developed on, and
+      # there is no module for it. What was checked instead is that uv.lock's `requires-dist`
+      # matches pyproject.toml specifier for specifier and that both declare
+      # `requires-python = ">=3.12"`, so the resolution itself should not need to change.
+      # Every other step was run against `.venv/bin` on PATH, which is what this one builds.
+      - name: Install the locked environment
+        run: uv sync --extra dev --locked
+
+      # `source .venv/bin/activate` would not survive to the next step; $GITHUB_PATH does.
+      - name: Put the environment on PATH
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      # The repository's own first-line environment check, and the first thing AGENTS.md
+      # tells an agent to run when anything unexpected happens. It exits 0 without the
+      # `datasets` symlink -- a missing dataset root is a warning, since it is needed to run
+      # evaluations and not to run tests -- so it is meaningful on a runner that has no CFS.
+      - name: Check the environment
+        run: python check_setup.py
+
+      # Cheap, and it fails with a readable message. A metric or degradation module that
+      # stops importing is collected rather than raised by both registries, so it would
+      # otherwise surface as a metric quietly missing from a parametrized test rather than
+      # as an error.
+      - name: List the registries
+        run: |
+          python -m metrics
+          python -m degradations
+
+      # No pipe and no `&&`: a pipeline's exit status is the last command's, which is the
+      # trap AGENTS.md section 1 warns about. Each `run` step's exit code is the step's
+      # status, so a failing test fails the job.
+      #
+      # `-ra` prints the reason for every skip and xfail. The suite skips ~45 tests by
+      # design and the project uses `xfail(strict=True)` to record reproduced defects
+      # (issues/README.md), so those reasons are the part of the log worth reading.
+      - name: Run the test suite
+        run: pytest -ra

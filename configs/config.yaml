@@ -1,0 +1,48 @@
+# Top-level evaluation config.
+#
+#   python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev
+#
+# `metrics` is deliberately a plain list rather than a Hydra config group: a group would
+# force one YAML file per metric, which is exactly the friction the registry removes.
+defaults:
+  - dataset: kinet_re5e4_dev
+  - degradation: default
+  - report: default
+  - _self_
+
+paths:
+  data: ${hydra:runtime.cwd}/datasets
+  results: ${hydra:runtime.cwd}/results
+
+# Metric names resolved against the registry. `python -m metrics` lists them.
+metrics: [mae, mse, nrmse]
+
+# Canonical fields to evaluate. null means "every field the dataset provides that at
+# least one selected metric accepts".
+fields: null
+
+# IN-2 analysis grid. null keeps the native resolution; an int coarsens to it by
+# conservative block averaging, recomputing derived fields there.
+analysis_grid:
+  resolution: null
+  method: block_mean      # block_mean (conservative) | subsample (aliasing control)
+
+seed: 20260807
+
+hydra:
+  # Hydra's own bookkeeping (resolved config, job log) goes out of the way; the run folders
+  # this project actually produces are written under `paths.results` by evaluate.py.
+  #
+  # These are plain relative paths on purpose. `${paths.results}` would interpolate
+  # `${hydra:runtime.cwd}`, and `hydra.sweep.dir` is resolved BEFORE HydraConfig exists, so
+  # a multirun would fail with "HydraConfig was not set". Relative is safe because
+  # `job.chdir` is false, so it resolves against the directory you launched from.
+  run:
+    dir: results/.hydra/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: results/.hydra/multirun/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}
+  job:
+    # REQUIRED. With chdir=true the relative `datasets` symlink and the package imports
+    # both break, with errors that point nowhere near the cause.
+    chdir: false

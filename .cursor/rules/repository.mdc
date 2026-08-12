@@ -1,0 +1,20 @@
+---
+description: How to work in the fluid_metrics repository
+alwaysApply: true
+---
+
+The full instructions are in `AGENTS.md` at the repository root. Read it before changing
+anything; it is the canonical file and this one is only a pointer, so the two cannot drift
+apart.
+
+It covers adding metrics, degradations, data sources and report renderers; the testing
+conventions; how to treat generated LaTeX; and a table of traps that have already caught
+someone.
+
+Two rules that are easy to violate by accident:
+
+- Verify before claiming. `pytest | tail` masks the exit code, so a `&&` chain passes with
+  failing tests. Use
+  `pytest -q > /tmp/pt.txt 2>&1; RC=$?; tail -3 /tmp/pt.txt; [ $RC -eq 0 ] || exit 1`.
+- Never hand-edit anything under `results/`. It is generated; fix the renderer and re-run
+  `make_report.py`.

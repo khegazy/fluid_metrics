@@ -1,0 +1,1500 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[hidelinks]{hyperref}
+
+% --- convenience macros -------------------------------------------------
+\newcommand{\High}{\textbf{High}}
+\newcommand{\Med}{Medium}
+\newcommand{\Low}{\textbf{Low}}
+\newcommand{\keywords}[1]{\par\smallskip\noindent\textit{Keywords:} #1}
+\newcommand{\rating}[1]{\par\smallskip\noindent\textit{Rating justification (mine):} #1}
+
+\title{Fluid Metrics Exploration Tracker\\[4pt]
+}
+\author{Hooligans}
+\date{August 2026}
+
+\begin{document}
+\maketitle
+
+\medskip
+\noindent
+The meteorological literature contains an
+explicit statement of our shock-shift problem under the name \emph{double penalty}
+\cite{wernli2008}; the relationship between the negative Sobolev norm and the Wasserstein
+distance is a quantitative two-sided bound with stated conditions, not a vague analogy
+\cite{peyre2018}; the ``wake number'' item has a direct, practical implementation in the
+visualization literature under the name \emph{winding angle} \cite{sadarjoen2000}; and
+Arnold's paper does in fact prove that the sectional curvature of the volume-preserving
+diffeomorphism group is negative in most sections \cite{arnold1966}. Two ratings changed as
+a result, and one item remains genuinely unsupported.
+
+\tableofcontents
+
+%=========================================================================
+\section{How to use this document}
+
+\begin{enumerate}[leftmargin=*]
+\item The \textbf{master table} in Section~\ref{sec:master} is the working checklist.
+Update the \texttt{Status} column as items move from \texttt{Not tested} to
+\texttt{In progress} to \texttt{Tested (result)}, and fill in \texttt{Owner}.
+\item The theme sections give, for each item: what it actually is, where to look, search
+keywords, whether the blocker is a mathematical gap or an implementation gap, known
+pitfalls, and a promise rating with justification.
+\item \textbf{All promise ratings are my judgment, not literature consensus.} They are
+explained so that you can disagree with the reasoning rather than with the label.
+\end{enumerate}
+
+\subsection{Rating rubric (my definitions)}
+
+\begin{longtable}{@{}p{0.13\textwidth}p{0.82\textwidth}@{}}
+\toprule
+\textbf{Rating} & \textbf{Meaning} \\
+\midrule
+\endhead
+\High{} & Strong precedent in an adjacent field solving the \emph{same} structural
+problem, mature software exists, and the metric targets a failure mode that $L^2$ provably
+misses. Test in the first wave. \\
+\addlinespace
+\Med{} & Plausible and interesting, but either the precedent is indirect, the
+implementation is nontrivial, or the metric likely duplicates information that another
+metric already provides. Test after the first wave. \\
+\addlinespace
+\Low{} & Beautiful or deep, but the theory is immature, the tooling is research grade, or
+the quantity is too indirect to serve as a routine diagnostic within the next year. Park
+it, and revisit if a first-wave metric fails in a way that this item would explain. \\
+\bottomrule
+\end{longtable}
+
+
+%=========================================================================
+\section{Master tracker table}
+\label{sec:master}
+
+Column meanings: \emph{Gap} records whether the blocker is mathematical (M),
+implementation (I), or both; \emph{Cost} is a rough estimate of effort and compute;
+\emph{Promise} is my rating per the rubric above. Two ratings changed in this revision and
+are marked with a dagger.
+
+\begin{longtable}{@{}p{0.055\textwidth}p{0.40\textwidth}p{0.045\textwidth}p{0.045\textwidth}p{0.09\textwidth}p{0.13\textwidth}p{0.08\textwidth}@{}}
+\toprule
+\textbf{ID} & \textbf{Item} & \textbf{Gap} & \textbf{Cost} & \textbf{Promise} &
+\textbf{Status} & \textbf{Owner} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{ID} & \textbf{Item} & \textbf{Gap} & \textbf{Cost} & \textbf{Promise} &
+\textbf{Status} & \textbf{Owner} \\
+\midrule
+\endhead
+\multicolumn{7}{@{}l}{\emph{Optimal transport and displacement-aware distances}}\\
+OT-1 & Wasserstein ($W_1$, $W_2$) for horizontal displacement & M & Med & \High{} & Not tested & \\
+OT-2 & Signed-field fix: graph-space OT, unbalanced OT, $\pm$ split & M & Med & \High{} & Not tested & \\
+OT-3 & Sliced Wasserstein & I & Low & \High{} & Not tested & \\
+OT-4 & Entropic (Sinkhorn) relaxation and Kantorovich dual & I & Low & \Med{} & Not tested & \\
+OT-5 & $W_1$ on increment and gradient PDFs, not on fields & I & Low & \High{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Shock geometry and detection}}\\
+SH-1 & Derivative and sharpness shock detector & I & Low & \High{} & Not tested & \\
+SH-2 & Distance between extracted shock sets (ASSD, Hausdorff-95) & I & Low & \High{} & Not tested & \\
+SH-3 & Shock mask overlap (IoU, Dice, boundary F-score) & I & Low & \Med{} & Not tested & \\
+SH-4 & Shock front position and speed error; Rankine--Hugoniot residual & M+I & Med & \Med{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Norms and function-space metrics}}\\
+NM-0 & Pointwise $L^p$ baselines (MAE, MSE, RMSE, NRMSE) & --- & Low & n/a$^\ddagger$ & Implemented; measured & \\
+NM-1 & Sobolev $H^s$ norm with $s>0$, that is $H^1$ & --- & Low & \Low{} & Not tested & \\
+NM-2 & Negative Sobolev and dual norms, $\dot H^{-1}$ and $H^{-s}$ & M & Low & \High{} & Not tested & \\
+NM-3 & Mollification split $f = f*\eta_\varepsilon + \Delta$, metricize parts separately & M & Low & \High{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Curvature and differential geometry}}\\
+CG-1 & Level-set and isosurface curvature statistics & I & Low & \Med{} & Not tested & \\
+CG-2 & Edge detection (Canny, Sobel) as a cheap shock localizer & I & Low & \Med{} & Not tested & \\
+CG-3 & Discrete differential geometry and DEC on meshes & M & Med & \Low{} & Not tested & \\
+CG-4 & Metric-geometry curvature (Ollivier--Ricci, Alexandrov) & M & Med & \Low{} & Not tested & \\
+CG-5 & Riemann curvature (Arnold geometric hydrodynamics) & M & High & \Low{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Vorticity and physics invariants}}\\
+PH-1 & Entropy production, signed and three-way & M+I & Low & \High{} & Not tested & \\
+PH-2 & PDE residual in weak, finite-volume form & I & Low & \High{} & Not tested & \\
+PH-3 & Solver-consistency residual (one step of a trusted solver) & I & Med & \High{} & Not tested & \\
+PH-4 & Enstrophy & I & Low & \Med{} & Implemented; measured$^\S$ & \\
+PH-5 & Palinstrophy & I & Low & \Med{} & Not tested & \\
+PH-6 & Helmholtz split: ``take curls but protect from shocks'' & M & Med & \High{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Pattern and feature detection}}\\
+PD-1 & Hough transform for eddy size & I & Med & \Low{}$^\dagger$ & Not tested & \\
+PD-2 & Winding angle and Poincar\'e index (``wake number'') & I & Med & \High{}$^\dagger$ & Not tested & \\
+PD-3 & Eddy count distribution and eddy census & I & Med & \Med{} & Not tested & \\
+PD-4 & $Q$-criterion, $\lambda_2$, Okubo--Weiss as eddy detectors & I & Low & \Med{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Topological data analysis}}\\
+TD-1 & One-parameter persistence diagrams (sublevel sets) & I & Low & \High{} & Not tested & \\
+TD-2 & Two-parameter (multiparameter) persistence & M & High & \Low{} & Not tested & \\
+TD-3 & Well groups & M & High & \Low{} & Not tested & \\
+TD-4 & Reeb graphs and Morse--Smale complexes & I & Med & \Med{} & Not tested & \\
+TD-5 & Jacobi sets (native two-field comparison) & I & Med & \Med{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Basis decompositions}}\\
+BD-1 & Fourier transform and energy spectrum & --- & Low & \Med{} & Not tested & \\
+BD-2 & Two-point correlation & --- & Low & \Med{} & Not tested & \\
+BD-3 & Wavelets and coherent vortex extraction (CVS) & I & Med & \High{} & Not tested & \\
+BD-4 & Wavelet scattering and phase harmonics (``turbulence transform'') & I & Med & \High{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Probabilistic and distributional metrics}}\\
+PS-1 & Energy distance & I & Low & \Med{} & Not tested & \\
+PS-2 & CRPS & I & Low & \High{}$^{*}$ & Not tested & \\
+PS-3 & Spread-to-skill ratio & I & Low & \High{}$^{*}$ & Not tested & \\
+PS-4 & Heavy-tail quantifiers (flatness, Hill estimator, EVT) & I & Low & \High{} & Not tested & \\
+PS-5 & PDF of pairwise distances, Ripley's $K$ & I & Med & \Med{} & Not tested & \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{Infrastructure and protocol}}\\
+IN-1 & Project onto planes and compare & I & Low & \Med{} & Not tested & \\
+IN-2 & Adaptive meshes, comparison across meshes & I & Med & \Med{} & Implemented (remap) & \\
+IN-3 & Degradation-ladder protocol with Spearman acceptance test & I & Med & \High{} & Implemented & \\
+IN-4 & Gaussian-impostor canary & I & Low & \High{} & Implemented; measured & \\
+\bottomrule
+\end{longtable}
+
+\noindent
+$^{*}$ High \emph{only if} ensembles are available. For a deterministic surrogate these
+two items are not applicable and should be marked N/A rather than left as untested.
+
+\noindent
+$^\ddagger$ NM-0 is not a candidate and carries no promise rating. It is the pointwise
+control that every other entry is read against; it is implemented so that each candidate has
+a baseline to be compared with. See Section~\ref{sec:nm0}.
+
+\noindent
+$^\S$ PH-4 is implemented and measured, and the measurement disqualifies it as a
+\emph{comparison} metric: a translated field has identical enstrophy by construction, so its
+clean and unrelated-field values coincide and it has no dynamic range on the normalised
+scale. It remains usable as a single-field tripwire, which is how this document already
+describes it.
+
+\noindent
+$^\dagger$ Rating changed in this revision. PD-2 rose from Medium to High because the
+winding angle turns out to be a standard, implemented vortex-detection method with
+documented strengths and weaknesses \cite{sadarjoen2000}. PD-1 fell from Medium to Low
+because the eddy-detection precedent I expected to find for the Hough transform does not
+appear to exist, and the winding-angle method covers the same ground with actual support.
+
+%=========================================================================
+\section{Optimal transport and displacement-aware distances}
+
+This is the theme where the meeting's central insight, that horizontal distances make
+sense while vertical distances do not, has the strongest outside precedent. Two separate
+communities hit exactly this wall and solved it, and one of them gave the pathology a name.
+
+\subsection{OT-1. Wasserstein for horizontal displacement --- \High{}}
+
+\paragraph{What it is.} Instead of asking how different two fields are at each point, one
+asks what the cheapest way is to move mass from one field's profile to the other's. A pure
+translation of a shock by a distance $s$ then costs an amount that grows with $s$, rather
+than saturating the way $L^2$ does.
+
+\paragraph{Why the precedent matters.} Seismic full-waveform inversion suffers an identical
+pathology, known there as cycle skipping: the $L^2$ misfit between a predicted and an
+observed waveform behaves badly when the predicted arrival is shifted in time. Engquist and
+Froese proposed the Wasserstein metric as the remedy, observing that seismic signals are
+conventionally compared either by travel-time difference or by $L^2$ difference and that
+the Wasserstein metric ``exhibits properties from both of the traditional measures''
+\cite{engquist2014}. The convexity property is precisely the one we want: in the review
+literature the $W_2$ misfit ``precisely captures the data shift $s$ as the misfit is $s^2$
+independent of the profile of the signal'' \cite{engquistyang}. That is a clean statement
+that $W_2$ measures \emph{position} error while remaining blind to \emph{profile shape},
+which is exactly the decomposition the meeting was reaching for.
+
+\paragraph{The math gap you identified is a known, named problem.} Converting a pressure or
+velocity field into a probability distribution requires nonnegativity and a fixed total
+mass. Yang, Engquist, Sun and Froese devote explicit attention to ``the difficulty of
+transforming seismic signals into nonnegative density functions'' \cite{yang2016}, and
+M\'etivier and colleagues state the obstruction plainly: ``the main difficulty for the
+application of optimal transport to seismic data is related to their non positivity: the
+optimal transport theory is developed for the comparison of positive quantities''
+\cite{metivier2018eage}. The standard fixes are catalogued under OT-2.
+
+\keywords{quadratic Wasserstein misfit, cycle skipping, optimal transport waveform
+inversion, Monge--Amp\`ere, displacement convexity, $W_2$ convexity with respect to
+translation.}
+
+\paragraph{Pitfalls.} On a normalized field, $W_2$ is sensitive only to where mass sits, so
+it will accept a field with the wrong amplitude but the right position. It must therefore be
+paired with an amplitude-sensitive metric. In two and three dimensions the ``horizontal
+shift'' interpretation is also less clean than it is in one dimension.
+
+\rating{High, because the structural analogy is exact, the seismic community has a decade of
+experience with the failure modes, and the metric directly attacks the shock-position
+problem that $L^2$ cannot see.}
+
+\subsection{OT-2. Signed-field fix --- \High{}}
+
+\paragraph{What it is.} There are four standard escapes from the positivity and
+mass-normalization constraints. First, split the field into positive and negative parts and
+transport each separately. Second, add a constant and renormalize, which is crude and
+introduces a tunable parameter. Third, use \emph{unbalanced} optimal transport, in the
+Hellinger--Kantorovich sense, which permits mass creation and destruction at a price.
+Fourth, use \emph{graph-space} optimal transport, which compares a discrete graph of the
+data rather than the data themselves, and thereby preserves convexity with respect to
+shifts while handling signed, non-normalized data natively \cite{metivier2018geophysics}.
+The graph-space approach grew out of the same group's earlier optimal-transport misfit for
+seismograms \cite{metivier2016gji}, and has since been generalized as a family of distances
+that contains the $L^p$ distances as special cases \cite{metivier2019ip}.
+
+\rating{High, because this is the single item that unblocks OT-1 for real pressure and
+velocity fields. It is a mathematical gap in your taxonomy, and it is a gap that the
+seismic community has already filled, so we would be importing rather than inventing.}
+
+\keywords{unbalanced optimal transport, Hellinger--Kantorovich, graph-space OT, partial
+optimal transport, signed measure transport.}
+
+\subsection{OT-3. Sliced Wasserstein --- \High{}}
+
+\paragraph{What it is.} Project the field onto many random one-dimensional directions,
+compute the cheap sort-based one-dimensional Wasserstein distance along each, and average.
+The cost is close to linear.
+
+\paragraph{Note the convergence on your own boards.} ``Project onto planes and compare''
+from the Winging It board, catalogued here as IN-1, \emph{is} sliced Wasserstein whenever
+the comparison on each projection is a one-dimensional optimal-transport distance. Two
+independently generated ideas are the same idea, and they should be treated as a single
+work item.
+
+\keywords{sliced Wasserstein distance, max-sliced Wasserstein, Radon transform,
+projection-based optimal transport.}
+
+\paragraph{Pitfalls.} Slicing discards information in a way that is difficult to
+characterize, so the meeting's remark that it ``introduces its own errors'' is correct. Use
+it for screening and for cost-scaling studies, and validate it against exact Wasserstein
+distances on small cases.
+
+\subsection{OT-4. Entropic relaxation and Sinkhorn --- \Med{}}
+
+This becomes relevant only \emph{after} OT-1 has demonstrated utility, which matches the
+meeting's own sequencing: does Wasserstein actually help before we optimize its cost?
+Sinkhorn divergences are differentiable, which matters if optimal transport later graduates
+from a diagnostic to a training loss.
+
+\keywords{Sinkhorn divergence, entropic regularization optimal transport, debiased Sinkhorn
+divergence, iterative Bregman projections.}
+
+\subsection{OT-5. $W_1$ on increment and gradient PDFs --- \High{}}
+
+\paragraph{What it is.} Rather than transporting the field itself, compute the probability
+density of velocity increments $\delta_\ell u$, or of gradients, for both the prediction and
+the reference, and compare those one-dimensional distributions using the quantile form of
+$W_1$. This is cheap, it has no positivity problem because a PDF is already a probability
+measure, and it is sensitive to heavy tails.
+
+\paragraph{Precedent.} Physics-based generative turbulence models are built on exactly these
+criteria. A multiscale generative adversarial network uses ``the variance, skewness and
+flatness of the increments of the generated field that retrieve respectively the turbulent
+energy distribution, energy cascade and intermittency across scales''
+\cite{granero2024}. That paper also reports that plain GAN and Wasserstein-GAN baselines
+fail to generate fields with turbulent velocity statistics, which gives us a ready-made
+negative control.
+
+\rating{High, because this is the cheapest item in the entire tracker that is provably
+orthogonal to $L^2$, it requires no mathematical gap to be closed, and it measures
+intermittency directly, which is exactly what an over-smoothed emulator destroys first.}
+
+%=========================================================================
+\section{Shock geometry and detection}
+
+\subsection{SH-1. Derivative and sharpness detector --- \High{}}
+
+\paragraph{What it is.} A local sensor that flags cells as shocked. The standard forms are
+the normalized pressure gradient $|\nabla p| / p$; a compression-gated variant
+$\max(0, -\nabla\cdot\mathbf{u}) \cdot |\nabla p| / p$, in which the gate suppresses shear
+layers and contact discontinuities; and Mach-gradient sensors. The canonical reference is
+Ducros and colleagues, whose stated objective was ``to derive a shock capturing tool able to
+treat turbulence with minimum dissipation out of the shock'' for large-eddy simulation
+\cite{ducros1999}, which is the same design requirement we have: detect the shock without
+contaminating the surrounding turbulence.
+
+\paragraph{Why it matters here.} The meeting observed that a derivative detector ``needs
+shock position alignment.'' That is correct: the detector is step one, and step two is
+SH-2, which supplies the alignment-free distance between detected sets.
+
+\keywords{shock sensor, Ducros sensor, compression switch, shock-capturing detector,
+dilatation--vorticity ratio.}
+
+\paragraph{Pitfall.} Every sensor carries a threshold. Fix the threshold once in the
+evaluator and never tune it per model, or the metric becomes gameable.
+
+\subsection{SH-2. Distance between extracted shock sets --- \High{}}
+
+\paragraph{What it is.} Once shock masks or surfaces have been extracted from both fields,
+compare them as \emph{geometric objects}. The average symmetric surface distance is the
+mean of point-to-surface distances taken in both directions; the 95th-percentile Hausdorff
+distance is robust to isolated detector artifacts in a way the raw maximum is not. Taha and
+Hanbury survey twenty such measures and select among them systematically
+\cite{taha2015}; their treatment also states the specific caveat we need, namely that the
+Hausdorff distance ``is generally sensitive to outliers,'' that using it directly is not
+recommended when noise and outliers are common, and that the quantile method is the
+recommended repair.
+
+\paragraph{This is the direct answer} to ``need to calculate distance between shocks'' from
+the Winging It board. Medical imaging solved the problem of deciding whether two thin
+surfaces occupy the same place some years ago.
+
+\keywords{average symmetric surface distance, ASSD, 95th percentile Hausdorff distance,
+surface distance metrics, boundary F-score.}
+
+\subsection{SH-3. Shock mask overlap --- \Med{}}
+
+Overlap measures such as intersection-over-union and Dice are cheap and easy, but they
+degrade badly for \emph{thin} objects: a one-cell shift of a two-cell-thick shock can drive
+the intersection-over-union close to zero, which reintroduces the double-penalty problem in
+a new costume. The boundary F-score is the thin-structure-aware variant and is the one to
+prefer. This is rated Medium rather than High because SH-2 dominates it for our purposes.
+
+\subsection{SH-4. Shock front position and speed error; Rankine--Hugoniot residual --- \Med{}}
+
+Position and speed errors are highly interpretable, but they are well defined only for
+isolated, trackable fronts, which is precisely \emph{not} the shocklet case. The
+Rankine--Hugoniot residual, which asks whether the jump across a detected front satisfies
+the conservation-law jump conditions, is a valuable reference-free physical check, but it
+demands careful sampling: never sample states \emph{on} the detected surface, because
+captured shocks are smeared across several cells, and instead sample at normal offsets with
+tangential averaging.
+
+\rating{Medium: high value in the pure-shock regime, but harder to define for a field
+populated by many small shocklets, which is our north-star case.}
+
+%=========================================================================
+\section{Norms and function-space metrics}
+
+\subsection{NM-0. Pointwise $L^p$ baselines --- control}
+\label{sec:nm0}
+
+\paragraph{What it is.} Mean absolute error, mean squared error, root mean squared error,
+and RMSE normalised by the RMS of the reference \emph{fluctuation}. These are not
+candidates; they are the control against which the rest of this document is read. A panel
+in which $L^2$ scores well everywhere is a broken panel.
+
+\paragraph{Why NRMSE is included.} On the weakly compressible data the density field is
+$1.0 \pm 1.8\times10^{-4}$. Normalising by the raw RMS would hide four orders of magnitude
+of relative error and would put density and velocity on incomparable scales, so the spatial
+mean is removed before normalising.
+
+\paragraph{Response to displacement follows the order of the norm.} For a displacement
+$\delta$ small compared with the scale of variation, $f(x+\delta) - f(x) \simeq
+\delta\,\partial_x f$, so the two families inherit different powers of $\delta$:
+\begin{equation}
+\mathrm{MSE} \simeq \delta^{2}\bigl\langle (\partial_x f)^2 \bigr\rangle,
+\qquad
+\mathrm{MAE} \simeq \delta\,\bigl\langle |\partial_x f| \bigr\rangle .
+\label{eq:lp-displacement}
+\end{equation}
+Measured on $256^2$ vorticity at $\mathrm{Re} = 5\times10^4$ over 21 frames of developed
+flow, the ratios per doubling of distance in the sub-cell range are $3.99$, $3.95$, $3.82$
+for MSE, against the quadratic prediction of $4$, and $2.00$, $1.98$, $1.93$ for MAE,
+against the linear prediction of $2$. Equation~\eqref{eq:lp-displacement} is confirmed to
+better than 5\%. Damage below is normalised so that $1$ is the value two statistically
+identical but positionally unrelated fields receive.
+
+\begin{center}
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+displacement [cells] & 0.125 & 0.25 & 0.5 & 1 & 2 & 4 & 8 & 16 \\
+\midrule
+MSE   & 0.0004 & 0.0017 & 0.0069 & 0.0262 & 0.0887 & 0.1785 & 0.2789 & 0.4481 \\
+MAE   & 0.0221 & 0.0441 & 0.0875 & 0.1692 & 0.3005 & 0.4343 & 0.5835 & 0.6757 \\
+NRMSE & 0.0216 & 0.0432 & 0.0858 & 0.1674 & 0.3053 & 0.4392 & 0.5590 & 0.7047 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+MAE therefore assigns 55 times the damage MSE does at an eighth of a cell, and 6.5 times at
+one full cell. \emph{If a pointwise metric is wanted that notices sub-cell displacement, MAE
+is strictly preferable to MSE}, and the quadratic suppression is why MSE reads as tolerant
+of small shifts while being severe at moderate ones. The double penalty does not have a
+single onset: its onset depends on the order of the norm. Note also that on this
+weakly compressible field $L^2$ saturates over tens of cells rather than immediately,
+because the correlation length is long; a shocked field would saturate far faster.
+
+\paragraph{The Gaussian-impostor canary does not catch this family.} Measured, MSE assigns
+the spectrum-matched field $0.80$ on vorticity and $0.51$ on velocity: it rejects it firmly,
+because a phase-randomised field is pointwise uncorrelated with the reference. $L^p$ metrics
+are phase-\emph{sensitive} --- by Plancherel the cross term $\langle fg\rangle$ becomes a sum
+of independently randomised phases, so the correlation coefficient goes to zero and the error
+approaches its uncorrelated limit. IN-4 is aimed instead at quantities that are functions of
+$|\hat f|$ alone, such as BD-1 and BD-2, which score the impostor \emph{perfectly}. This is
+recorded here and under IN-4 because the implication is easy to invert.
+
+\paragraph{Redundancy, and a caution.} Across the full degradation ladder the three
+baselines correlate at $\rho = 0.995$ (MAE/MSE), $0.970$ (MSE/NRMSE) and $0.968$
+(MAE/NRMSE), all above the $0.95$ pruning threshold, so they order the degradations almost
+identically. They nonetheless differ by $55\times$ in displacement damage at an eighth of a
+cell. A high rank correlation means two metrics \emph{order} damage the same way; it does not
+mean they \emph{weight} it the same. For model selection by ranking these are duplicates; as
+training losses they are not, and a redundancy matrix read alone would have hidden that.
+
+\rating{No rating. NM-0 is the control, not a candidate. It is listed so that every other
+entry has a measured baseline to be read against.}
+
+\subsection{NM-1. Sobolev $H^s$ norm with $s>0$ --- \Low{}}
+
+The meeting has already established the answer here: an $H^1$ penalty helps slightly and
+still fails at true discontinuities. The reason is structural, in that a discontinuous
+function is not an element of $H^1$ at all, so the gradient term is dominated by a
+mesh-resolution artifact rather than by physics. The Low rating reflects not that the idea
+is wrong but that we already know the outcome; record it as tested and insufficient rather
+than spending further effort.
+
+\subsection{NM-2. Negative Sobolev and dual norms --- \High{}}
+
+\paragraph{What it is.} The interesting direction is the opposite of $H^1$. Negative-order
+Sobolev norms are \emph{weaker} than $L^2$: they metrize weak convergence, they remain
+finite for rough and discontinuous fields, and, most importantly for us, they are
+quantitatively close to the Wasserstein distance. In the periodic case one computes the
+homogeneous $\dot H^{-1}$ norm by dividing Fourier coefficients by $|\mathbf{k}|$, so the
+cost is one fast Fourier transform.
+
+\paragraph{The relationship to Wasserstein is a theorem, not an analogy.} For infinitesimal
+perturbations one has the linearization
+\begin{equation}
+W_2(\mu, \mu + d\mu) \;=\; \| d\mu \|_{\dot H^{-1}(\mu)} + o(d\mu),
+\label{eq:linearization}
+\end{equation}
+and Peyre integrates this into a non-asymptotic two-sided bound: if $\mu$ and $\nu$ have
+densities $f$ and $g$ with $0 < a < f, g < b < \infty$, then
+\begin{equation}
+b^{-1/2}\, \| f - g \|_{\dot H^{-1}(dx)} \;\le\; W_2(\mu,\nu) \;\le\;
+a^{-1/2}\, \| f - g \|_{\dot H^{-1}(dx)}
+\label{eq:peyre}
+\end{equation}
+\cite{peyre2018}. The two distances are therefore equivalent up to constants set by the
+density bounds.
+
+\paragraph{The caveat that comes with the theorem.} Equation~\eqref{eq:peyre} degrades when
+$a \to 0$, that is when the field has near-vacuum regions. Informally, the equivalence is
+good when mass is spread out over the domain and poor when the distribution has regions of
+very high and very low density. For our fields this is a real consideration: a density field
+with strong rarefactions may sit in the regime where $\dot H^{-1}$ is a weak proxy for
+$W_2$, whereas a well-mixed vorticity magnitude field should be comfortably inside it. This
+is worth checking empirically on the degradation ladder rather than assuming.
+
+\rating{High: it is nearly free to implement given an FFT, it is well defined for
+discontinuous fields where $H^1$ is not, and Equation~\eqref{eq:peyre} makes precise the
+sense in which it approximates the metric we actually want. This remains the highest
+value-per-line-of-code item in the tracker.}
+
+\keywords{negative Sobolev norm, dual norm misfit, $\dot H^{-1}$ metric, weak convergence
+metrization, Benamou--Brenier formula.}
+
+\subsection{NM-3. Mollification split --- \High{}}
+
+\paragraph{What it is.} Convolve the field with a mollifier $\eta_\varepsilon$ at scale
+$\varepsilon$ to obtain a smooth part; the remainder $\Delta$ then carries the sharp
+structure:
+\begin{equation}
+f \;=\; \underbrace{f * \eta_\varepsilon}_{\text{smooth part}} \;+\;
+\underbrace{\Delta}_{\text{singular remainder}} .
+\label{eq:mollify}
+\end{equation}
+Compare the smooth parts with ordinary $L^2$ or $H^1$ metrics, and compare the remainders
+with position-tolerant metrics such as Wasserstein applied to $|\Delta|$, or shock-set
+distances applied to the support of $\Delta$.
+
+\paragraph{Why this rates High.} Equation~\eqref{eq:mollify} is not a metric; it is the
+\emph{organizing principle} that resolves the whole shocklet problem statement. Shocklets
+are simultaneously smooth and sharp, and the split allows the right metric to be applied to
+each component instead of demanding that a single metric handle both. Nearly every other
+item in this tracker slots naturally into one side or the other.
+
+\paragraph{Prior art to lean on.} This is essentially what Farge's coherent vortex
+extraction does in a wavelet basis, catalogued here as BD-3, and what the meteorology
+community calls intensity-scale verification, in which forecast skill is decomposed
+simultaneously by intensity threshold and by spatial scale using a wavelet decomposition of
+the error field \cite{casati2004}.
+
+\paragraph{Open choices, which constitute the mathematical gap.} How should
+$\varepsilon$ be chosen: fixed, swept, or tied to the grid? Should the split be iterated
+across multiple scales, which would turn it into a wavelet decomposition? Should $\Delta$
+be compared as a signed field or through $|\Delta|$?
+
+%=========================================================================
+\section{Curvature and differential geometry}
+
+\subsection{CG-1. Level-set and isosurface curvature statistics --- \Med{}}
+
+\paragraph{What it is.} Extract isosurfaces of density, pressure, or vorticity magnitude,
+compute their mean and Gaussian curvature, and compare the resulting \emph{distributions}.
+Combustion has a mature version of this idea, in which flame-front curvature PDFs are a
+standard diagnostic of how turbulence wrinkles a front. For shocked flow the analogue is
+shock-front curvature and corrugation statistics.
+
+\keywords{flame front curvature PDF, isosurface curvature turbulence, shock corrugation
+spectrum, level-set curvature statistics.}
+
+\rating{Medium: there is real precedent and the implementation cost is moderate, but the
+result is sensitive both to the choice of isovalue and to noise in second derivatives.}
+
+\subsection{CG-2. Edge detection --- \Med{}}
+
+Canny and Sobel operators are cheap image-processing shock localizers. Realistically this is
+an implementation shortcut for SH-1 rather than an independent idea, so it should be folded
+into the shock-detector work item.
+
+\subsection{CG-3. Discrete differential geometry --- \Low{}}
+
+Relevant if we pursue the mesh-comparison path in IN-2, where discrete exterior calculus
+supplies structure-preserving operators. As a diagnostic in its own right it is indirect.
+
+\subsection{CG-4. Metric-geometry approach to curvature --- \Low{}}
+
+\paragraph{What it is.} Notions of curvature that require no smooth structure: Alexandrov or
+$\mathrm{CAT}(k)$ comparison-triangle curvature, and Ollivier--Ricci curvature, which is
+defined through optimal transport between neighborhood measures. Note that Ollivier--Ricci
+is built on Wasserstein distance and therefore connects back to OT-1. It has a genuine track
+record as a structural descriptor for networks.
+
+\rating{Low for the coming year: we would be inventing the fluid application from scratch,
+with no precedent whose failure modes we could borrow, while cheaper items remain untested.
+Revisit if we find that we need a mesh-native or graph-native structural descriptor.}
+
+\keywords{Ollivier-Ricci curvature, Forman curvature, Alexandrov curvature, coarse Ricci
+curvature networks.}
+
+\subsection{CG-5. Riemann curvature and Arnold's geometric hydrodynamics --- \Low{}}
+
+\paragraph{What it is, now confirmed.} This is the serious reading of ``Riemann curvature''
+on the Physics board, and the underlying result is exactly as strong as I claimed. Arnold
+extends Euler's theorems on geodesics of $SO(3)$ with a left-invariant metric to arbitrary
+Lie groups, in particular to the group $\mathrm{SDiff}(D)$ of volume-preserving
+diffeomorphisms; the geodesics of $\mathrm{SDiff}(D)$ are the flows of ideal fluids, which
+yields stability criteria for nonlinear hydrodynamics, and he computes the Riemannian
+curvature of $\mathrm{SDiff}(D)$ and finds it \emph{negative in most sections}
+\cite{arnold1966}. The analytic foundation, showing that these groups can be treated as
+infinite-dimensional manifolds on which the Euler equations are genuinely geodesic, is Ebin
+and Marsden \cite{ebinmarsden1970}; the modern textbook treatment is Arnold and Khesin
+\cite{arnoldkhesin1998}.
+
+\rating{Low as a near-term metric, and I want to be blunt about why. Computing sectional
+curvatures of the diffeomorphism group for a discrete velocity field is a research project
+in itself, and the physical content it would deliver, namely a predictability horizon
+arising from negative curvature, is already available far more cheaply from Lyapunov
+exponents and decorrelation times. It is the right answer to a question we can already
+answer another way. The verification did not change my rating, but it did confirm that the
+idea is real rather than a half-remembered slogan, which is worth knowing.}
+
+%=========================================================================
+\section{Vorticity and physics invariants}
+
+\subsection{PH-1. Signed entropy production --- \High{}}
+
+\paragraph{What it is.} In a shocked flow, physical shocks \emph{must} produce entropy;
+spurious numerical oscillations produce negative entropy; and over-smeared learned shocks
+produce too \emph{little}. Three separate numbers should therefore be reported: an
+entropy-violation score capturing unphysical negative production; a signed mismatch against
+the reference production; and an excess-dissipation score. A one-sided check detects only
+the first of these and will happily pass an over-dissipated mush. The theoretical machinery
+for comparing a scheme's entropy production against an entropy-conservative reference flux
+is Tadmor's \cite{tadmor1987,tadmor2003}, and entropy production specifically at shocks is
+treated by Ismail and Roe \cite{ismailroe2009}.
+
+\rating{High: the diagnostic is reference-free, it is the physically correct admissibility
+condition for our regime, and the three-way split directly detects the over-smoothing
+failure that we most expect from an ML surrogate.}
+
+\subsection{PH-2. PDE residual in weak form --- \High{}}
+
+This is the ``PDE $\Delta$'' item from the Physics board, done correctly. The
+\emph{strong-form} residual, obtained by substituting the field into the differential
+operator, is meaningless at a discontinuity, because derivatives of a weak solution are
+distributions rather than functions. The \emph{finite-volume weak residual}, consisting of
+the cell-average update plus the flux balance minus the source term, remains valid at shocks
+and is what should be reported. It is reference-free, cheap, and always available.
+
+\subsection{PH-3. Solver-consistency residual --- \High{}}
+
+\paragraph{What it is.} Take the ML field, advance it by one small step using a trusted
+solver, and measure how far the ML model's own next state lies from the solver's. This is
+the evaluation-side mirror of solver-in-the-loop training. It requires no ground truth and
+remains meaningful long after the trajectory has decorrelated from any reference.
+
+\paragraph{Fits our infrastructure plan.} We are already standing up a Boltzmann solver as
+the baseline predictor, per IN-3, so the trusted solver is available at zero marginal cost.
+
+\paragraph{Pitfall.} A small one-step residual can still conceal slow secular drift, so this
+should be paired with conservation drift measured over the full rollout.
+
+\subsection{PH-4 and PH-5. Enstrophy and palinstrophy --- \Med{}}
+
+Enstrophy $\int |\boldsymbol{\omega}|^2$ measures small-scale rotational activity, while
+palinstrophy $\int |\nabla \boldsymbol{\omega}|^2$ measures the activity of vorticity
+gradients and is the natural quantity for the two-dimensional enstrophy cascade. Both are
+single scalars and are individually degenerate, in the sense that many wrong fields share a
+given enstrophy value, but both are nearly free to compute and make good tripwires. Include
+them; do not rely on them.
+
+\paragraph{Enstrophy is implemented, and the measurement sharpens the caveat.} It cannot be
+placed on the normalised damage scale at all. That scale is anchored between the reference
+value and the value a statistically identical but positionally unrelated field receives ---
+and a translated field has \emph{identical} enstrophy by construction, so the two anchors
+coincide and the span is zero. The evaluation reports this as ``no dynamic range'' rather
+than as a number, which is the honest outcome. Smoothing does make enstrophy fall
+monotonically, so it functions exactly as this section describes: a tripwire on a single
+field, not a comparison metric between two.
+
+\subsection{PH-6. Helmholtz split --- \High{}}
+
+\paragraph{What it is.} I read the board line ``take curls, but protect from shocks'' as the
+observation that vorticity diagnostics are contaminated near shocks, because the velocity
+gradient there is dominated by compression rather than rotation. The principled remedy is the
+Helmholtz decomposition of the velocity field into a solenoidal, divergence-free, rotational
+part and a dilatational, curl-free, compressive part,
+\begin{equation}
+\mathbf{u} \;=\; \mathbf{u}_{\text{sol}} + \mathbf{u}_{\text{dil}},
+\qquad \nabla\cdot\mathbf{u}_{\text{sol}} = 0,
+\qquad \nabla\times\mathbf{u}_{\text{dil}} = \mathbf{0},
+\end{equation}
+after which curl-based diagnostics are computed on $\mathbf{u}_{\text{sol}}$ alone and shock
+diagnostics on $\mathbf{u}_{\text{dil}}$. The Ducros-family sensors embody the same logic
+pointwise, since they gate on the ratio of dilatation to dilatation plus vorticity in order
+to avoid mistaking intense vortical regions for shocks \cite{ducros1999}. Eddy shocklets in
+compressible turbulence, our north-star object, were characterized in exactly this
+decomposed language \cite{lee1991}.
+
+\rating{High: this is standard practice in the compressible-turbulence community, it is
+exactly what the whiteboard line is groping toward, and it yields a principled version of
+the mollification split of NM-3 in which the split is defined by physics rather than by an
+arbitrary smoothing scale.}
+
+\keywords{Helmholtz decomposition, solenoidal dilatational split, compressible turbulence
+decomposition, eddy shocklets.}
+
+%=========================================================================
+\section{Pattern and feature detection}
+
+\subsection{PD-1. Hough transform for eddy size --- \Low{} (rating lowered)}
+\label{sec:hough}
+
+\paragraph{What it is.} The circle Hough transform detects circular arcs by voting in a
+parameter space of centers and radii, while the line version detects straight edges. For our
+purposes, circles would correspond to eddies and lines to shock fronts.
+
+\paragraph{What I could not find, stated plainly.} I searched specifically for a
+Hough-transform-based eddy-detection precedent and \emph{did not find one}. The vortex- and
+eddy-detection literature that does exist is built on streamline geometry, on
+velocity-gradient criteria, and on closed-contour methods, not on Hough voting. This does
+not prove the idea is bad; it means we would be the first to try it, with no failure modes
+to borrow and no baseline to compare against.
+
+\paragraph{One thing worth telling the team anyway.} The Hough transform is essentially a
+discretized Radon transform, and the Radon transform is the machinery underlying
+\emph{sliced} distances, catalogued as OT-3, and ``project onto planes and compare,''
+catalogued as IN-1. Three whiteboard items are the same mathematical object viewed from
+different angles.
+
+\rating{Lowered from Medium to Low. The expected precedent is absent, the parameter-space
+output is not naturally a metric since one must still define a distance between two Hough
+accumulators, and PD-2 covers the same intent with an implemented, documented method. I
+would still spend an afternoon visualizing a Hough accumulator of a shocked field, because
+the meeting's curiosity about what it looks like is legitimate and cheap to satisfy, but I
+would not queue it as a metric candidate ahead of PD-2.}
+
+\subsection{PD-2. Winding angle and Poincar\'e index --- \High{} (rating raised)}
+
+\paragraph{What it is, and it is a real method.} My reading of ``wake number'' as a winding
+quantity is now well supported. Sadarjoen and Post present two methods for detecting vortex
+structures in two-dimensional vector fields, both based on streamline geometry; the second
+``looks at the curvature of a single streamline and computes a winding angle, a metric of
+geometric curvature'' \cite{sadarjoen2000}. The documented advantage is directly relevant to
+us: because the winding angle does not depend on the velocity magnitude at a single point,
+the method \emph{detects weak vortices}, which amplitude-based criteria miss. The documented
+disadvantage is equally concrete: a large number of streamlines must be seeded and computed
+to maintain complete coverage of the domain. An earlier version of the same geometric
+approach appears in \cite{sadarjoen1999}.
+
+\paragraph{The broader family.} The integer-valued relative, the Poincar\'e index of critical
+points, underpins vector field topology, introduced for fluid flow data by Helman and
+Hesselink \cite{helman1989,helman1991}. Their own framing confirms the dimensional caveat I
+raised: the two-dimensional theory of critical points is presented as the \emph{basis} from
+which three-dimensional separated flows are then examined, which is to say 2D is where the
+method is clean.
+
+\paragraph{The meeting recorded that this was hard to find in the literature.} That was a
+keyword problem, as suspected. The work lives in the scientific visualization community
+under ``vector field topology'' and ``winding angle,'' not in fluid dynamics journals. A
+state-of-the-art survey with a full bibliography is \cite{laramee2007}.
+
+\rating{Raised from Medium to High. An integer- or angle-valued, translation-robust
+structural count is genuinely orthogonal to every continuous metric on this list, the method
+is implemented and surveyed, its strengths and weaknesses are documented rather than
+speculative, and its specific strength (detecting weak vortices independent of local
+velocity magnitude) is precisely what an over-smoothed emulator would erase. Start in 2D.}
+
+\subsection{PD-3. Eddy count distribution --- \Med{}}
+
+Once PD-2 or PD-4 has identified eddies, the distributions of their number, size, and
+lifetime become natural targets, and those distributions can be compared using the $W_1$
+machinery of OT-5. Sadarjoen and Post's title is worth noting here: their method covers
+detection, \emph{quantification}, and \emph{tracking} \cite{sadarjoen2000}, so the census
+and its time evolution come from the same machinery. The related classical tool is Ripley's
+$K$ function, or the pair-correlation function, from spatial point-process statistics, which
+is also the rigorous version of the board's ``PDF of pairwise distances'' item, PS-5.
+
+\subsection{PD-4. $Q$-criterion, $\lambda_2$, and Okubo--Weiss --- \Med{}}
+
+These are the established vortex-identification criteria; $\lambda_2$ in particular is due
+to Jeong and Hussain \cite{jeonghussain1995}. They are cheap, familiar, and provide a
+sensible baseline against which to judge whether PD-2 adds anything. Their known weakness is
+that all of them are threshold dependent and none is frame invariant.
+
+%=========================================================================
+\section{Topological data analysis}
+
+The meeting described persistence diagrams as low-hanging fruit. I agree, with one important
+qualification about which variant.
+
+\subsection{TD-1. One-parameter persistence diagrams --- \High{}}
+
+\paragraph{What it is.} Sweep a threshold through a scalar field such as vorticity magnitude
+or density. Structures are born and die as the threshold moves, and each is recorded as a
+point $(\text{birth}, \text{death})$ in the persistence diagram. Long-lived features lie far
+from the diagonal while noise hugs it. Two diagrams are then compared using the bottleneck
+distance or a Wasserstein distance defined on diagrams.
+
+\paragraph{Why it is genuinely low-hanging.} The stability theorem guarantees that a small
+perturbation of the field produces a correspondingly small change in the diagram
+\cite{cohensteiner2007}, so the metric cannot blow up in the way $L^2$ does under a spatial
+shift. Off-the-shelf software exists, including GUDHI, Ripser, giotto-tda, and TTK, so this
+is a pure implementation task.
+
+\paragraph{The weather precedent the team remembered is real, and it is from LBNL.}
+Muszynski and colleagues recognize atmospheric rivers in climate data using topological data
+analysis and machine learning \cite{muszynski2019}. Two details are worth noting. First, the
+method is explicitly \emph{threshold-free}, and the authors argue on that basis that it ``may
+be useful in evaluating model biases'' in atmospheric-river statistics, which is our use case
+almost verbatim. Second, the ground-truth labels were produced by TECA, and the
+acknowledgements thank Dmitriy Morozov and Burlen Loring of LBNL's Computational Research
+Division for sharing their expertise on computational mathematics. There are people nearby
+who have done this.
+
+\rating{High: stable theory, mature software, direct institutional precedent, and
+sensitivity to structure in a way that no norm possesses.}
+
+\paragraph{Pitfall.} A persistence diagram is invariant to a great deal, including where in
+the domain the features actually sit. Similar topology does not imply correct amplitudes,
+shock speeds, or energy transfer, so this belongs in a panel rather than standing alone.
+
+\subsection{TD-2. Two-parameter persistence --- \Low{}}
+
+\paragraph{What it is.} Filtering by two parameters simultaneously, for instance function
+value together with spatial scale or distance, which is what the board's note about the
+``interplay between distance and function value'' is asking for. The motivation is sound.
+
+\paragraph{Why I nonetheless rate it Low for now.} In two or more parameters there is no
+complete discrete invariant analogous to the persistence diagram, which is a theorem-level
+obstruction rather than a software gap. Tooling has improved since the situation Lesnick and
+Wright described in 2015, when they noted that there was ``no publicly available software
+which extends the usual persistent homology pipeline for exploratory data analysis to the
+multidimensional persistence''; their RIVET, the Rank Invariant Visualization and Exploration
+Tool, was built to fill that gap and provides interactive visualization of the barcodes of
+one-dimensional affine slices of a two-dimensional persistence module
+\cite{lesnickwright2015}, with efficient presentation and Betti-number algorithms added
+later \cite{lesnickwright2022}. It is usable but remains research-grade relative to the
+one-parameter tooling.
+
+\paragraph{Recommendation.} Park it. If TD-1 succeeds and its principal failure turns out to
+be scale confounding, revisit this item then, starting from RIVET.
+
+\subsection{TD-3. Well groups --- \Low{}}
+
+Well groups measure the robustness of level sets to perturbation. The idea is elegant and
+the computational machinery is less mature than that of persistence. The recommendation is
+the same as for TD-2.
+
+\subsection{TD-4. Reeb graphs and Morse--Smale complexes --- \Med{}}
+
+These are skeletons of the level-set connectivity and of the gradient flow respectively, and
+both are implemented in TTK \cite{tierny2018}. They are more informative than a persistence
+diagram about \emph{where} structures are located, but the metrics used to compare such
+graphs, including interleaving and edit distances, are less standardized.
+
+\subsection{TD-5. Jacobi sets --- \Med{}}
+
+\paragraph{Worth calling out specifically, and now confirmed to be exactly what I hoped.}
+The Jacobi set of two Morse functions defined on a common $d$-manifold is the set of critical
+points of the restrictions of one function to the level sets of the other; equivalently, and
+more usefully for us, it is ``the set of points where the gradients of the functions are
+parallel'' \cite{edelsbrunnerharer2004}. That makes it natively a \emph{comparison} object,
+which is unusual, since most topological summaries characterize a single field and then
+compare the summaries. For prediction against ground truth this is structurally the right
+shape of tool. Two further points from the source strengthen the case: there is a
+polynomial-time algorithm for the piecewise-linear analogue on triangulations, so it is
+computable; and the authors' own motivating example is oceanography, where researchers study
+several attributes of water on a common domain, which is close to our setting.
+
+\rating{Medium, but with the highest upside per unit of obscurity in the whole topology
+theme. The gap classification improves from ``math and implementation'' to
+``implementation'' now that the polynomial-time PL algorithm is confirmed. If someone wants a
+distinctive contribution, this is where I would look.}
+
+%=========================================================================
+\section{Basis decompositions and the turbulence transform}
+
+\subsection{BD-1 and BD-2. Fourier spectrum and two-point correlation --- \Med{}}
+
+Both are standard and cheap, and we should compute them, provided we understand what they
+are \emph{not}. The two-point correlation and the power spectrum are Fourier transforms of
+one another, so they carry the same information and running both does not constitute two
+independent checks. More importantly, both discard all Fourier \emph{phase}, which is where
+structure resides, so matching a spectrum is a weak constraint. Include them as baselines
+and do not treat them as evidence of structural fidelity.
+
+\subsection{BD-3. Wavelets and coherent vortex extraction --- \High{}}
+
+\paragraph{What it is.} Wavelets are localized in both space and scale, so they do not smear
+a shock across all wavenumbers the way Fourier modes do. As Farge puts it in the review that
+introduced this toolset to the turbulence community, wavelets ``unfold a signal, or a field,
+into both space and scale,'' and their limited spatial support means the analysis ``can be
+performed locally on the signal, as opposed to the Fourier transform which is inherently
+nonlocal due to the space-filling nature of the trigonometric functions'' \cite{farge1992}.
+Coherent vortex extraction then splits a turbulent field into a coherent part, carried by a
+small number of large wavelet coefficients, and an incoherent, Gaussian-like background
+carried by the many small ones \cite{fargeschneider1999,farge2001}. A more recent survey of
+wavelet methods in CFD is \cite{schneidervasilyev2010}.
+
+\paragraph{Note the coincidence with your own whiteboard.} Coherent vortex extraction is
+Equation~\eqref{eq:mollify} carried out in a principled, shift-localized basis, with a
+data-driven rather than arbitrary split. If the mollification idea is the right organizing
+principle, then wavelets are its mature implementation. The Farge quotation above is also, in
+effect, the argument for why wavelets should beat Fourier for shocklets specifically.
+
+\keywords{coherent vortex extraction, CVS, wavelet thresholding turbulence, local
+intermittency measure, wavelet methods computational fluid dynamics.}
+
+\subsection{BD-4. Wavelet scattering and phase harmonics --- \High{}}
+
+\paragraph{What it is.} This is my candidate for the board's ``some kind of turbulence
+transform,'' and the verification supports it. A scattering transform cascades wavelet
+transforms with modulus nonlinearities. The first layer depends on a single scale and
+orientation; the second layer probes the \emph{coupling between two oriented scales}, which
+is exactly the information a power spectrum discards. It is described in the astrophysics
+literature as ``a low-variance statistical description of non-Gaussian processes'' that is
+``inspired by convolutional neural networks but that does not require any training stage''
+\cite{regaldo2020}, originating with Mallat \cite{mallat2012} and developed by Bruna and
+Mallat \cite{brunamallat2013}.
+
+\paragraph{Why this fits our problem specifically.} First, the transform is translation
+invariant and stable to deformations, which is the formal version of the requirement that a
+slightly shifted shock should not blow up the metric. Second, its second-layer coefficients
+measure cross-scale coupling, which is what distinguishes real turbulence from a Gaussian
+field with an identical spectrum. Third, it has been used on magnetohydrodynamic turbulence
+simulations and observations in a field that, like ours, never has phase-aligned ground
+truth: Allys and colleagues introduced the reduced wavelet scattering transform for the
+interstellar medium \cite{allys2019}, and the approach was subsequently extended to
+polarized dust emission \cite{regaldo2020} and used to classify MHD simulations
+\cite{saydjari2021}.
+
+\keywords{wavelet scattering transform, reduced wavelet scattering transform, RWST,
+scattering covariance, wavelet phase harmonics, Mallat scattering.}
+
+\rating{High: this is the only item on the whiteboard that plausibly delivers a single
+descriptor family sensitive to smooth structure, sharp structure, and intermittency
+simultaneously, and therefore the only real candidate for a unified shocklet metric. The
+astrophysical track record on compressible MHD turbulence is close enough to our regime to be
+genuinely informative.}
+
+%=========================================================================
+\section{Probabilistic and distributional metrics}
+
+\subsection{PS-1. Energy distance --- \Med{}}
+
+The energy distance is a kernel-family distance between distributions, and is in fact
+maximum mean discrepancy with a particular kernel. The board's own caveat, that it ``does
+some averaging'' and is therefore hard for heavy tails, is the correct objection and is
+exactly why Wasserstein is preferred here. Keep it as a cheap baseline that demonstrates the
+difference, and do not expect it to win.
+
+\subsection{PS-2. CRPS --- \High{}, conditional on ensembles}
+
+The continuous ranked probability score is the strictly proper scoring rule on which the
+weather community trains \cite{gneitingraftery2007}. It reduces to absolute error for a
+deterministic forecast, so \emph{it conveys nothing beyond mean absolute error unless an
+ensemble or a generative model is available}. This should be flagged clearly in the plan: if
+the Boltzmann-degradation study produces single deterministic fields, then PS-2 and PS-3 are
+not applicable and should be marked N/A rather than left as untested.
+
+\subsection{PS-3. Spread-to-skill ratio --- \High{}, conditional on ensembles}
+
+\paragraph{What it is, with a computational gotcha worth knowing in advance.} This is the
+ratio of ensemble spread to the root-mean-square error of the ensemble mean, and for a
+well-calibrated ensemble it should sit near unity. Fortin and colleagues justify the practice
+on the basis of exchangeability between forecasts and observations, and, more practically,
+they show that the average spread must be computed as \emph{the square root of the average
+ensemble variance} rather than as the average of the spreads \cite{fortin2014}. Using the
+naive averaging gives a downward-biased spread and therefore a spurious diagnosis of
+underdispersion; in their operational example, correcting the estimator changed the verdict
+from ``underdispersed'' to ``excellent agreement, with possible overdispersion at long lead
+times.'' If we implement this from scratch we should get the estimator right the first time.
+
+\subsection{PS-4. Heavy-tail quantifiers --- \High{}}
+
+There are three tiers here, in increasing order of sophistication. First, the flatness or
+kurtosis of velocity increments and gradients, which for a Gaussian field equals exactly
+three and which for real turbulence greatly exceeds three and grows toward small scales,
+giving a one-number Gaussianity alarm. Second, direct comparison of tail exceedance
+probabilities $P(|q| > a)$. Third, extreme-value-theory tail-index estimation via the Hill
+estimator or a peaks-over-threshold fit to a generalized Pareto distribution. The first tier
+is precisely one of the three physics-based criteria used to train and evaluate the
+turbulence GAN of \cite{granero2024}.
+
+\rating{High: intermittency is the first property an over-smoothed emulator destroys and the
+last one an $L^2$ loss notices, and the first tier costs almost nothing.}
+
+\keywords{flatness kurtosis velocity increments, intermittency exponent, Hill estimator tail
+index, peaks over threshold generalized Pareto.}
+
+\subsection{PS-5. PDF of pairwise distances --- \Med{}}
+
+The board's ``PDF of pairwise distances'' formalizes as the pair-correlation function, or
+Ripley's $K$ function, from spatial point-process statistics, once point-like features such
+as eddy centers or shocklet locations have been identified. This item therefore depends on
+PD-2 or PD-3 landing first.
+
+%=========================================================================
+\section{Imports from weather verification}
+
+The meeting's instinct that the weather community has already solved parts of this problem
+is correct. The verification turned up something better than a vocabulary list: an explicit
+statement of our problem.
+
+\begin{description}[leftmargin=*,style=nextline]
+\item[The double penalty problem, stated in the literature.] Wernli and colleagues write
+that ``the classical example to illustrate the limitations of gridpoint-based error measures
+is the `double penalty problem': a prediction of a precipitation structure that is correct in
+terms of amplitude, size, and timing but (maybe only slightly) incorrect concerning position
+is very poorly rated'' \cite{wernli2008}. Replace ``precipitation structure'' with ``shock''
+and that is the first bullet of our meeting notes, published in 2008. Searching this term
+surfaces two decades of work on the pathology.
+\item[SAL.] The structure--amplitude--location measure decomposes forecast quality into three
+components, where the location component combines the displacement of the field's center of
+mass with the error in the weighted-average distance of features from that center
+\cite{wernli2008}. The decomposition philosophy is the same as our NM-3 split.
+\item[MODE.] Object-based verification, which uses convolution, smoothing, and thresholding
+to define meaningful objects and then a matching algorithm to pair them between forecast and
+observation \cite{davis2006a,davis2006b,davis2009}. This is the closest existing analogue to
+``extract shocklets from both fields, then compare the sets.''
+\item[CRA.] Contiguous rain area verification, which decomposes error into displacement,
+volume, and pattern components \cite{ebertmcbride2000}.
+\item[Intensity-scale verification.] A wavelet-based approach that scores skill jointly by
+intensity threshold and spatial scale \cite{casati2004}; the direct ancestor of BD-3 applied
+to verification rather than to analysis.
+\item[Threshold-free topological detection.] Muszynski et al.\ \cite{muszynski2019},
+discussed under TD-1.
+\item[The strategic lesson.] The meeting already drew this, and I would put it in the
+repository README: the diagnostic catalog and the training loss are separate artifacts with
+separate requirements. A diagnostic may be non-differentiable, expensive, and discontinuous;
+a loss may not.
+\end{description}
+
+%=========================================================================
+\section{Infrastructure and protocol}
+
+\subsection{IN-1. Project onto planes and compare --- \Med{}}
+
+As noted under OT-3 and PD-1, this is the Radon and slicing idea, and it is largely subsumed
+by sliced Wasserstein. Retain it as a \emph{visualization} task rather than as a separate
+metric.
+
+\subsection{IN-2. Adaptive meshes and cross-mesh comparison --- \Med{}}
+
+Two distinct questions hide inside this item. The first is plumbing: how do we compare fields
+that live on different meshes at all? The answer is to remap both conservatively onto a
+common analysis grid, to compare cell averages rather than point samples, and to record the
+remapping operator as part of the metric definition. The second is diagnostic: an adaptive
+solver's refinement indicator is a statement about where the solver believes structure lives,
+so comparing refinement maps compares structural beliefs. The second question is genuinely
+interesting, while the first is necessary infrastructure for everything else and should be
+scheduled early even though it is not itself a metric.
+
+\subsection{IN-3. Degradation ladder and acceptance test --- \High{}}
+
+This turns the meeting's plan into a falsifiable procedure. The protocol below is my
+synthesis rather than something drawn from the literature.
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Reference.} Direct numerical simulation at $\mathrm{Re} \approx 500$, isotropic
+and doubly periodic shear, as agreed in the meeting.
+\item \textbf{Predictor ladder.} The Boltzmann solver degraded in controlled steps through
+grid coarsening, and ideally along a second, \emph{orthogonal} degradation axis such as added
+noise or artificial viscosity, so that we can distinguish metrics that respond to resolution
+specifically from metrics that respond to badness generally.
+\item \textbf{Computation.} Evaluate every candidate metric at every rung of the ladder.
+\item \textbf{Acceptance criterion.} A metric is admitted to the panel if it is
+\emph{monotone in degradation with a high Spearman rank correlation}. Non-monotone metrics
+are actively dangerous, because model selection performed against them can move us in the
+wrong direction.
+\item \textbf{Sensitivity.} Record where each metric first departs from its clean value
+relative to the point at which a human observer sees visible degradation. A metric that fires
+only after the field already looks obviously wrong is not earning its place in the panel.
+\item \textbf{Cost.} Measure wall-clock time per evaluation, so that we can construct the
+cost-accuracy frontier the meeting asked for.
+\item \textbf{Redundancy.} Correlate metrics against one another across the ladder and prune
+near-duplicates. The goal is an \emph{orthogonal} panel, not a long one.
+\end{enumerate}
+
+\subsection{IN-4. Gaussian-impostor canary --- \High{}}
+
+\paragraph{What it is.} Add one further ``predictor'' to the ladder that is not a degraded
+solver at all, namely a Gaussian random field constructed to match the reference energy
+spectrum exactly. Such a field has the correct spectrum and the correct two-point
+correlation, but it has zero skewness, a vanishing third-order structure function, zero
+energy flux, a flatness of exactly three, and no phase coupling whatsoever. It is not
+turbulence in any physical sense.
+
+\paragraph{Implemented, with one correction worth recording.} The phases must be taken from
+the transform of a \emph{real} Gaussian field rather than drawn as $\exp(i\,U(0,2\pi))$
+directly. Hand-drawn phases violate Hermitian symmetry at the self-conjugate modes --- $k=0$,
+the Nyquist row and column, and the Nyquist corners --- so the inverse transform silently
+discards the imaginary part and corrupts the very amplitude spectrum the construction is
+meant to preserve. A first implementation that way produced a flatness of $47.9$; the
+corrected version gives a bit-identical amplitude spectrum, a two-point correlation matching
+to relative $10^{-17}$, and a flatness of $3.01$ against a reference flatness of $17.06$.
+
+\paragraph{Measured: it does not catch the $L^p$ family.} MSE assigns the impostor $0.80$ on
+vorticity and $0.51$ on velocity, where $1$ is the value two unrelated fields receive --- it
+rejects it firmly. That is the correct outcome and not a failure of the canary: $L^p$ metrics
+are phase-\emph{sensitive}, so randomising the phases is the most damaging thing that can be
+done to them. The canary's discriminating power is one-sided. It can only reject, and a
+metric passing it conveys almost nothing. The quantities it does catch are those that are
+functions of $|\hat f|$ alone --- the energy spectrum (BD-1), the two-point correlation
+(BD-2), second-order structure functions --- each of which scores the impostor perfectly. A
+report in which every implemented metric passes IN-4 should therefore not be read as
+reassuring until such a metric is in the panel. See also Section~\ref{sec:nm0}.
+
+\paragraph{It is one coordinate of two.} A complementary probe is the reference translated by
+a large random offset: on a periodic domain this preserves every single- and multi-point
+statistic \emph{exactly} (measured variance ratio $1.000000$, flatness matching to three
+decimals) while destroying pointwise alignment. The impostor asks whether a metric sees
+beyond second-order statistics; the translated field asks whether it tolerates displacement.
+Together they place a metric on a two-way map whose useful quadrant --- displacement-tolerant
+and still structure-sensitive --- is what OT-1, TD-1 and BD-4 each claim to occupy. The
+translated field also serves as the measured anchor that normalises every damage score.
+
+\paragraph{Why it belongs in the protocol.} Any metric that ranks the Gaussian impostor as
+\emph{good} is thereby confirmed to be phase-blind and must not be used alone for model
+selection. This is a cheap and decisive discriminator that separates the genuinely structural
+metrics, such as TD-1, BD-4, PS-4, and PH-6, from those that see only second-order
+statistics, such as BD-1 and BD-2. It costs roughly one afternoon and should immediately
+halve the candidate list.
+
+%=========================================================================
+\section{Recommended first wave}
+
+If we can complete only six items before the next meeting, I would choose the following,
+ordered roughly by value per unit of effort.
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{IN-4, the Gaussian-impostor canary.} The cheapest possible experiment, it
+prunes the candidate list immediately and requires no new machinery.
+\item \textbf{NM-2, the negative Sobolev norm $\dot H^{-1}$.} An FFT and a division by
+$|\mathbf{k}|$, with Equation~\eqref{eq:peyre} telling us exactly what we are approximating
+and under what condition the approximation is good.
+\item \textbf{TD-1, sublevel-set persistence on vorticity and density.} Off-the-shelf
+software, stable theory, local institutional precedent, and it is already the team's stated
+next step.
+\item \textbf{OT-5 together with PS-4, increment-PDF Wasserstein and flatness.} No positivity
+problem to solve, direct measurement of intermittency, and roughly one afternoon of work.
+\item \textbf{SH-1 together with SH-2, the shock detector plus surface distances.} This
+closes the ``need to calculate distance between shocks'' gap using imported medical-imaging
+metrics.
+\item \textbf{PH-2 together with PH-3, the weak PDE residual and the solver-consistency
+residual.} Both are reference-free, and PH-3 is nearly free once the Boltzmann solver is in
+the repository.
+\end{enumerate}
+
+\noindent
+For the second wave I would propose BD-4, wavelet scattering and phase harmonics; PH-6, the
+Helmholtz split; PD-2, the winding angle in two dimensions, which has moved up on the
+strength of the verified precedent; and OT-1 with OT-2, full Wasserstein together with the
+signed-field fix.
+
+%=========================================================================
+\section{Implementation status}
+\label{sec:implementation}
+
+The evaluation harness exists and runs on the real data. This section records what is built
+and, more usefully, the corrections that building it forced --- each was found by measurement
+and each would otherwise have corrupted results quietly.
+
+\subsection{What exists}
+
+\begin{description}[leftmargin=*,style=nextline]
+\item[Three plugin registries.] Metrics, degradations, and report renderers are each
+extended by writing one decorated function; discovery is by name from configuration, so
+nothing has an import list to maintain. Data readers are a deliberately closed set.
+\item[The ladder (IN-3).] Twenty degradation operators in seven families: kernel smoothing
+(Gaussian, box, median, disk, Epanechnikov), spectral filters (ideal and Butterworth
+low- and high-pass, band attenuation), translations (whole-cell and sub-cell), coarsening
+and its non-conservative control, noise, and pointwise gain and bias. Acceptance quantities
+are computed per axis: rank correlation with a moving-block bootstrap interval, the fraction
+of frames strictly ordered, adjacent-rung separability, and the rungs at which a metric first
+departs from clean and saturates.
+\item[The analysis grid (IN-2).] Conservative block averaging onto a common grid, with the
+remapping operator recorded alongside every number.
+\item[The canary (IN-4).] Implemented and measured; see the corrected construction above.
+\item[Reporting.] Each run produces a self-contained folder holding the raw numbers, the
+resolved configuration, full provenance, and a \LaTeX{} document that compiles standalone and
+renders on Overleaf.
+\end{description}
+
+\subsection{Five corrections the measurements forced}
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Rank correlation must be computed per frame, not pooled over frames.} The
+density perturbation grows six orders of magnitude along the trajectory, so the worst rung
+early is numerically smaller than the mildest rung late. Pooling therefore measures the
+flow's own evolution rather than the metric's response: every density axis was perfectly
+ordered \emph{within} every frame while the pooled value read between $0.10$ and $0.91$
+depending on the axis.
+
+\item \textbf{Derived fields must be recomputed after a remap, never averaged.}
+Block-averaging vorticity yields a field that is not the curl of the velocity beside it. The
+difference is $5.6\%$, $18.3\%$ and $25.9\%$ at coarsening factors $2$, $4$ and $8$.
+Relatedly, a stored vorticity must not be mixed with a recomputed one: the solver's lattice
+stencil and a spectral derivative differ by $8.1\%$ rms (correlation $0.997$), so using one
+at the native grid and the other at a coarse grid would make a grid-independence comparison
+measure the discretisation rather than the grid.
+
+\item \textbf{High-pass filters must preserve the spatial mean.} Deleting the $k=0$ mode of
+a density field removes a component four orders of magnitude larger than anything the cutoff
+controls. Before this was corrected every rung returned an identical damage of $2.7\times
+10^{7}$ and the axis carried no ordering whatsoever.
+
+\item \textbf{The unrelated-field anchor must be measured, not inferred.} Substituting the
+largest configured translation understates it --- a 16-cell displacement reaches only about
+$0.6$ of the true value here --- which inflates every damage score by roughly $1.6\times$. A
+distant frame of the same trajectory is also wrong, and for a reason worth recording: this
+flow decays, so a frame $4000$ steps away has $0.70$ of the variance and a different
+flatness, and it scores \emph{closer} to the reference than a true statistical twin does
+purely because the field has weakened.
+
+\item \textbf{Severity ranges must follow each field's spectrum.} Fixed cutoffs applied to
+every field alike produce flags that point at the axis rather than at the metric. On
+vorticity, high-pass damage runs $0.566$, $0.503$, $0.548$, $0.580$ across cutoffs $2$, $4$,
+$8$, $16$ --- non-monotone and indistinguishable, because a cutoff of $2$ already removes
+almost all the energy. This is the one correction not yet applied.
+\end{enumerate}
+
+\subsection{Consequences for the protocol as written}
+
+Two items in Section~\ref{sec:master} cannot be executed exactly as specified with the data
+currently available, and both are recorded rather than worked around. The protocol calls for
+a reference at $\mathrm{Re} \approx 500$; every doubly periodic dataset on disk is
+$\mathrm{Re} = 5\times10^4$ to $10^6$. And the north-star shocklet case is not what the
+present target provides --- \texttt{weakly\_compressible\_isoT} at $\mathrm{Ma} = 0.1$ has
+density varying by under $4\%$ and no shocks --- so SH-1, SH-2 and PH-1 have nothing valid to
+be validated against yet. Shocked datasets are scheduled; the harness is format-agnostic and
+will run on them unchanged.
+
+%=========================================================================
+\section{Confidence}
+
+\paragraph{Verified against primary sources.}
+Every citation in the bibliography of Section~\ref{sec:bib} has been checked. The items that
+most directly support ratings are: the Wasserstein-for-shifted-signals argument and its
+$s^2$ convexity statement \cite{engquist2014,engquistyang,yang2016}; graph-space optimal
+transport as the fix for signed, non-normalized data
+\cite{metivier2016gji,metivier2018geophysics,metivier2018eage,metivier2019ip}; the two-sided
+$W_2$ versus $\dot H^{-1}$ bound with its density conditions \cite{peyre2018}; the
+double-penalty statement and the SAL decomposition \cite{wernli2008}; object-based
+verification \cite{davis2006a,davis2006b,davis2009}, CRA \cite{ebertmcbride2000}, and
+intensity-scale verification \cite{casati2004}; segmentation surface metrics with the
+Hausdorff outlier caveat \cite{taha2015}; the Ducros shock sensor and its design goal
+\cite{ducros1999}; the winding-angle vortex detector with its stated advantage for weak
+vortices and its streamline-seeding cost \cite{sadarjoen2000,sadarjoen1999}, plus vector
+field topology \cite{helman1989,helman1991,laramee2007}; persistence stability
+\cite{cohensteiner2007}, the threshold-free atmospheric-river application with its
+model-bias framing and LBNL acknowledgements \cite{muszynski2019}, RIVET and the
+two-parameter tooling situation \cite{lesnickwright2015,lesnickwright2022}, Jacobi sets as
+the set where gradients are parallel together with the polynomial-time PL algorithm
+\cite{edelsbrunnerharer2004}, and TTK \cite{tierny2018}; wavelets and coherent vortex
+extraction \cite{farge1992,fargeschneider1999,farge2001,schneidervasilyev2010}; the wavelet
+scattering transform and its astrophysical applications
+\cite{mallat2012,brunamallat2013,allys2019,regaldo2020,saydjari2021}; the spread-versus-RMSE
+estimator subtlety \cite{fortin2014}; proper scoring rules \cite{gneitingraftery2007}; the
+physics-based turbulence GAN criteria and its failed baselines \cite{granero2024}; Arnold's
+negative sectional curvature result and its analytic foundation
+\cite{arnold1966,ebinmarsden1970,arnoldkhesin1998}; entropy-stability theory
+\cite{tadmor1987,tadmor2003,ismailroe2009}; eddy shocklets \cite{lee1991}; and $\lambda_2$
+\cite{jeonghussain1995}.
+
+\paragraph{Not substantiated.}
+I searched specifically for a Hough-transform-based eddy-detection precedent and found none.
+PD-1 is therefore recorded as an untested original idea rather than as an import, and its
+rating was lowered accordingly. This is the only claim from the previous revision that did
+not survive checking.
+
+\paragraph{My judgment rather than literature consensus.}
+Every promise rating and its accompanying justification, including the two changes made in
+this revision. The claim that the Hough transform, the Radon transform, and slicing collapse
+three whiteboard items into one work item. The claim that the Helmholtz split is the
+principled reading of ``take curls but protect from shocks.'' The reading of ``wake number''
+as a winding quantity, which the discovery of the winding-angle method supports but does not
+prove. The identification of wavelet scattering as the best candidate for ``some kind of
+turbulence transform.'' The entire IN-3 protocol, including the Spearman acceptance criterion
+and the orthogonal second degradation axis. The IN-4 canary proposal. The first-wave
+ordering. The observation that Equation~\eqref{eq:peyre} degrades for fields with
+near-vacuum regions is a straightforward reading of the stated hypotheses, but the
+implication for our specific density fields is my inference and should be checked
+empirically.
+
+%=========================================================================
+\section{Connections worth keeping in view}
+
+Several themes on the boards are the same mathematics wearing different clothes, and
+recognizing this reduces the total work.
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Hough $\leftrightarrow$ Radon $\leftrightarrow$ sliced Wasserstein
+$\leftrightarrow$ ``project onto planes.''} One transform, four whiteboard entries.
+\item \textbf{Mollification split $\leftrightarrow$ coherent vortex extraction
+$\leftrightarrow$ Helmholtz decomposition $\leftrightarrow$ intensity-scale verification.}
+One organizing principle, namely separate the smooth from the sharp and metricize each
+appropriately, with four communities' implementations.
+\item \textbf{Wasserstein $\leftrightarrow$ $\dot H^{-1}$ $\leftrightarrow$ Ollivier--Ricci
+curvature.} All are built on transport; the first two are quantitatively equivalent under the
+density conditions of Equation~\eqref{eq:peyre}, which makes $\dot H^{-1}$ the cheap proxy.
+\item \textbf{Double penalty (weather) $\leftrightarrow$ cycle skipping (seismic)
+$\leftrightarrow$ our shock-shift problem.} One pathology, three names, two of which carry a
+mature literature we can import wholesale.
+\item \textbf{Persistence diagrams $\leftrightarrow$ eddy census $\leftrightarrow$ Ripley's
+$K$ $\leftrightarrow$ MODE object matching.} All are instances of ``identify features, then
+compare their distributions,'' differing only in how the features are defined and whether the
+features are matched pairwise before comparison.
+\end{itemize}
+
+%=========================================================================
+\section{Bibliography}
+\label{sec:bib}
+
+\begin{thebibliography}{99}
+\small
+
+\bibitem{allys2019} Allys, E., Levrier, F., Zhang, S., Colling, C., Regaldo-Saint Blancard,
+B., Boulanger, F., Hennebelle, P. \& Mallat, S. (2019). The RWST, a comprehensive statistical
+description of the non-Gaussian structures in the ISM. \emph{Astronomy \& Astrophysics} 629,
+A115. \url{https://arxiv.org/abs/1905.01372}
+
+\bibitem{arnold1966} Arnold, V.\ I. (1966). Sur la g\'eom\'etrie diff\'erentielle des groupes
+de Lie de dimension infinie et ses applications \`a l'hydrodynamique des fluides parfaits.
+\emph{Annales de l'Institut Fourier} 16(1), 319--361.
+\url{https://doi.org/10.5802/aif.233}
+
+\bibitem{arnoldkhesin1998} Arnold, V.\ I. \& Khesin, B.\ A. (1998). \emph{Topological Methods
+in Hydrodynamics}. Applied Mathematical Sciences 125, Springer, New York.
+
+\bibitem{brunamallat2013} Bruna, J. \& Mallat, S. (2013). Invariant scattering convolution
+networks. \emph{IEEE Transactions on Pattern Analysis and Machine Intelligence} 35(8),
+1872--1886. \url{https://doi.org/10.1109/TPAMI.2012.230}
+
+\bibitem{casati2004} Casati, B., Ross, G. \& Stephenson, D.\ B. (2004). A new intensity-scale
+approach for the verification of spatial precipitation forecasts.
+\emph{Meteorological Applications} 11(2), 141--154.
+\url{https://doi.org/10.1017/S1350482704001239}
+
+\bibitem{cohensteiner2007} Cohen-Steiner, D., Edelsbrunner, H. \& Harer, J. (2007). Stability
+of persistence diagrams. \emph{Discrete \& Computational Geometry} 37(1), 103--120.
+\url{https://doi.org/10.1007/s00454-006-1276-5}
+
+\bibitem{davis2006a} Davis, C., Brown, B. \& Bullock, R. (2006). Object-based verification of
+precipitation forecasts. Part I: Methodology and application to mesoscale rain areas.
+\emph{Monthly Weather Review} 134(7), 1772--1784.
+\url{https://doi.org/10.1175/MWR3145.1}
+
+\bibitem{davis2006b} Davis, C., Brown, B. \& Bullock, R. (2006). Object-based verification of
+precipitation forecasts. Part II: Application to convective rain systems.
+\emph{Monthly Weather Review} 134(7), 1785--1795.
+\url{https://doi.org/10.1175/MWR3146.1}
+
+\bibitem{davis2009} Davis, C.\ A., Brown, B.\ G., Bullock, R. \& Halley Gotway, J. (2009).
+The Method for Object-Based Diagnostic Evaluation (MODE) applied to numerical forecasts from
+the 2005 NSSL/SPC Spring Program. \emph{Weather and Forecasting} 24(5), 1252--1267.
+\url{https://doi.org/10.1175/2009WAF2222241.1}
+
+\bibitem{ducros1999} Ducros, F., Ferrand, V., Nicoud, F., Weber, C., Darracq, D., Gacherieu,
+C. \& Poinsot, T. (1999). Large-eddy simulation of the shock/turbulence interaction.
+\emph{Journal of Computational Physics} 152(2), 517--549.
+\url{https://doi.org/10.1006/jcph.1999.6238}
+
+\bibitem{ebertmcbride2000} Ebert, E.\ E. \& McBride, J.\ L. (2000). Verification of
+precipitation in weather systems: Determination of systematic errors.
+\emph{Journal of Hydrology} 239(1--4), 179--202.
+\url{https://doi.org/10.1016/S0022-1694(00)00343-7}
+
+\bibitem{ebinmarsden1970} Ebin, D.\ G. \& Marsden, J.\ E. (1970). Groups of diffeomorphisms
+and the motion of an incompressible fluid. \emph{Annals of Mathematics} 92(1), 102--163.
+\url{https://doi.org/10.2307/1970699}
+
+\bibitem{edelsbrunnerharer2004} Edelsbrunner, H. \& Harer, J. (2004). Jacobi sets of multiple
+Morse functions. In \emph{Foundations of Computational Mathematics, Minneapolis 2002}
+(Cucker, F., DeVore, R., Olver, P. \& S\"uli, E., eds.), London Mathematical Society Lecture
+Note Series 312, Cambridge University Press, pp.\ 37--57.
+\url{https://doi.org/10.1017/CBO9781139106962.003}
+
+\bibitem{engquist2014} Engquist, B. \& Froese, B.\ D. (2014). Application of the Wasserstein
+metric to seismic signals. \emph{Communications in Mathematical Sciences} 12(5), 979--988.
+\url{https://doi.org/10.4310/CMS.2014.v12.n5.a7}
+
+\bibitem{engquistyang} Engquist, B. \& Yang, Y. Optimal transport based seismic inversion:
+Beyond cycle skipping. \emph{Communications on Pure and Applied Mathematics}.
+\url{https://yunany.github.io/Publications/11_OT_CPAM.pdf}
+
+\bibitem{farge1992} Farge, M. (1992). Wavelet transforms and their applications to turbulence.
+\emph{Annual Review of Fluid Mechanics} 24, 395--458.
+\url{https://doi.org/10.1146/annurev.fl.24.010192.002143}
+
+\bibitem{fargeschneider1999} Farge, M., Schneider, K. \& Kevlahan, N. (1999). Non-Gaussianity
+and coherent vortex simulation for two-dimensional turbulence using an adaptive orthogonal
+wavelet basis. \emph{Physics of Fluids} 11(8), 2187--2201.
+\url{https://doi.org/10.1063/1.870080}
+
+\bibitem{farge2001} Farge, M., Pellegrino, G. \& Schneider, K. (2001). Coherent vortex
+extraction in 3D turbulent flows using orthogonal wavelets.
+\emph{Physical Review Letters} 87(5), 054501.
+\url{https://doi.org/10.1103/PhysRevLett.87.054501}
+
+\bibitem{fortin2014} Fortin, V., Abaza, M., Anctil, F. \& Turcotte, R. (2014). Why should
+ensemble spread match the RMSE of the ensemble mean? \emph{Journal of Hydrometeorology}
+15(4), 1708--1713. \url{https://doi.org/10.1175/JHM-D-14-0008.1}
+
+\bibitem{gneitingraftery2007} Gneiting, T. \& Raftery, A.\ E. (2007). Strictly proper scoring
+rules, prediction, and estimation. \emph{Journal of the American Statistical Association}
+102(477), 359--378. \url{https://doi.org/10.1198/016214506000001437}
+
+\bibitem{granero2024} Granero-Belinch\'on, C. \& Cabeza Gallucci, M. (2024). A multiscale and
+multicriteria generative adversarial network to synthesize 1-dimensional turbulent fields.
+\emph{Machine Learning: Science and Technology} 5(2), 025032.
+\url{https://doi.org/10.1088/2632-2153/ad43b3}
+
+\bibitem{helman1989} Helman, J.\ L. \& Hesselink, L. (1989). Representation and display of
+vector field topology in fluid flow data sets. \emph{Computer} 22(8), 27--36.
+\url{https://doi.org/10.1109/2.35197}
+
+\bibitem{helman1991} Helman, J.\ L. \& Hesselink, L. (1991). Visualizing vector field topology
+in fluid flows. \emph{IEEE Computer Graphics and Applications} 11(3), 36--46.
+\url{https://doi.org/10.1109/38.79452}
+
+\bibitem{ismailroe2009} Ismail, F. \& Roe, P.\ L. (2009). Affordable, entropy-consistent Euler
+flux functions II: Entropy production at shocks.
+\emph{Journal of Computational Physics} 228(15), 5410--5436.
+\url{https://doi.org/10.1016/j.jcp.2009.04.021}
+
+\bibitem{jeonghussain1995} Jeong, J. \& Hussain, F. (1995). On the identification of a vortex.
+\emph{Journal of Fluid Mechanics} 285, 69--94.
+\url{https://doi.org/10.1017/S0022112095000462}
+
+\bibitem{laramee2007} Laramee, R.\ S., Hauser, H., Zhao, L. \& Post, F.\ H. (2007).
+Topology-based flow visualization, the state of the art. In \emph{Topology-based Methods in
+Visualization}, Springer, Berlin, pp.\ 1--19.
+\url{https://doi.org/10.1007/978-3-540-70823-0_1}
+
+\bibitem{lee1991} Lee, S., Lele, S.\ K. \& Moin, P. (1991). Eddy shocklets in decaying
+compressible turbulence. \emph{Physics of Fluids A} 3(4), 657--664.
+\url{https://doi.org/10.1063/1.858071}
+
+\bibitem{lesnickwright2015} Lesnick, M. \& Wright, M. (2015). Interactive visualization of 2-D
+persistence modules. \url{https://arxiv.org/abs/1512.00180}
+
+\bibitem{lesnickwright2022} Lesnick, M. \& Wright, M. (2022). Computing minimal presentations
+and bigraded Betti numbers of 2-parameter persistent homology.
+\emph{SIAM Journal on Applied Algebra and Geometry} 6(2), 267--298.
+\url{https://arxiv.org/abs/1902.05708}
+
+\bibitem{mallat2012} Mallat, S. (2012). Group invariant scattering.
+\emph{Communications on Pure and Applied Mathematics} 65(10), 1331--1398.
+\url{https://doi.org/10.1002/cpa.21413}
+
+\bibitem{metivier2016gji} M\'etivier, L., Brossier, R., M\'erigot, Q., Oudet, E. \& Virieux,
+J. (2016). Measuring the misfit between seismograms using an optimal transport distance:
+Application to full waveform inversion. \emph{Geophysical Journal International} 205(1),
+345--377. \url{https://doi.org/10.1093/gji/ggw014}
+
+\bibitem{metivier2018geophysics} M\'etivier, L., Allain, A., Brossier, R., M\'erigot, Q.,
+Oudet, E. \& Virieux, J. (2018). Optimal transport for mitigating cycle skipping in
+full-waveform inversion: A graph-space transform approach. \emph{Geophysics} 83(5),
+R515--R540. \url{https://doi.org/10.1190/geo2017-0807.1}
+
+\bibitem{metivier2018eage} M\'etivier, L., Allain, A., Brossier, R., M\'erigot, Q., Oudet, E.
+\& Virieux, J. (2018). A graph-space optimal transport approach for full waveform inversion.
+\emph{80th EAGE Conference and Exhibition}, 1--5.
+\url{https://doi.org/10.3997/2214-4609.201801031}
+
+\bibitem{metivier2019ip} M\'etivier, L., Brossier, R., M\'erigot, Q. \& Oudet, E. (2019). A
+graph space optimal transport distance as a generalization of $L^p$ distances: application to
+a seismic imaging inverse problem. \emph{Inverse Problems} 35(8), 085001.
+\url{https://doi.org/10.1088/1361-6420/ab206f}
+
+\bibitem{muszynski2019} Muszynski, G., Kashinath, K., Kurlin, V., Wehner, M. \& Prabhat
+(2019). Topological data analysis and machine learning for recognizing atmospheric river
+patterns in large climate datasets. \emph{Geoscientific Model Development} 12(2), 613--628.
+\url{https://doi.org/10.5194/gmd-12-613-2019}
+
+\bibitem{peyre2018} Peyre, R. (2018). Comparison between $W_2$ distance and $\dot H^{-1}$
+norm, and localization of Wasserstein distance.
+\emph{ESAIM: Control, Optimisation and Calculus of Variations} 24(4), 1489--1501.
+\url{https://doi.org/10.1051/cocv/2017050}
+
+\bibitem{regaldo2020} Regaldo-Saint Blancard, B., Levrier, F., Allys, E., Bellomi, E. \&
+Boulanger, F. (2020). Statistical description of dust polarized emission from the diffuse
+interstellar medium: A RWST approach. \emph{Astronomy \& Astrophysics} 642, A217.
+\url{https://doi.org/10.1051/0004-6361/202038044}
+
+\bibitem{sadarjoen1999} Sadarjoen, I.\ A. \& Post, F.\ H. (1999). Geometric methods for vortex
+detection. In \emph{Data Visualization '99} (VisSym '99), Springer, pp.\ 53--62.
+
+\bibitem{sadarjoen2000} Sadarjoen, I.\ A. \& Post, F.\ H. (2000). Detection, quantification,
+and tracking of vortices using streamline geometry. \emph{Computers \& Graphics} 24(3),
+333--341. \url{https://doi.org/10.1016/S0097-8493(00)00029-7}
+
+\bibitem{saydjari2021} Saydjari, A.\ K., Portillo, S.\ K.\ N., Slepian, Z., Kahraman, S.,
+Burkhart, B. \& Finkbeiner, D.\ P. (2021). Classification of magnetohydrodynamic simulations
+using wavelet scattering transforms. \emph{The Astrophysical Journal} 910(2), 122.
+\url{https://doi.org/10.3847/1538-4357/abe46d}
+
+\bibitem{schneidervasilyev2010} Schneider, K. \& Vasilyev, O.\ V. (2010). Wavelet methods in
+computational fluid dynamics. \emph{Annual Review of Fluid Mechanics} 42, 473--503.
+\url{https://doi.org/10.1146/annurev-fluid-121108-145637}
+
+\bibitem{tadmor1987} Tadmor, E. (1987). The numerical viscosity of entropy stable schemes for
+systems of conservation laws. I. \emph{Mathematics of Computation} 49(179), 91--103.
+\url{https://doi.org/10.1090/S0025-5718-1987-0890255-3}
+
+\bibitem{tadmor2003} Tadmor, E. (2003). Entropy stability theory for difference approximations
+of nonlinear conservation laws and related time-dependent problems.
+\emph{Acta Numerica} 12, 451--512. \url{https://doi.org/10.1017/S0962492902000156}
+
+\bibitem{taha2015} Taha, A.\ A. \& Hanbury, A. (2015). Metrics for evaluating 3D medical image
+segmentation: analysis, selection, and tool. \emph{BMC Medical Imaging} 15, 29.
+\url{https://doi.org/10.1186/s12880-015-0068-x}
+
+\bibitem{tierny2018} Tierny, J., Favelier, G., Levine, J.\ A., Gueunet, C. \& Michaux, M.
+(2018). The Topology ToolKit. \emph{IEEE Transactions on Visualization and Computer Graphics}
+24(1), 832--842. \url{https://doi.org/10.1109/TVCG.2017.2743938}
+
+\bibitem{wernli2008} Wernli, H., Paulat, M., Hagen, M. \& Frei, C. (2008). SAL---A novel
+quality measure for the verification of quantitative precipitation forecasts.
+\emph{Monthly Weather Review} 136(11), 4470--4487.
+\url{https://doi.org/10.1175/2008MWR2415.1}
+
+\bibitem{yang2016} Yang, Y., Engquist, B., Sun, J. \& Froese, B.\ D. (2016). Application of
+optimal transport and the quadratic Wasserstein metric to full-waveform inversion.
+\url{https://arxiv.org/abs/1612.05075}
+
+\end{thebibliography}
+
+\end{document}
