@@ -103,6 +103,17 @@ class DegradationSpec:
 
 
 REGISTRY: dict[str, DegradationSpec] = {}
+CARD_VALIDATOR: Callable[[Any], None] | None = None
+"""Optional check run when a degradation is requested by name.
+
+:mod:`fmeval.cards` installs a validator here that reads the degradation's card and refuses
+to hand back a spec whose documentation is missing or contradicts the code. It is a hook
+rather than a direct import for two reasons: this module would otherwise depend on the
+whole harness (and its pandas and matplotlib dependencies) when it needs only numpy, and
+validating at *lookup* rather than at *import* means a half-written card in one bundle
+cannot break an unrelated run. See ``fmeval/cards/loader.py``.
+"""
+
 _IMPORT_ERRORS: dict[str, Exception] = {}
 _DISCOVERED = False
 
@@ -206,7 +217,10 @@ def discover(force: bool = False) -> dict[str, Exception]:
 
     for mod in pkgutil.walk_packages(_pkg.__path__, prefix=f"{_pkg.__name__}."):
         leaf = mod.name.rsplit(".", 1)[-1]
-        if leaf.startswith("_") or leaf == "registry":
+        # Skip shared helpers and templates (leading underscore), this module, and
+        # the tests that live inside each bundle -- importing those would drag pytest
+        # into every evaluation run.
+        if leaf.startswith(("_", "test_")) or leaf == "registry":
             continue
         try:
             importlib.import_module(mod.name)
@@ -228,7 +242,10 @@ def get(name: str) -> DegradationSpec:
             raise KeyError(
                 f"unknown degradation {name!r}; available: {sorted(REGISTRY)}{hint}"
             )
-    return REGISTRY[name]
+    spec = REGISTRY[name]
+    if CARD_VALIDATOR is not None:
+        CARD_VALIDATOR(spec)
+    return spec
 
 
 def available() -> list[str]:

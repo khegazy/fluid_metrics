@@ -1,0 +1,636 @@
+"""The definition of what a ``card.yaml`` may contain, and the parser that enforces it.
+
+This module is the single definition of the card schema. Nothing else in the repository
+may hard-code a card field name; read the dataclasses here instead.
+
+The guiding rule for what belongs in a card at all:
+
+    Anything a machine can check, compare, or filter on lives in the typed card.
+    Prose is reserved for what genuinely requires prose.
+
+The second rule, which is what keeps the schema small: **a card never restates something
+the code already declares.** Whether a metric is differentiable, symmetric, pairwise, or
+expensive is declared on the ``@metric`` decorator and lives in its ``MetricSpec``; a
+degradation's family, severity units and direction live in its ``DegradationSpec``. Those
+are not repeated here, because two copies of a fact drift apart and the reader has no way
+to tell which one is stale. The catalog merges the two sources at read time.
+"""
+
+from __future__ import annotations
+
+import datetime as _dt
+import re
+from dataclasses import dataclass, field as dc_field
+from typing import Any
+
+SCHEMA_VERSION = 1
+"""Bump only for a change that invalidates existing cards; add a migration alongside.
+
+See the module docstring of :mod:`fmeval.cards` for the versioning policy.
+"""
+
+
+# --------------------------------------------------------------------------------------
+# Controlled vocabularies
+# --------------------------------------------------------------------------------------
+
+KINDS = ("metric", "degradation")
+
+CATEGORIES = (
+    "pointwise_norms",
+    "function_space_norms",
+    "optimal_transport",
+    "spectral_decomposition",
+    "physics_invariants",
+    "shock_geometry",
+    "topological",
+    "probabilistic",
+    "pattern_detection",
+    "curvature",
+)
+"""How a metric is grouped for a reader browsing the catalog.
+
+The vocabulary is mathematical rather than physical, because this repository evaluates
+metrics for PDEs in general -- compressible and incompressible flow, MHD, ensemble data --
+and a category that named a fluid phenomenon would not survive the second application
+area. Degradation cards do not use this vocabulary: they reuse the ``family`` their
+registry entry already declares, and a test asserts the two agree.
+"""
+
+STATUSES = ("candidate", "validated", "control", "deprecated")
+"""Where a bundle sits in the evaluation process. **This is not a quality rating.**
+
+``candidate``
+    Implemented. Its evidence is either not yet generated or not yet reviewed by a human.
+    This is the only status an agent may write.
+``validated``
+    The evaluation suite has been run on the canonical data *and* a human has read and
+    signed the prose. It says the measurement was done and checked -- it does not say the
+    results were good.
+``control``
+    A baseline or tripwire that candidates are read against rather than a candidate for a
+    panel slot of its own. The pointwise norms (MAE, MSE, RMSE, NRMSE) are controls.
+``deprecated``
+    Superseded, kept so the record and any older results remain interpretable.
+
+There is deliberately no ``rejected`` status, and nothing anywhere in this repository
+reduces a metric to pass or fail. A metric that misses one thing usually catches another:
+a spectral-energy metric is fooled by a phase-randomised impostor and is still the right
+tool for asking whether the energy cascade is reproduced. Collapsing that into a verdict
+would discard exactly the information a reader needs. What a metric detects, what it is
+blind to, and how it compares to the controls is recorded in the measured evidence and
+discussed in the card's ``## Assessment`` section.
+"""
+
+RESPONSES = (
+    "increasing",
+    "decreasing",
+    "invariant",
+    "nonmonotone",
+    "sensitive",
+)
+"""Predicted behaviour of a metric along one degradation axis.
+
+``increasing`` / ``decreasing``
+    The value moves monotonically with severity, in the stated direction.
+``invariant``
+    Provably unchanged by this degradation, by construction.
+``nonmonotone``
+    Expected to move without a consistent ordering -- a prediction in its own right, not
+    an absence of one.
+``sensitive``
+    Used for the canary axes, which have no ordered severity: the prediction is that the
+    metric registers substantial damage at all, not that it orders anything.
+"""
+
+STATISTICS = (
+    "rho_median",
+    "rho_min",
+    "rho_pooled",
+    "monotone_fraction",
+    "separability_auc_min",
+    "sensitivity_level",
+    "saturation_level",
+    "impostor_damage",
+    "damage_max",
+)
+"""The measured quantities an expectation may be checked against.
+
+Every one of these is already computed by :mod:`fmeval.analysis` for every
+(metric, field, axis). Expectations name one of them rather than inventing a parallel
+statistics layer, so a prediction is checked against the same number the report shows.
+"""
+
+EXEMPLAR_MODES = ("severity", "draws", "none")
+"""How a degradation's illustration panel is laid out.
+
+``severity``
+    Three severities -- weak, medium, strong -- beside the original. The usual case.
+``draws``
+    Several independent random draws beside the original. For degradations whose
+    severity parameter carries no order: the phase-randomised impostor has no severity at
+    all, and the unrelated-field anchor is indexed by draw number.
+``none``
+    No panel. Only the identity operator, which by definition changes nothing.
+"""
+
+REGIMES = ("any", "compressible", "incompressible", "mhd", "ensemble")
+"""Physical settings a metric is meaningful in. Grows as new datasets are added."""
+
+DATA_REQUIREMENTS = ("ensemble", "vector_field", "time_series")
+"""What a metric needs beyond a single pair of fields on the analysis grid.
+
+Fields are not listed here: the ``@metric`` decorator's ``fields`` argument already says
+which physical fields a metric accepts, and the card does not restate it.
+"""
+
+_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+# --------------------------------------------------------------------------------------
+# Errors
+# --------------------------------------------------------------------------------------
+
+
+class CardError(Exception):
+    """A card is missing, malformed, or contradicts the code it documents.
+
+    The message is the product here, not the exception type. An agent or a colleague who
+    hits this should be able to fix the problem without reading any other document, so
+    every instance states three things: where the problem is, what was expected in one
+    sentence, and the exact command that repairs it.
+    """
+
+    def __init__(self, where: str, problem: str, fix: str) -> None:
+        self.where = where
+        self.problem = problem
+        self.fix = fix
+        super().__init__(f"{where}\n  {problem}\n  Fix: {fix}")
+
+
+# --------------------------------------------------------------------------------------
+# Card pieces
+# --------------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Output:
+    """What the single number a metric returns means, and what range it lives in.
+
+    Metrics in this repository return one float per (field, frame, severity level); the
+    structure over fields and frames comes from the evaluation loop, not from the metric.
+    So there is one output per card, not a list.
+
+    Direction (whether higher or lower is better) is *not* here: the ``@metric``
+    decorator declares ``higher_is_better`` and the analysis layer already orients its
+    statistics by it.
+    """
+
+    description: str
+    lower: float | None = None
+    upper: float | None = None
+
+
+@dataclass(frozen=True)
+class MathProperties:
+    """Mathematical and computational properties the decorator does not already carry.
+
+    ``differentiable`` and ``symmetric`` are absent on purpose: both are declared on the
+    ``@metric`` decorator, and the contract tests check ``symmetric`` against the actual
+    implementation. Repeating them here would create a second answer to the same question.
+    """
+
+    triangle_inequality: bool
+    scale_dependent: bool
+    """Whether the value changes when both fields are multiplied by the same constant."""
+    resolution_dependent: bool
+    """Whether the value changes with the analysis-grid resolution."""
+    complexity: str
+    """Big-O in the number of grid cells, e.g. ``"O(N)"`` or ``"O(N log N)"``."""
+
+
+@dataclass(frozen=True)
+class Expectation:
+    """One prediction about how a metric behaves along one degradation axis.
+
+    A prediction that turns out to be wrong is a result, not a failure. Nothing in this
+    repository blocks, gates, or rejects on a disagreement between an expectation and the
+    measurement; the disagreement is recorded in the evidence and discussed in the card's
+    ``## Assessment`` section, where it can be explained.
+    """
+
+    axis: str
+    """A ladder-entry label from the degradation config, e.g. ``translate_x``.
+
+    The label, not the operator name: the label is the unit of rank correlation, and one
+    operator can appear under several labels with different options.
+    """
+    response: str
+    rationale: str
+    """Why this behaviour is expected, physically or mathematically. Not optional: an
+    expectation without a reason cannot be argued with, only believed."""
+    statistic: str = "rho_median"
+    threshold: float = 0.9
+    field: str | None = None
+    """Restrict this prediction to one physical field. ``None`` means every field.
+
+    Predictions legitimately differ by field: a metric can be monotone on an
+    intermittent vorticity field and degenerate on a smooth density field.
+    """
+    dataset: str | None = None
+    """Restrict this prediction to one dataset. ``None`` means every dataset with evidence.
+
+    Predictions legitimately differ by regime too, which is why evidence is keyed by
+    dataset: a shock-sensitive metric that orders compressible data cleanly may have
+    nothing to order in incompressible data.
+    """
+    tolerance_damage: float = 0.05
+    """Slack for the ``invariant`` case, in damage units.
+
+    Damage is ``D = (value - clean) / (unrelated - clean)``: 0 at the reference and 1 at
+    the measured unrelated-field anchor. Expressing the tolerance in damage rather than
+    in the metric's own units makes it comparable across metrics whose raw values differ
+    by orders of magnitude. The default of 0.05 is a starting point, not a calibrated
+    number, and should be revisited once run-to-run variance has been measured.
+    """
+
+
+@dataclass(frozen=True)
+class Applicability:
+    """Where this metric is meaningful, for a repository that spans many PDE settings."""
+
+    regimes: tuple[str, ...] = ("any",)
+    data_requirements: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class Exemplars:
+    """Which severities to illustrate for a degradation, and how.
+
+    Required on degradation cards: a degradation whose effect is never shown is not
+    interpretable from prose alone, however careful the prose.
+    """
+
+    mode: str = "severity"
+    levels: tuple[float, ...] = ()
+    """Weak, medium and strong severities, which must be severities this degradation's
+    ladder actually uses. Required when ``mode`` is ``severity``."""
+    n_draws: int = 3
+    """How many independent draws to show. Used when ``mode`` is ``draws``."""
+    diagnostics: tuple[str, ...] = ()
+    """Extra panel rows beyond the field itself, e.g. the difference from the original or
+    the radially averaged spectrum. Chosen to expose the mechanism: a blur is legible in
+    a radial spectrum, a translation is not, because a translation moves spectral phase
+    rather than amplitude."""
+    field_name: str = "vorticity"
+    rationale: str = ""
+    """Why these severities and these diagnostics. Becomes the figure caption."""
+
+
+@dataclass(frozen=True)
+class Review:
+    """A human's signature on the prose half of the card.
+
+    Existence checks cannot tell correct prose from fluent, plausible, wrong prose, and
+    an agent produces the latter readily. Only a person reading it can. The hash records
+    exactly which text was read, so later edits show up as unreviewed rather than
+    inheriting the old signature.
+    """
+
+    prose_sha256: str
+    reviewer: str
+    date: _dt.date
+
+
+@dataclass(frozen=True)
+class Card:
+    """The typed half of one bundle."""
+
+    schema_version: int
+    name: str
+    kind: str
+    category: str
+    summary: str
+    status: str
+    owners: tuple[str, ...]
+    output: Output
+    math: MathProperties | None = None
+    expectations: tuple[Expectation, ...] = ()
+    applicability: Applicability = dc_field(default_factory=Applicability)
+    exemplars: Exemplars | None = None
+    references: tuple[str, ...] = ()
+    review: Review | None = None
+    failure_mode: str = ""
+    """Degradations only: in one sentence, what kind of model error this stands in for."""
+
+
+# --------------------------------------------------------------------------------------
+# Parsing and validation
+# --------------------------------------------------------------------------------------
+
+
+def _require(mapping: Any, key: str, where: str, fix: str) -> Any:
+    if not isinstance(mapping, dict):
+        raise CardError(where, f"expected a mapping, found {type(mapping).__name__}.", fix)
+    if key not in mapping:
+        raise CardError(where, f"required key {key!r} is missing.", fix)
+    return mapping[key]
+
+
+def _one_of(value: Any, allowed: tuple[str, ...], key: str, where: str, fix: str) -> str:
+    if value not in allowed:
+        raise CardError(
+            where,
+            f"{key} is {value!r}; allowed values are {', '.join(allowed)}.",
+            fix,
+        )
+    return str(value)
+
+
+def _str_tuple(value: Any, key: str, where: str, fix: str) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str) or not isinstance(value, (list, tuple)):
+        raise CardError(where, f"{key} must be a list, found {type(value).__name__}.", fix)
+    return tuple(str(v) for v in value)
+
+
+def parse_card(data: Any, *, where: str) -> Card:
+    """Validate a parsed ``card.yaml`` mapping and build a :class:`Card`.
+
+    Args:
+        data: The mapping produced by loading the YAML file.
+        where: Human-readable location used in error messages, normally the file path.
+
+    Returns:
+        The validated card.
+
+    Raises:
+        CardError: On any violation. The message names the fix.
+    """
+    fix = "edit the file, then run  python -m fmeval.cards check <name>"
+
+    version = _require(data, "schema_version", where, fix)
+    if not isinstance(version, int):
+        raise CardError(where, "schema_version must be an integer.", fix)
+    if version > SCHEMA_VERSION:
+        raise CardError(
+            where,
+            f"schema_version {version} is newer than this checkout understands "
+            f"({SCHEMA_VERSION}).",
+            "update your checkout; do not edit the version down, the card may use "
+            "fields this code cannot interpret",
+        )
+    if version < SCHEMA_VERSION:
+        data = migrate(dict(data), from_version=version, where=where)
+
+    name = str(_require(data, "name", where, fix))
+    if not _NAME_RE.match(name):
+        raise CardError(
+            where,
+            f"name {name!r} must be lowercase letters, digits and underscores, starting "
+            "with a letter, so it can be a directory name and a Python package name.",
+            fix,
+        )
+
+    kind = _one_of(_require(data, "kind", where, fix), KINDS, "kind", where, fix)
+    category = str(_require(data, "category", where, fix))
+    if kind == "metric" and category not in CATEGORIES:
+        raise CardError(
+            where,
+            f"category is {category!r}; allowed values are {', '.join(CATEGORIES)}.",
+            "pick the closest category, or add a new one to CATEGORIES in "
+            "fmeval/cards/schema.py with a sentence saying what belongs in it",
+        )
+
+    summary = str(_require(data, "summary", where, fix)).strip()
+    if not 20 <= len(summary) <= 300:
+        raise CardError(
+            where,
+            f"summary is {len(summary)} characters; it must be between 20 and 300, "
+            "because it is the one line shown beside this bundle in every index.",
+            fix,
+        )
+
+    status = _one_of(_require(data, "status", where, fix), STATUSES, "status", where, fix)
+    owners = _str_tuple(_require(data, "owners", where, fix), "owners", where, fix)
+    if not owners:
+        raise CardError(where, "owners must name at least one person.", fix)
+
+    card = Card(
+        schema_version=SCHEMA_VERSION,
+        name=name,
+        kind=kind,
+        category=category,
+        summary=summary,
+        status=status,
+        owners=owners,
+        output=_parse_output(_require(data, "output", where, fix), where, fix),
+        math=_parse_math(data.get("math"), where, fix),
+        expectations=tuple(
+            _parse_expectation(e, where, fix) for e in (data.get("expectations") or ())
+        ),
+        applicability=_parse_applicability(data.get("applicability"), where, fix),
+        exemplars=_parse_exemplars(data.get("exemplars"), where, fix),
+        references=_str_tuple(data.get("references"), "references", where, fix),
+        review=_parse_review(data.get("review"), where, fix),
+        failure_mode=str(data.get("failure_mode") or "").strip(),
+    )
+
+    if card.kind == "degradation" and card.exemplars is None:
+        raise CardError(
+            where,
+            "a degradation card needs an `exemplars` block: a degradation whose effect "
+            "is never shown cannot be understood from prose alone.",
+            "add an exemplars block, then run  python -m fmeval.cards exemplars " + name,
+        )
+    if card.kind == "metric" and card.math is None:
+        raise CardError(where, "a metric card needs a `math` block.", fix)
+
+    _check_unknown_keys(data, where)
+    return card
+
+
+_KNOWN_KEYS = frozenset(
+    {
+        "schema_version", "name", "kind", "category", "summary", "status", "owners",
+        "output", "math", "expectations", "applicability", "exemplars", "references",
+        "review", "failure_mode",
+    }
+)
+
+
+def _check_unknown_keys(data: dict[str, Any], where: str) -> None:
+    """Reject unrecognised top-level keys.
+
+    A typo in a key name would otherwise be silently ignored, and the card would claim
+    something no tool ever reads -- the exact failure this schema exists to prevent.
+    """
+    unknown = sorted(set(data) - _KNOWN_KEYS)
+    if unknown:
+        raise CardError(
+            where,
+            f"unrecognised key(s): {', '.join(unknown)}. A key nothing reads is a claim "
+            "nothing checks.",
+            "remove the key, correct the spelling, or add it to the schema in "
+            "fmeval/cards/schema.py",
+        )
+
+
+def _parse_output(data: Any, where: str, fix: str) -> Output:
+    description = str(_require(data, "description", where, fix)).strip()
+    if len(description) < 10:
+        raise CardError(where, "output.description is too short to be useful.", fix)
+    bounds = data.get("bounds") or {}
+    if not isinstance(bounds, dict):
+        raise CardError(where, "output.bounds must be a mapping.", fix)
+    lower, upper = bounds.get("lower"), bounds.get("upper")
+    if lower is not None and upper is not None and float(lower) >= float(upper):
+        raise CardError(
+            where, f"output.bounds lower ({lower}) is not below upper ({upper}).", fix
+        )
+    return Output(
+        description=description,
+        lower=None if lower is None else float(lower),
+        upper=None if upper is None else float(upper),
+    )
+
+
+def _parse_math(data: Any, where: str, fix: str) -> MathProperties | None:
+    if data is None:
+        return None
+    return MathProperties(
+        triangle_inequality=bool(_require(data, "triangle_inequality", where, fix)),
+        scale_dependent=bool(_require(data, "scale_dependent", where, fix)),
+        resolution_dependent=bool(_require(data, "resolution_dependent", where, fix)),
+        complexity=str(_require(data, "complexity", where, fix)),
+    )
+
+
+def _parse_expectation(data: Any, where: str, fix: str) -> Expectation:
+    axis = str(_require(data, "axis", where, fix))
+    response = _one_of(
+        _require(data, "response", where, fix), RESPONSES, "response", where, fix
+    )
+    rationale = str(_require(data, "rationale", where, fix)).strip()
+    if len(rationale) < 20:
+        raise CardError(
+            where,
+            f"the rationale for axis {axis!r} is {len(rationale)} characters. State why "
+            "this behaviour is expected; a prediction without a reason cannot be argued "
+            "with.",
+            fix,
+        )
+    statistic = _one_of(
+        data.get("statistic", "rho_median"), STATISTICS, "statistic", where, fix
+    )
+    return Expectation(
+        axis=axis,
+        response=response,
+        rationale=rationale,
+        statistic=statistic,
+        threshold=float(data.get("threshold", 0.9)),
+        field=None if data.get("field") is None else str(data["field"]),
+        dataset=None if data.get("dataset") is None else str(data["dataset"]),
+        tolerance_damage=float(data.get("tolerance_damage", 0.05)),
+    )
+
+
+def _parse_applicability(data: Any, where: str, fix: str) -> Applicability:
+    if data is None:
+        return Applicability()
+    regimes = _str_tuple(data.get("regimes", ["any"]), "applicability.regimes", where, fix)
+    for regime in regimes:
+        _one_of(regime, REGIMES, "applicability.regimes entry", where, fix)
+    reqs = _str_tuple(
+        data.get("data_requirements"), "applicability.data_requirements", where, fix
+    )
+    for req in reqs:
+        _one_of(req, DATA_REQUIREMENTS, "data_requirements entry", where, fix)
+    return Applicability(regimes=regimes or ("any",), data_requirements=reqs)
+
+
+def _parse_exemplars(data: Any, where: str, fix: str) -> Exemplars | None:
+    if data is None:
+        return None
+    mode = _one_of(data.get("mode", "severity"), EXEMPLAR_MODES, "exemplars.mode", where, fix)
+    levels = tuple(float(v) for v in (data.get("levels") or ()))
+    if mode == "severity" and len(levels) != 3:
+        raise CardError(
+            where,
+            f"exemplars.mode is 'severity' but {len(levels)} level(s) are listed. Give "
+            "exactly three -- weak, medium and strong -- all of them severities this "
+            "degradation's ladder actually uses.",
+            fix,
+        )
+    if mode == "severity" and list(levels) != sorted(levels):
+        raise CardError(
+            where, "exemplars.levels must be listed weakest first.", fix
+        )
+    rationale = str(data.get("rationale") or "").strip()
+    if mode != "none" and len(rationale) < 20:
+        raise CardError(
+            where,
+            "exemplars.rationale is missing or too short. It becomes the figure caption, "
+            "so say why these severities and these diagnostics show the mechanism.",
+            fix,
+        )
+    return Exemplars(
+        mode=mode,
+        levels=levels,
+        n_draws=int(data.get("n_draws", 3)),
+        diagnostics=_str_tuple(data.get("diagnostics"), "exemplars.diagnostics", where, fix),
+        field_name=str(data.get("field_name", "vorticity")),
+        rationale=rationale,
+    )
+
+
+def _parse_review(data: Any, where: str, fix: str) -> Review | None:
+    if data is None:
+        return None
+    digest = str(_require(data, "prose_sha256", where, fix))
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise CardError(
+            where,
+            "review.prose_sha256 is not a sha256 digest.",
+            "run  python -m fmeval.cards sign <name> --by <who>  rather than writing it "
+            "by hand",
+        )
+    date = _require(data, "reviewed_at", where, fix) if "reviewed_at" in data else _require(
+        data, "date", where, fix
+    )
+    if isinstance(date, str):
+        date = _dt.date.fromisoformat(date)
+    if not isinstance(date, _dt.date):
+        raise CardError(where, "review date must be an ISO date, e.g. 2026-08-18.", fix)
+    return Review(
+        prose_sha256=digest,
+        reviewer=str(_require(data, "reviewer", where, fix)),
+        date=date,
+    )
+
+
+def migrate(data: dict[str, Any], *, from_version: int, where: str) -> dict[str, Any]:
+    """Bring a card written against an older schema up to :data:`SCHEMA_VERSION`.
+
+    There are no migrations yet, because there has been no breaking change yet. When the
+    first one lands, add a ``migrate_v1_to_v2`` function and dispatch to it here, so an
+    old card keeps loading with a warning rather than failing.
+
+    Args:
+        data: The raw card mapping.
+        from_version: The version recorded in the card.
+        where: Location used in error messages.
+
+    Returns:
+        The migrated mapping.
+
+    Raises:
+        CardError: If no migration path exists.
+    """
+    raise CardError(
+        where,
+        f"card uses schema_version {from_version} and no migration to "
+        f"{SCHEMA_VERSION} exists.",
+        "add the migration to fmeval/cards/schema.py, or regenerate the card",
+    )
