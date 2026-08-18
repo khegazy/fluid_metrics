@@ -36,6 +36,12 @@ discretisation, the kernel or filter shape, and how the boundaries are handled â
 domain is periodic, and whether an operator respects that changes what it measures. Cite
 sources as `[@bibkey]` with the entry in this bundle's `refs.bib`.
 
+**Write the maths like this, and only like this** â€” inline `$ ... $`, display `$$ ... $$`
+with the delimiters alone on their own lines, and `\tag{1}` for numbering, referred to in
+prose as "Equation (1)". A card is read both on GitHub and on the documentation site, and
+only this subset renders in both; `\begin{equation}`, `\label` and `\eqref` are shown by
+GitHub as raw source with no error reported, so the checker refuses them.
+
 ## Severity scale
 
 TODO(fill) At least 40 words. What are the physical units of the severity number, and

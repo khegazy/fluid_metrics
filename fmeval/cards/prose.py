@@ -89,6 +89,98 @@ visibly missing rather than guessed at, and a guessed citation is worse than non
 """
 
 _MATH = re.compile(r"\$|\\\(|\\\[")
+
+# --------------------------------------------------------------------------------------
+# Math that renders everywhere
+# --------------------------------------------------------------------------------------
+#
+# A card is read in two places, and the equations must render in both:
+#
+#   * GitHub's web UI, where a colleague browsing the repository sees the file directly;
+#   * the documentation site, where MathJax typesets it.
+#
+# Their overlap is smaller than it looks, and the difference is silent -- an equation
+# GitHub cannot parse is shown as its literal source, with no error anywhere. So the
+# portable subset is enforced rather than trusted:
+#
+#   inline    $ ... $
+#   display   $$ ... $$        with the delimiters alone on their own lines
+#   numbering \tag{1}          referred to in prose as "Equation (1)"
+#
+# What is banned, and why:
+#
+#   \begin{equation} and the other numbered environments are not recognised by GitHub
+#       unless wrapped in $$, and wrapping them then double-numbers on the site.
+#   \label and \eqref are MathJax extensions that GitHub does not process at all, so a
+#       cross-reference silently degrades into the raw command.
+#   \( \) \[ \] are MathJax delimiters that GitHub does not recognise as math.
+_BANNED_MATH: tuple[tuple[str, str], ...] = (
+    (r"\\begin\{(equation|align|gather|eqnarray)\*?\}", "\\begin{equation} and the other "
+     "numbered environments are not rendered by GitHub"),
+    (r"\\label\{", "\\label is not processed outside a full LaTeX toolchain"),
+    (r"\\eqref\{", "\\eqref is not processed outside a full LaTeX toolchain"),
+    (r"\\\(|\\\)", "\\( and \\) are not recognised as math delimiters by GitHub"),
+    (r"\\\[|\\\]", "\\[ and \\] are not recognised as math delimiters by GitHub"),
+)
+
+_DISPLAY_FENCE = re.compile(r"^\$\$\s*$", re.MULTILINE)
+_CODE_FENCE = re.compile(r"```.*?```", re.DOTALL)
+_CODE_SPAN = re.compile(r"`[^`\n]+`")
+
+
+def check_math(text: str) -> list[Problem]:
+    """Check that every equation uses the subset that renders in both readers.
+
+    Args:
+        text: The contents of ``card.md``.
+
+    Returns:
+        One problem per unrenderable construct found. Empty means the math will render
+        on GitHub and on the documentation site alike.
+    """
+    # Code is exempt in both forms. A card explaining why \begin{equation} is
+    # refused has to be able to write \begin{equation}, and a worked example may
+    # show LaTeX source on purpose.
+    outside_code = _CODE_SPAN.sub("", _CODE_FENCE.sub("", text))
+    problems: list[Problem] = []
+
+    for pattern, why in _BANNED_MATH:
+        match = re.search(pattern, outside_code)
+        if match:
+            problems.append(
+                Problem(
+                    "",
+                    f"{match.group(0)!r} will not render: {why}. On GitHub the equation "
+                    "appears as its own source, and nothing reports an error.",
+                    "use $$ ... $$ on their own lines for display equations, $ ... $ "
+                    "inline, and \\tag{1} for numbering; refer to it in prose as "
+                    "'Equation (1)'",
+                )
+            )
+
+    if len(_DISPLAY_FENCE.findall(outside_code)) % 2:
+        problems.append(
+            Problem(
+                "",
+                "an odd number of `$$` display-math fences: one block is unterminated, "
+                "which swallows the rest of the section into an equation.",
+                "check that every $$ that opens a display equation has one closing it",
+            )
+        )
+
+    if outside_code.count("$") % 2:
+        problems.append(
+            Problem(
+                "",
+                "an odd number of `$` characters, so one inline equation is unterminated. "
+                "A literal dollar sign has to be written as \\$.",
+                "close the inline math, or escape the literal dollar sign",
+            )
+        )
+
+    return problems
+
+
 _HEADING = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 _INCLUDE = re.compile(r"^\{\{\s*include\s+\S+\s*\}\}$", re.MULTILINE)
@@ -202,6 +294,8 @@ def check_prose(text: str, *, kind: str, name: str) -> list[Problem]:
                     "replace it with real content, or report it as unresolved",
                 )
             )
+
+    problems.extend(check_math(text))
 
     sections = split_sections(text)
     present = [s for s in sections if s in required]

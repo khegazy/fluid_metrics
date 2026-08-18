@@ -57,6 +57,25 @@ and how boundaries are handled — those are part of the metric, not an implemen
 detail. Cite sources as `[@bibkey]` and put the entry in this bundle's `refs.bib`,
 including the equation number you took.
 
+**Write the maths like this, and only like this.** A card is read both on GitHub and on
+the documentation site, and only this subset renders in both. Anything else is shown by
+GitHub as its own raw source, with no error reported anywhere, so the checker refuses it:
+
+```
+inline      $ ... $
+display     $$ ... $$        delimiters alone on their own lines
+numbering   \tag{1}          referred to in prose as "Equation (1)"
+```
+
+Do not use `\begin{equation}`, `\label` or `\eqref`: those need a full LaTeX toolchain
+and degrade silently. An example of the expected form:
+
+$$
+\mathrm{METRIC}(f, g) = \frac{1}{N} \sum_{i=1}^{N} \bigl( f_i - g_i \bigr)^2 \tag{1}
+$$
+
+and then refer to it as Equation (1) in the prose.
+
 ## Evidence
 
 {{ include _generated/evidence.md }}

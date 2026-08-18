@@ -13,6 +13,7 @@ time.
 from __future__ import annotations
 
 import datetime as dt
+import re
 
 import pytest
 import yaml
@@ -270,6 +271,58 @@ def test_template_sentinels_block_completion(sentinel):
     assert any(sentinel in p.message for p in problems_for(text))
 
 
+# --------------------------------------------------------------------------------------
+# Math that renders in both readers
+# --------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "snippet",
+    [
+        "\\begin{equation}\nx = 1\n\\end{equation}",
+        "\\begin{align}\nx &= 1\n\\end{align}",
+        "$$x = 1 \\label{eq:x}$$",
+        "See Equation \\eqref{eq:x}.",
+        "\\(x = 1\\)",
+        "\\[x = 1\\]",
+    ],
+)
+def test_math_that_github_cannot_render_is_refused(snippet):
+    """These constructs are typeset by MathJax and shown as raw source by GitHub.
+
+    The failure is silent -- no error appears anywhere, the equation is simply printed as
+    its own LaTeX -- so it has to be caught here rather than noticed by a reader.
+    """
+    problems = prose.check_math(f"## Definition\n\n{snippet}\n")
+    assert problems, f"{snippet!r} should have been refused"
+
+
+def test_the_portable_subset_is_accepted():
+    text = (
+        "Inline $f_{c,i}$ and a display equation:\n\n"
+        "$$\n\\mathrm{MSE} = \\frac{1}{N} \\sum_i d_i^2 \\tag{1}\n$$\n\n"
+        "as Equation (1) shows.\n"
+    )
+    assert prose.check_math(text) == []
+
+
+def test_an_unterminated_display_block_is_caught():
+    """One missing fence swallows the rest of the section into an equation."""
+    problems = prose.check_math("$$\nx = 1\n\n## Next section\n")
+    assert any("unterminated" in p.message for p in problems)
+
+
+def test_an_unterminated_inline_equation_is_caught():
+    problems = prose.check_math("The value $x is large.\n")
+    assert any("odd number of `$`" in p.message for p in problems)
+
+
+def test_math_inside_a_code_block_is_left_alone():
+    """A card may legitimately show LaTeX source as an example of what not to write."""
+    text = "```\n\\begin{equation}\nx = 1\n\\end{equation}\n```\n"
+    assert prose.check_math(text) == []
+
+
 def test_front_matter_must_agree_with_the_bundle_name():
     assert any("front matter" in p.message for p in problems_for(build_prose(name="other")))
 
@@ -365,6 +418,58 @@ def test_bundle_prose_has_no_errors(bundle):
         p for p in problems if p.severity == "error" or card_.status == "validated"
     ]
     assert not blocking, "\n".join(f"{p.section}: {p.message}" for p in blocking)
+
+
+@pytest.mark.parametrize("bundle", BUNDLES, ids=IDS)
+def test_every_equation_in_every_card_actually_typesets(bundle):
+    """Run each card through the documentation site's markdown pipeline.
+
+    The rules in ``check_math`` are a proxy: they ban the constructs known to fail. This
+    test is the real thing -- it converts the card and asserts that every equation was
+    recognised as math and that no LaTeX command survived into the output as literal
+    text, which is exactly how an unrenderable equation presents itself to a reader.
+
+    Skipped where the docs toolchain is not installed, so the fast suite stays
+    dependency-free; it runs in the docs job, where the toolchain is present by
+    definition.
+    """
+    markdown = pytest.importorskip(
+        "markdown", reason="the docs toolchain is not installed in this environment"
+    )
+    pytest.importorskip("pymdownx", reason="the docs toolchain is not installed")
+
+    text = bundle.card_md.read_text()
+    body = text.split("---", 2)[2] if text.startswith("---") else text
+
+    # The strict reader is GitHub, which recognises only dollar delimiters. Restricting
+    # arithmatex to those models it: anything GitHub would print as raw source is left as
+    # raw source here too. Running the site's own permissive configuration instead would
+    # give false assurance, because it happily typesets \begin{equation}, which GitHub
+    # does not -- that difference is the whole failure mode this test exists to catch.
+    for label, config in (
+        ("GitHub", {"generic": True, "block_syntax": ["dollar"],
+                    "inline_syntax": ["dollar"]}),
+        ("the documentation site", {"generic": True}),
+    ):
+        html = markdown.markdown(
+            body,
+            extensions=["pymdownx.arithmatex", "tables", "fenced_code"],
+            extension_configs={"pymdownx.arithmatex": config},
+        )
+        untypeset = re.sub(
+            r'<(div|span) class="arithmatex">.*?</\1>', "", html, flags=re.DOTALL
+        )
+        untypeset = re.sub(r"<code>.*?</code>", "", untypeset, flags=re.DOTALL)
+
+        leaked = sorted(set(re.findall(r"\\(?:begin|end|label|eqref)\{[^}]*\}", untypeset)))
+        assert not leaked, (
+            f"{bundle.name}: on {label} these commands are not typeset and are shown to "
+            f"the reader as raw source: {leaked}"
+        )
+        assert "$$" not in untypeset, (
+            f"{bundle.name}: on {label} a `$$` survives as literal text, so a display "
+            "equation was not recognised as math."
+        )
 
 
 @pytest.mark.parametrize("bundle", BUNDLES, ids=IDS)

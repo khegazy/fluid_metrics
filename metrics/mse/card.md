@@ -92,17 +92,16 @@ exactly the phase information the impostor discards.
 For fields $f$ (reference) and $g$ (candidate) sampled on the same analysis grid, with $C$
 channels and $N$ cells per channel,
 
-\begin{equation}
+$$
 \mathrm{MSE}(f, g) = \frac{1}{CN} \sum_{c=1}^{C} \sum_{i=1}^{N}
-    \bigl( f_{c,i} - g_{c,i} \bigr)^2 .
-\label{eq:mse}
-\end{equation}
+\bigl( f_{c,i} - g_{c,i} \bigr)^2 \tag{1}
+$$
 
 The sum runs over all channels and all cells with equal weight, so for a vector field the
 components are pooled rather than reduced separately. The grid is uniform and the domain
 doubly periodic, so no boundary term and no cell-volume weighting appears; on a
-non-uniform grid Equation \eqref{eq:mse} would need cell volumes and would no longer be a
-plain mean.
+non-uniform grid Equation (1) would need cell volumes and would no longer be a plain
+mean.
 
 There is no boundary handling to state because the operation is local to each cell. This
 is exactly why the metric is cheap, and also why it can say nothing about position: no
@@ -110,26 +109,24 @@ neighbourhood ever enters the calculation.
 
 The pointwise map that this repository stores alongside the scalar is the summand,
 
-\begin{equation}
+$$
 m_i = \sum_{c=1}^{C} \bigl( f_{c,i} - g_{c,i} \bigr)^2 ,
 \qquad
-\mathrm{MSE} = \frac{1}{C} \, \langle m \rangle ,
-\label{eq:mse-map}
-\end{equation}
+\mathrm{MSE} = \frac{1}{C} \, \langle m \rangle \tag{2}
+$$
 
 where the average is over cells. The declared reduction is the mean divided by the channel
 count, and a contract test checks that reducing the map reproduces the scalar.
 
 For a displacement $\delta$ small compared with the scale of variation, expanding
-$f(x + \delta) - f(x) \simeq \delta\, \partial_x f$ in Equation \eqref{eq:mse} gives the
+$f(x + \delta) - f(x) \simeq \delta\, \partial_x f$ in Equation (1) gives the
 scaling that governs everything this metric does with shifted features:
 
-\begin{equation}
+$$
 \mathrm{MSE} \simeq \delta^{2} \bigl\langle (\partial_x f)^2 \bigr\rangle ,
 \qquad
-\mathrm{MAE} \simeq \delta \bigl\langle |\partial_x f| \bigr\rangle .
-\label{eq:lp-displacement}
-\end{equation}
+\mathrm{MAE} \simeq \delta \bigl\langle |\partial_x f| \bigr\rangle \tag{3}
+$$
 
 ## Evidence
 
@@ -138,7 +135,7 @@ scaling that governs everything this metric does with shifted features:
 ## Assessment
 
 Measurements on 256-squared vorticity at Reynolds 5e4, over 21 frames of developed flow,
-confirm the quadratic scaling of Equation \eqref{eq:lp-displacement}: the damage ratios
+confirm the quadratic scaling of Equation (3): the damage ratios
 per doubling of sub-cell displacement are 3.99, 3.95 and 3.82, against the 4 that a
 quadratic response predicts, and MAE gives 2.00, 1.98 and 1.93 against a predicted 2. The
 practical consequence is large and easy to miss. At an eighth of a cell MAE assigns 55
