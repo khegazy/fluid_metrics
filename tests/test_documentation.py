@@ -191,3 +191,39 @@ def test_setup_check_runs_and_reports():
     for expected in ("numpy", "metrics registry", "degradations registry",
                      "spectral vorticity", "dataset root"):
         assert expected in result.stdout, f"check_setup.py does not report on {expected!r}"
+
+
+# --------------------------------------------------------------------------------------
+# The human file guide
+# --------------------------------------------------------------------------------------
+
+GUIDE = REPO / "docs" / "working-with-the-repo.md"
+
+
+def test_the_file_guide_covers_every_file_of_the_bundle_contract():
+    """A guide that has fallen behind the contract sends a reader to a file that is gone.
+
+    This checks coverage, not quality: every file a contributor is expected to create or
+    to leave alone must be named somewhere in the guide.
+    """
+    text = GUIDE.read_text()
+    required = [
+        "metric.py", "degradation.py", "card.yaml", "card.md", "refs.bib",
+        "test_metric.py", "_generated/", "AGENTS.md", "TEST_DESCRIPTION.md",
+        "configs/", "issues/",
+    ]
+    missing = [name for name in required if name not in text]
+    assert not missing, f"docs/working-with-the-repo.md does not mention: {missing}"
+
+
+def test_the_file_guide_names_the_card_commands():
+    """The guide's job is to make the workflow runnable without a second document."""
+    text = GUIDE.read_text()
+    for command in ("fmeval.cards new", "fmeval.cards check", "fmeval.cards sign"):
+        assert command in text, f"the file guide does not mention `{command}`"
+
+
+def test_the_file_guide_starts_with_a_summary_table():
+    """A reader looking up one file should not have to read the whole document."""
+    head = GUIDE.read_text().split("## The bundle files in detail")[0]
+    assert "| File | What it is | Who edits it | When |" in head
