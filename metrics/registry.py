@@ -222,11 +222,13 @@ def discover(force: bool = False) -> dict[str, Exception]:
     import metrics as _pkg
 
     for mod in pkgutil.walk_packages(_pkg.__path__, prefix=f"{_pkg.__name__}."):
-        leaf = mod.name.rsplit(".", 1)[-1]
-        # Skip shared helpers and templates (leading underscore), this module, and
-        # the tests that live inside each bundle -- importing those would drag pytest
-        # into every evaluation run.
-        if leaf.startswith(("_", "test_")) or leaf == "registry":
+        # Every component after the package name is checked, not just the last one:
+        # a bundle directory named `_template` must not be entered even though the
+        # module inside it is called `metric`. Leading underscores mark templates and
+        # shared helpers; `test_` marks the tests that live inside each bundle, which
+        # would otherwise drag pytest into every evaluation run.
+        parts = mod.name.split(".")[1:]
+        if any(p.startswith(("_", "test_")) for p in parts) or parts[-1] == "registry":
             continue
         try:
             importlib.import_module(mod.name)

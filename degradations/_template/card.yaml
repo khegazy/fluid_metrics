@@ -1,0 +1,51 @@
+# The typed half of this degradation's card. Every field is documented in
+# fmeval/cards/schema.py. Run `python -m fmeval.cards check <name>` after editing.
+schema_version: 1
+
+name: template_degradation
+kind: degradation
+
+# For a degradation this must be the same family the @degradation decorator declares --
+# a test checks the two agree, so the code and the card cannot drift apart.
+category: smoothing
+
+summary: TODO(fill) one sentence saying what this does to a field.
+
+status: candidate
+owners: [TODO(fill)]
+
+# In one sentence: which way of being wrong does this stand in for? A degradation is not
+# interesting as an image operation; it is interesting as a model failure it imitates.
+failure_mode: TODO(fill)
+
+output:
+  description: TODO(fill) what the severity number means, in one sentence.
+  bounds:
+    lower: 0.0
+    upper: null
+
+# Which severities to illustrate, and how. A degradation whose effect is never shown
+# cannot be understood from prose alone, so this block is required.
+exemplars:
+  # severity -> three severities beside the original, weakest first
+  # draws    -> several independent draws beside the original, for a degradation whose
+  #             severity carries no order (a phase randomiser, an unrelated-field anchor)
+  # none     -> no panel; only the identity operator qualifies
+  mode: severity
+  levels: [0.0, 0.0, 0.0]   # TODO(fill) three severities this ladder actually uses
+  field_name: vorticity
+  # Extra panel rows beyond the field itself. Choose the ones that expose the mechanism:
+  # a blur shows up in radial_spectrum, a translation does not, because it moves spectral
+  # phase rather than amplitude. Options: difference, radial_spectrum, spectral_phase,
+  # pdf, lineout, autocorrelation.
+  diagnostics: [difference]
+  rationale: >-
+    TODO(fill) why these three severities and these diagnostics. This becomes the caption
+    under the figure, so say what each column is meant to show.
+
+applicability:
+  regimes: [any]
+  data_requirements: []
+
+references: []
+review: null

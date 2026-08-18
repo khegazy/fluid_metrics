@@ -1,0 +1,65 @@
+# The typed half of this bundle's card. Every field is documented, with the reasoning
+# behind it, in fmeval/cards/schema.py -- read that rather than copying another card
+# blindly. Run `python -m fmeval.cards check <name>` after editing; it names the fix for
+# anything wrong.
+schema_version: 1
+
+# The registered name. This is the metric's identity: it is also the directory name, the
+# @metric(name=...) argument, the front matter of card.md, and what users type in
+# metrics=[...]. All four must agree.
+name: template_metric
+kind: metric
+
+# How this is grouped for someone browsing. Allowed values are listed in
+# fmeval/cards/schema.py: CATEGORIES.
+category: pointwise_norms
+
+# One sentence, 20 to 300 characters. This is what appears beside the metric in every
+# index, so say what it measures, not why it is interesting.
+summary: TODO(fill) one sentence saying what this metric measures.
+
+# candidate | validated | control | deprecated -- see STATUSES in schema.py.
+# Leave this as `candidate`. Only a human moves a card to `validated`, after reading the
+# evidence. Note that none of these values is a quality rating.
+status: candidate
+
+owners: [TODO(fill)]
+
+output:
+  description: TODO(fill) what the returned number means, in one sentence.
+  bounds:
+    lower: 0.0
+    upper: null      # null where the value is unbounded above
+
+# Properties the @metric decorator does not already record. Differentiability, symmetry,
+# arity, cost and units live on the decorator and are not repeated here.
+math:
+  triangle_inequality: false
+  scale_dependent: true       # changes if both fields are scaled by the same constant
+  resolution_dependent: true  # changes with the analysis-grid resolution
+  complexity: "O(N)"          # in the number of grid cells
+
+# Predictions about how this metric behaves along each degradation axis, checked against
+# the measured evidence. `axis` is a ladder-entry label from configs/degradation/, not an
+# operator name. A prediction that turns out wrong is a result to explain in the card's
+# Assessment section, not a failure -- nothing here gates on it.
+expectations: []
+#  - axis: translate_x
+#    field: vorticity          # omit to apply the prediction to every field
+#    response: increasing      # increasing | decreasing | invariant | nonmonotone | sensitive
+#    statistic: rho_median
+#    threshold: 0.9
+#    rationale: >-
+#      Why you expect this, physically or mathematically.
+
+# Where this metric is meaningful. This repository covers PDEs in general, so a metric
+# that only makes sense for one regime should say so.
+applicability:
+  regimes: [any]
+  data_requirements: []
+
+# BibTeX keys from this bundle's refs.bib, cited by card.md.
+references: []
+
+# Written by `python -m fmeval.cards sign <name> --by <who>`. Never edit by hand.
+review: null

@@ -380,6 +380,37 @@ def test_bundle_name_matches_the_registered_name(bundle):
     )
 
 
+@pytest.mark.parametrize("kind", ["metric", "degradation"])
+def test_template_is_valid_apart_from_its_sentinels(kind):
+    """A template that has drifted out of validity is how systems like this die.
+
+    Every bundle starts as a copy of the template, so if the template itself would fail a
+    check, every new bundle inherits that failure and the author learns to ignore the
+    checker. The template must therefore pass everything except the ``TODO`` markers,
+    which are the one thing it is supposed to fail on.
+    """
+    template = loader.bundle_root(kind) / "_template"
+    bundle = loader.Bundle(name=template.name, kind=kind, path=template)
+
+    assert loader.check_bundle_files(bundle) == []
+
+    text = bundle.card_md.read_text()
+    placeholder = f"template_{'metric' if kind == 'metric' else 'degradation'}"
+    problems = prose.check_prose(text, kind=kind, name=placeholder)
+    unexpected = [
+        p
+        for p in problems
+        if p.severity == "error" and not any(s in p.message for s in prose.SENTINELS)
+    ]
+    assert not unexpected, "\n".join(f"{p.section}: {p.message}" for p in unexpected)
+
+
+@pytest.mark.parametrize("kind", ["metric", "degradation"])
+def test_template_is_not_itself_a_bundle(kind):
+    """The underscore keeps it out of discovery, the catalog and the registry."""
+    assert all(b.name != "_template" for b in loader.iter_bundles())
+
+
 def test_bundle_ids_are_unique():
     names = [f"{b.kind}:{b.name}" for b in BUNDLES]
     assert len(names) == len(set(names))

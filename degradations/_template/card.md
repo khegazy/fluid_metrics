@@ -1,0 +1,68 @@
+---
+name: template_degradation
+kind: degradation
+---
+
+## Claim
+
+TODO(fill) In 40 to 150 words: which way of being wrong does this degradation stand in
+for? A surrogate that over-smooths, one that shifts a shock by a cell, one that gets the
+energy spectrum right and the phases wrong — say which of those this imitates, and why
+that failure is worth being able to detect.
+
+## Intuition
+
+TODO(fill) For a reader from any field, with no mathematical notation at all — the
+checker rejects dollar signs and LaTeX delimiters. Describe in plain words what happens
+to a picture of the field when this is applied at a weak setting and at a strong one, and
+what a person would notice first. Include a small worked example, four by four is ideal,
+showing the numbers before and after.
+
+```
+before           after
+0 0 0 0          <put the real numbers here>
+0 1 1 0
+0 1 1 0
+0 0 0 0
+```
+
+Finish with one sentence on what this degradation leaves untouched, because that is
+usually what makes it a useful test.
+
+## Definition
+
+TODO(fill) Exactly what is computed, as numbered display equations. State the
+discretisation, the kernel or filter shape, and how the boundaries are handled — this
+domain is periodic, and whether an operator respects that changes what it measures. Cite
+sources as `[@bibkey]` with the entry in this bundle's `refs.bib`.
+
+## Severity scale
+
+TODO(fill) At least 40 words. What are the physical units of the severity number, and
+what does each step of the ladder correspond to? If the severity is calibrated rather
+than absolute — a fraction of the field's characteristic scale, or of the energy a filter
+removes — say so, and say what that means for comparing it across fields, because the
+number applied to density and the number applied to vorticity will differ.
+
+## Exemplars
+
+{{ include _generated/exemplars.md }}
+
+## What to look for
+
+TODO(fill) At least 60 words, no mathematical notation. The figure above does not explain
+itself. Say what changes between the weak and the strong columns, which diagnostic row
+makes it visible, and what a reader should check first. If the effect is invisible in the
+field images and only shows up in one of the other rows, say that explicitly — that is
+exactly the situation a reader will otherwise misread.
+
+## Limitations
+
+TODO(fill) At least 80 words. Where this degradation is not a fair stand-in for the
+failure it imitates, where its severities stop being distinguishable, and any field whose
+spectrum cannot resolve the whole ladder. If a severity level can collapse onto a milder
+one or onto a no-op, say under what conditions.
+
+## References
+
+\bibliography

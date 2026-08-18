@@ -1,0 +1,2 @@
+Generated evidence lands here. Never edit anything in this directory by hand; it is
+rewritten by `python -m fmeval.cards evidence <name>`.
