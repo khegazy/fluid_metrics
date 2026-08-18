@@ -30,7 +30,13 @@ build-backend = "hatchling.build"
 packages = ["metrics", "degradations", "fmeval"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# Bundle tests live beside the metric they test, in metrics/<name>/test_metric.py, so
+# that adding a metric means adding one directory and nothing else.
+testpaths = ["tests", "metrics", "degradations"]
+# The templates are scaffolding, not bundles: their tests raise NotImplementedError by
+# design, and importing their placeholder implementation would register it as a real
+# metric and break the documentation-coverage check.
+norecursedirs = ["_template", ".venv", "results", "datasets"]
 markers = [
     "data: reads real files on CFS (skipped by default)",
     "slow: needs LaTeX or a long runtime (skipped by default)",

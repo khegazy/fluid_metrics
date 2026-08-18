@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from .mse.metric import mse
 from .registry import metric, pointwise_map
 
 
@@ -46,30 +47,6 @@ def mae_map(reference: np.ndarray, candidate: np.ndarray) -> np.ndarray:
 
 
 @metric(
-    name="mse",
-    arity="pairwise",
-    fields=("*",),
-    returns="scalar",
-    differentiable=True,
-    cost="cheap",
-    higher_is_better=False,
-    symmetric=True,
-    units="field^2",
-    reduction="mean",
-)
-def mse(reference: np.ndarray, candidate: np.ndarray) -> float:
-    """Mean squared error over all channels and cells ((L2)^2 / N)."""
-    d = reference - candidate
-    return float(np.mean(d * d))
-
-
-@pointwise_map(of="mse")
-def mse_map(reference: np.ndarray, candidate: np.ndarray) -> np.ndarray:
-    """Per-cell squared error, summed over channels. Reduces to `mse` by mean/C."""
-    return ((reference - candidate) ** 2).sum(axis=0)
-
-
-@metric(
     name="rmse",
     arity="pairwise",
     fields=("*",),
@@ -82,7 +59,12 @@ def mse_map(reference: np.ndarray, candidate: np.ndarray) -> np.ndarray:
     reduction="sqrt_mean",
 )
 def rmse(reference: np.ndarray, candidate: np.ndarray) -> float:
-    """Root mean squared error; same units as the field."""
+    """Root mean squared error; same units as the field.
+
+    Defined in terms of :func:`metrics.mse.metric.mse` rather than repeating the sum, so
+    the two cannot drift apart. Importing across bundles is fine: the decorator returns
+    the function unwrapped, and the import system registers each bundle exactly once.
+    """
     return float(np.sqrt(mse(reference, candidate)))
 
 
