@@ -609,10 +609,10 @@ Present on every row as the groundwork for comparing metrics across datasets; no
 
 The index into the source trajectory, and the corresponding physical time.
 
-### `metric`, `tracker_id`, `arity`, `field`, `component`
+### `metric`, `arity`, `field`, `component`
 
-Which metric, its identifier from the metrics document, whether it compares two fields or
-characterises one, which physical field, and — for a metric returning a vector — which element.
+Which metric, whether it compares two fields or characterises one, which physical field,
+and — for a metric returning a vector — which element.
 
 ### `seed`, `wall_time_s`
 

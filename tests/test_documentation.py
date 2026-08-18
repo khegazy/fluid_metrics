@@ -19,7 +19,7 @@ DOC = REPO / "TEST_DESCRIPTION.md"
 #: documented, but grouped into one heading each rather than given a section apiece.
 _GROUPED_HEADINGS = {
     "dataset", "dataset_family", "complexity_rank", "param_reynolds", "param_mach",
-    "param_resolution", "trajectory", "frame_index", "time", "metric", "tracker_id",
+    "param_resolution", "trajectory", "frame_index", "time", "metric",
     "arity", "field", "component", "seed", "wall_time_s", "degradation",
     "degradation_op", "degradation_family", "level", "severity", "severity_name",
     "variant_label", "analysis_grid", "remap_op", "rho_median", "rho_min",

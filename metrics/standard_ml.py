@@ -10,9 +10,9 @@ All four are pointwise-decomposable, so each ships a per-cell density map. For a
 sharp feature the MSE map shows two lobes -- one where the feature should be and is not,
 one where it is and should not be -- which is the double penalty as a picture.
 
-`tracker_id="NM-0"` is the reserved identifier for the pointwise baseline controls, accepted
-2026-08-07. It denotes the family of controls the candidate metrics must beat rather than a
-candidate in its own right; see issues/021-tracker-ids-for-baselines.md.
+These four are *controls* rather than candidates: they are the pointwise baseline that
+candidate metrics are read against, not metrics competing for a panel slot of their own.
+Their cards carry ``status: control``; see issues/021-tracker-ids-for-baselines.md.
 """
 
 from __future__ import annotations
@@ -24,7 +24,6 @@ from .registry import metric, pointwise_map
 
 @metric(
     name="mae",
-    tracker_id="NM-0",
     arity="pairwise",
     fields=("*",),
     returns="scalar",
@@ -48,7 +47,6 @@ def mae_map(reference: np.ndarray, candidate: np.ndarray) -> np.ndarray:
 
 @metric(
     name="mse",
-    tracker_id="NM-0",
     arity="pairwise",
     fields=("*",),
     returns="scalar",
@@ -73,7 +71,6 @@ def mse_map(reference: np.ndarray, candidate: np.ndarray) -> np.ndarray:
 
 @metric(
     name="rmse",
-    tracker_id="NM-0",
     arity="pairwise",
     fields=("*",),
     returns="scalar",
@@ -101,7 +98,6 @@ def rmse_map(reference: np.ndarray, candidate: np.ndarray) -> np.ndarray:
 
 @metric(
     name="nrmse",
-    tracker_id="NM-0",
     arity="pairwise",
     fields=("*",),
     returns="scalar",

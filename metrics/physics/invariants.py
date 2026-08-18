@@ -7,7 +7,7 @@ variant, and `analysis.py` derives the drift from that.
 Enstrophy ships on day one mainly so the single-field code path is exercised end to end
 from the first run, rather than being discovered broken three weeks later. Both quantities
 here are single scalars and individually degenerate -- many wrong fields share a given
-enstrophy -- so they are tripwires, not verdicts (see the tracker, PH-4/PH-5).
+enstrophy -- so they are tripwires rather than verdicts.
 """
 
 from __future__ import annotations
@@ -19,7 +19,6 @@ from ..registry import metric
 
 @metric(
     name="enstrophy",
-    tracker_id="PH-4",
     arity="single",
     fields=("vorticity",),
     returns="scalar",
@@ -40,7 +39,6 @@ def enstrophy(x: np.ndarray) -> float:
 
 @metric(
     name="kinetic_energy",
-    tracker_id="PH-4",
     arity="single",
     fields=("velocity",),
     returns="scalar",

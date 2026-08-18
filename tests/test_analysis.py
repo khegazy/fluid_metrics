@@ -54,7 +54,7 @@ def _row(metric, field, label, family, level, severity, value, frame):
         "param_reynolds": np.nan, "param_mach": np.nan, "param_resolution": 16,
         "trajectory": "t", "frame_index": frame, "time": float(frame),
         "field": field, "analysis_grid": 16, "remap_op": "block_mean",
-        "metric": metric, "tracker_id": "", "arity": "pairwise",
+        "metric": metric, "arity": "pairwise",
         "degradation": label, "degradation_op": label, "degradation_family": family,
         "level": level, "severity": severity, "severity_name": "s",
         "variant_label": f"{label}_l{level}" if level else "reference",

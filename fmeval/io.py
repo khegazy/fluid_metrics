@@ -270,7 +270,6 @@ def _registry_snapshot() -> dict[str, Any]:
     return {
         "metrics": {
             s.name: {
-                "tracker_id": s.tracker_id,
                 "arity": s.arity,
                 "units": s.units,
                 "reduction": s.reduction,

@@ -9,8 +9,7 @@ says it will?
 Every metric here is registered for the duration of one test and removed again. They are
 deliberately *not* contributions to ``metrics/``: the point is to exercise the extension
 surface as an outside contributor meets it, not to grow the panel. A metric that graduates
-belongs in ``metrics/`` with its own tracker ID, its tracker entry, and a row in
-``TEST_DESCRIPTION.md``.
+belongs in ``metrics/`` as its own bundle, with the card that bundle requires.
 
 Two of these tests are the interesting ones scientifically:
 
@@ -123,12 +122,12 @@ def test_a_ctx_using_pairwise_metric_needs_no_harness_change(temporary_metric):
     ``ctx`` -- it must read the grid spacing to build wavenumbers, so it cannot be written
     as the two-line ``mae(a, b)`` the simplest path covers.
     """
-    temporary_metric(name="_h_minus_one", tracker_id="NM-2", arity="pairwise",
+    temporary_metric(name="_h_minus_one", arity="pairwise",
                      fields=("*",), units="field", symmetric=True)(h_minus_one)
     spec = metric_registry.get("_h_minus_one")
 
     assert spec.takes_ctx, "ctx was not detected from the signature"
-    assert spec.tracker_id == "NM-2"
+    assert spec.units == "field"
 
     ladder = build_ladder({"gaussian_blur": {"severities": [1.0, 2.0]}})
     result = run(SyntheticTrajectory(), [spec], ladder, fields=["density"],
@@ -154,7 +153,7 @@ def test_a_vector_returning_metric_expands_into_one_row_per_component(temporary_
     """
     n_shells = [0]
 
-    @temporary_metric(name="_spectrum_profile", tracker_id="BD-1", arity="pairwise",
+    @temporary_metric(name="_spectrum_profile", arity="pairwise",
                       fields=("*",), returns="vector", units="dimensionless")
     def _spectrum_profile(reference, candidate):
         """Per-shell energy difference: one number per wavenumber shell."""
@@ -345,7 +344,7 @@ def test_h_minus_one_is_more_displacement_tolerant_than_the_l2_baseline(temporar
     if not path.exists():
         pytest.skip(f"production trajectory not readable at {path}")
 
-    temporary_metric(name="_h_minus_one", tracker_id="NM-2", arity="pairwise",
+    temporary_metric(name="_h_minus_one", arity="pairwise",
                      fields=("*",), units="field", symmetric=True)(h_minus_one)
     metric_registry.discover()
     deg_registry.discover()

@@ -107,8 +107,8 @@ from metrics.registry import metric, pointwise_map
 
 
 @metric(
-    name="h_minus_one",          # defaults to the function name
-    tracker_id="NM-2",           # the stable ID from the metrics tracker; see CLAUDE.md
+    name="h_minus_one",          # the metric's identity: bundle directory, card key,
+                                 # and what users type in metrics=[...]. Defaults to fn.__name__
     arity="pairwise",            # "pairwise" -> fn(reference, candidate); "single" -> fn(x)
     fields=("vorticity",),       # canonical fields it accepts; ("*",) for any
     returns="scalar",            # "scalar" -> float; "vector" -> 1-D array
@@ -632,7 +632,7 @@ GIT_SSH_COMMAND="ssh -x -o BatchMode=yes" git push origin <branch>
 
 | File | What it is |
 |---|---|
-| `CLAUDE.md` | Scientific context: the problem framing, the tracker IDs, the evaluation protocol |
+| `CLAUDE.md` | Scientific context: the problem framing and the evaluation protocol |
 | `TEST_DESCRIPTION.md` | Every quantity the suite reports, in plain language. **Update it when you add a reported quantity — a test enforces this** |
 | `issues/README.md` | Open items with their evidence |
 | `README.md` | Setup, and the NERSC specifics |

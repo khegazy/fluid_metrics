@@ -50,7 +50,6 @@ class MetricSpec:
 
     name: str
     fn: Callable[..., Any]
-    tracker_id: str | None
     arity: Arity
     fields: tuple[str, ...]
     returns: Returns
@@ -83,7 +82,6 @@ _DISCOVERED = False
 def metric(
     *,
     name: str | None = None,
-    tracker_id: str | None = None,
     arity: Arity = "pairwise",
     fields: Sequence[str] = ("*",),
     returns: Returns = "scalar",
@@ -98,9 +96,9 @@ def metric(
     """Register a metric function under ``name`` (defaults to the function name).
 
     Args:
-        name: Registry key. Defaults to ``fn.__name__``.
-        tracker_id: Stable ID from the project's metrics tracker (e.g. ``"NM-2"``).
-            See CLAUDE.md for the identifier scheme and where the tracker lives.
+        name: Registry key, and the metric's identity everywhere: the directory name of
+            its bundle, the key in its card, and what users type in ``metrics=[...]``.
+            Defaults to ``fn.__name__``.
         arity: ``"pairwise"`` for ``fn(reference, candidate)``, ``"single"`` for ``fn(x)``.
         fields: Canonical field names this metric accepts; ``("*",)`` means any.
         returns: ``"scalar"`` for a float, ``"vector"`` for a 1-D array.
@@ -147,7 +145,6 @@ def metric(
         REGISTRY[key] = MetricSpec(
             name=key,
             fn=fn,
-            tracker_id=tracker_id,
             arity=arity,
             fields=tuple(fields),
             returns=returns,
@@ -260,7 +257,6 @@ def _main() -> None:
     rows = [
         (
             s.name,
-            s.tracker_id or "-",
             s.arity,
             ",".join(s.fields),
             s.units,
@@ -268,9 +264,9 @@ def _main() -> None:
             "yes" if s.has_pointwise else "-",
             "yes" if s.differentiable else "-",
         )
-        for s in sorted(REGISTRY.values(), key=lambda s: (s.tracker_id or "", s.name))
+        for s in sorted(REGISTRY.values(), key=lambda s: s.name)
     ]
-    head = ("metric", "id", "arity", "fields", "units", "cost", "pointwise", "diff'able")
+    head = ("metric", "arity", "fields", "units", "cost", "pointwise", "diff'able")
     widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(head)]
     line = "  ".join(h.ljust(w) for h, w in zip(head, widths))
     print(line)

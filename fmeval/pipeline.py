@@ -58,7 +58,6 @@ RESULT_DTYPES: dict[str, str] = {
     "analysis_grid": "int32",
     "remap_op": "category",
     "metric": "category",
-    "tracker_id": "category",
     "arity": "category",
     "higher_is_better": "bool",      # so the analysis orients its one-sided statistics by
                                      # the metric's own direction rather than assuming error
@@ -167,7 +166,6 @@ def _emit(
         "analysis_grid": analysis_grid,
         "remap_op": remap_op,
         "metric": spec.name,
-        "tracker_id": spec.tracker_id or "",
         "arity": spec.arity,
         "higher_is_better": spec.higher_is_better,
         "degradation": rung.label,
