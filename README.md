@@ -135,7 +135,7 @@ here works.
 | `degradation.only=[translate_x]` | Run only these ladder entries |
 | `degradation.skip=[median_blur]` | Drop these ladder entries |
 | `degradation.ladder.<entry>.enabled=false` | Disable one entry |
-| `degradation.ladder.<entry>.severities=[1,2,4]` | Change one entry's rungs |
+| `degradation.ladder.<entry>.severities=[1,2,4]` | Change one entry's severity levels |
 | `report=none` | Skip figures and tables; render later with `make_report.py` |
 | `report.style.theme=paper` | Vector PDF, Type-42 fonts, journal column widths |
 | `seed=1` | Change the run seed |

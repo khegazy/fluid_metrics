@@ -9,7 +9,7 @@ Order of operations within a frame:
 2. Remap onto the analysis grid (IN-2), recomputing derived fields there rather than
    averaging them.
 3. Measure the reference fluctuation RMS, which sets the scale for relative severities.
-4. Apply every ladder rung.
+4. Apply every ladder severity level.
 5. Evaluate every metric against every variant.
 
 Remapping *before* degrading is deliberate. It keeps severity units meaningful: a one-cell
@@ -34,7 +34,7 @@ from metrics.registry import MetricSpec
 from .calibration import Calibration, calibrate
 from .context import FieldContext, derive_rng
 from .data.base import FIELDS, Frame, Trajectory, TimeSelection
-from .ladder import Rung, apply_rung, reference_fluctuation_rms
+from .ladder import SeverityLevel, apply_severity_level, reference_fluctuation_rms
 from .remap import coarsen_factor, remap_frame
 
 log = logging.getLogger(__name__)
@@ -69,9 +69,9 @@ RESULT_DTYPES: dict[str, str] = {
     "severity": "float64",           # the absolute value actually applied
     "severity_nominal": "float64",   # as written in config; differs for a calibrated operator
     "calibration": "category",
-    "severity_degenerate": "bool",   # not a distinct experiment: repeats a milder rung, or
+    "severity_degenerate": "bool",   # not a distinct experiment: repeats a milder severity level, or
                                      # resolved to a severity at which the operator is a no-op
-    "energy_removed": "float64",     # what the rung MEASURABLY did, as opposed to what it asked
+    "energy_removed": "float64",     # what the severity level MEASURABLY did, as opposed to what it asked
     "energy_changed": "float64",     # for: both are fractions of the reference fluctuation
     "severity_name": "category",
     "variant_label": "category",
@@ -145,7 +145,7 @@ def _emit(
     spec: MetricSpec,
     field: str,
     frame: Frame,
-    rung: Rung,
+    severity_level: SeverityLevel,
     info: DatasetInfo,
     analysis_grid: int,
     remap_op: str,
@@ -168,18 +168,18 @@ def _emit(
         "metric": spec.name,
         "arity": spec.arity,
         "higher_is_better": spec.higher_is_better,
-        "degradation": rung.label,
-        "degradation_op": rung.op,
-        "degradation_family": rung.family,
-        "level": rung.level,
+        "degradation": severity_level.label,
+        "degradation_op": severity_level.op,
+        "degradation_family": severity_level.family,
+        "level": severity_level.level,
         "severity": severity,
-        "severity_nominal": rung.severity,
-        "calibration": rung.calibration or "",
+        "severity_nominal": severity_level.severity,
+        "calibration": severity_level.calibration or "",
         "severity_degenerate": degenerate,
         "energy_removed": energy_removed,
         "energy_changed": energy_changed,
-        "severity_name": rung.severity_name,
-        "variant_label": rung.variant_label,
+        "severity_name": severity_level.severity_name,
+        "variant_label": severity_level.variant_label,
         "seed": seed,
         "wall_time_s": wall,
     }
@@ -203,7 +203,7 @@ def _map_key(field: str, variant: str, frame_index: int) -> str:
 def run(
     trajectory: Trajectory,
     metrics: Sequence[MetricSpec],
-    rungs: Sequence[Rung],
+    severity_levels: Sequence[SeverityLevel],
     *,
     fields: Sequence[str],
     selection: TimeSelection | None = None,
@@ -214,16 +214,16 @@ def run(
     maps: MapRequest | None = None,
     calibration_frames: int = 5,
 ) -> PipelineResult:
-    """Evaluate every metric against every rung, over the selected frames.
+    """Evaluate every metric against every severity level, over the selected frames.
 
     Args:
         trajectory: Source of frames.
         metrics: Metric specs to evaluate.
-        rungs: The degradation ladder, including its reference rung.
+        severity levels: The degradation ladder, including its reference severity level.
         fields: Canonical field names to read. Metrics that do not accept a field skip it.
         selection: Which frames to evaluate. Defaults to all of them.
         dataset: Provenance copied onto every row.
-        seed: Run seed; per-rung generators derive from it deterministically.
+        seed: Run seed; per-severity level generators derive from it deterministically.
         analysis_resolution: IN-2 analysis grid, or None for the native resolution.
         remap_method: ``"block_mean"`` (conservative) or ``"subsample"``.
         maps: Which pointwise maps to retain.
@@ -259,7 +259,7 @@ def run(
 
     probe = remap_frame(trajectory.frame(int(indices[0]), fields), factor,
                         method=remap_method)
-    rungs = _runnable_rungs(rungs, probe, fields, seed=seed, calibration=calibration,
+    severity_levels = _runnable_levels(severity_levels, probe, fields, seed=seed, calibration=calibration,
                             analysis_grid=grid_size)
 
     rows: list[dict[str, Any]] = []
@@ -276,10 +276,10 @@ def run(
         available = [f for f in fields if f in frame.fields]
         ref_rms = reference_fluctuation_rms(frame, available)
         variants = {
-            rung.variant_label: (rung, apply_rung(rung, frame, available, seed=seed,
+            severity_level.variant_label: (severity_level, apply_severity_level(severity_level, frame, available, seed=seed,
                                                   reference_rms=ref_rms,
                                                   calibration=calibration))
-            for rung in rungs
+            for severity_level in severity_levels
         }
         t_deg += time.perf_counter() - t0
 
@@ -297,9 +297,9 @@ def run(
                 )
                 kwargs = {"ctx": ctx} if spec.takes_ctx else {}
 
-                for label, (rung, applied) in variants.items():
+                for label, (severity_level, applied) in variants.items():
                     candidate = applied.fields[field]
-                    severity = applied.resolved.get(field, rung.severity)
+                    severity = applied.resolved.get(field, severity_level.severity)
                     args = (
                         (reference, candidate) if spec.arity == "pairwise" else (candidate,)
                     )
@@ -308,9 +308,9 @@ def run(
                     wall = time.perf_counter() - t1
                     t_metric += wall
                     rows.extend(
-                        _emit(spec, field, frame, rung, dataset, grid_size,
+                        _emit(spec, field, frame, severity_level, dataset, grid_size,
                               remap_method, seed, value, wall, severity,
-                              field in applied.unchanged and not rung.is_reference,
+                              field in applied.unchanged and not severity_level.is_reference,
                               applied.energy_removed.get(field, float("nan")),
                               applied.energy_changed.get(field, float("nan")))
                     )
@@ -319,7 +319,7 @@ def run(
                         maps.enabled
                         and spec.has_pointwise
                         and frame.index in keep_frames
-                        and (not maps.axes or rung.label in maps.axes)
+                        and (not maps.axes or severity_level.label in maps.axes)
                         and (not maps.fields or field in maps.fields)
                     ):
                         m = spec.pointwise(*args, **kwargs)
@@ -330,7 +330,7 @@ def run(
     # A metric may accept none of the available fields, which is a legitimate no-op
     # rather than an error -- but pd.DataFrame([]) has no columns to coerce.
     df = _coerce(pd.DataFrame(rows)) if rows else empty_results()
-    df = _flag_repeated_rungs(df)
+    df = _flag_repeated_levels(df)
     return PipelineResult(
         rows=df,
         maps=stored_maps,
@@ -342,20 +342,20 @@ def run(
     )
 
 
-def _flag_repeated_rungs(df: pd.DataFrame) -> pd.DataFrame:
-    """Mark rungs that turn out to be the same experiment as a milder rung, and log them.
+def _flag_repeated_levels(df: pd.DataFrame) -> pd.DataFrame:
+    """Mark severity levels that turn out to be the same experiment as a milder severity level, and log them.
 
-    Detected by measurement rather than by declaration: two rungs whose severities resolve to the
+    Detected by measurement rather than by declaration: two severity levels whose severities resolve to the
     same quantised operation produce a bitwise identical field, hence an exactly equal
     ``energy_changed``. That is a stronger test than asking each operator to describe how it
     rounds, and it needs no such description -- it catches a sharp filter landing twice on the same
     set of modes, and a windowed kernel landing twice on the same odd width, alike.
 
-    Such a rung is not padding, it is corruption: the rank correlation would score the tie as
-    agreement and the adjacent-rung separability would compare a distribution against itself. It is
+    Such a severity level is not padding, it is corruption: the rank correlation would score the tie as
+    agreement and the adjacent-severity level separability would compare a distribution against itself. It is
     also not a misconfiguration: 69% of density's fluctuation energy is in the four diagonal modes
     at |k| = sqrt(2), so the available cutoffs there are few and far apart and a sharp ladder has
-    only a couple of distinct rungs however it is written.
+    only a couple of distinct severity levels however it is written.
     """
     if df.empty:
         return df
@@ -377,18 +377,18 @@ def _flag_repeated_rungs(df: pd.DataFrame) -> pd.DataFrame:
             log.warning(
                 "%s / %s: level(s) %s repeat the experiment of level(s) %s and are excluded "
                 "from the acceptance statistics. The field's spectrum cannot resolve that many "
-                "distinct rungs for this operator.",
+                "distinct severity levels for this operator.",
                 field, axis, [a for a, _ in levels], [b for _, b in levels],
             )
 
-    _log_noop_rungs(df)          # before the merge, so the two reasons stay distinguishable
+    _log_noop_levels(df)          # before the merge, so the two reasons stay distinguishable
     df = df.copy()
     df["severity_degenerate"] = df["severity_degenerate"] | repeated
     return df
 
 
-def _log_noop_rungs(df: pd.DataFrame) -> None:
-    """Log rungs whose severity resolved to one at which the operator does nothing.
+def _log_noop_levels(df: pd.DataFrame) -> None:
+    """Log severity levels whose severity resolved to one at which the operator does nothing.
 
     Measured, not modelled: an operator is treated as having done nothing when it moved the field
     by less than round-off relative to its own fluctuation.
@@ -433,16 +433,16 @@ def _map_frames(maps: MapRequest, indices: np.ndarray) -> set[int]:
     return out
 
 
-def _runnable_rungs(
-    rungs: Sequence[Rung],
+def _runnable_levels(
+    severity_levels: Sequence[SeverityLevel],
     probe: Frame,
     fields: Sequence[str],
     *,
     seed: int,
     calibration: Calibration,
     analysis_grid: int,
-) -> list[Rung]:
-    """Drop rungs that cannot run on the analysis grid, before the frame loop starts.
+) -> list[SeverityLevel]:
+    """Drop severity levels that cannot run on the analysis grid, before the frame loop starts.
 
     ``analysis_grid.resolution`` is one of the two documented size knobs, and turning it down
     far enough puts the configured ladder outside what the grid can support: the shipped ladder
@@ -452,30 +452,30 @@ def _runnable_rungs(
     trajectory that is a slow way to learn about a typo.
 
     The check is a trial application on one already-remapped frame, so it needs no per-operator
-    declaration of what it can support and stays correct as operators are added. Rungs that fail
+    declaration of what it can support and stays correct as operators are added. Severity levels that fail
     are dropped with a warning naming the knob, and the run proceeds on the rest: an unsupported
-    rung is one missing experiment, not a reason to discard the others.
+    severity level is one missing experiment, not a reason to discard the others.
 
     Raises:
-        ValueError: If no rung survives, since there is then nothing to measure.
+        ValueError: If no severity level survives, since there is then nothing to measure.
     """
-    keep: list[Rung] = []
-    for rung in rungs:
+    keep: list[SeverityLevel] = []
+    for severity_level in severity_levels:
         try:
-            apply_rung(rung, probe, fields, seed=seed, calibration=calibration)
-        except Exception as exc:  # noqa: BLE001 - any failure means the rung cannot run here
+            apply_severity_level(severity_level, probe, fields, seed=seed, calibration=calibration)
+        except Exception as exc:  # noqa: BLE001 - any failure means the severity level cannot run here
             log.warning(
                 "dropping %s level %d (%s = %g): it cannot run on the %d-cell analysis grid "
                 "(%s). Raise analysis_grid.resolution or lower this severity.",
-                rung.label, rung.level, rung.severity_name, rung.severity,
+                severity_level.label, severity_level.level, severity_level.severity_name, severity_level.severity,
                 analysis_grid, exc,
             )
             continue
-        keep.append(rung)
+        keep.append(severity_level)
 
     if not keep:
         raise ValueError(
-            f"no ladder rung can run on the {analysis_grid}-cell analysis grid; every "
+            f"no ladder severity_level can run on the {analysis_grid}-cell analysis grid; every "
             "configured severity was rejected. Raise analysis_grid.resolution."
         )
     return keep

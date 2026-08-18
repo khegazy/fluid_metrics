@@ -179,7 +179,7 @@ def run_folder(tmp_path):
         np.random.default_rng(0).standard_normal((16, 8)))})
     write_run_meta(folder, run_id=1, config_hash=digest, metric="mse",
                    dataset="synthetic_d", n_frames=8, fields=["vorticity"],
-                   analysis_grid=16, ladder_axes=["gaussian_blur"], n_rungs=12, seed=1,
+                   analysis_grid=16, ladder_axes=["gaussian_blur"], n_severity_levels=12, seed=1,
                    command="python evaluate.py metrics=[mse]")
     return folder
 

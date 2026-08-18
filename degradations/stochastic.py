@@ -2,7 +2,7 @@
 
 Noise severities are relative to the **fluctuation** RMS, never the raw RMS. Density on
 this data is 1.0 +/- 1.8e-4, so ``0.001 * RMS(raw)`` would be five times the entire signal
-and the mildest rung would already be total destruction -- the ladder would be flat-topped
+and the mildest severity level would already be total destruction -- the ladder would be flat-topped
 and non-monotone for every metric. That single choice decides whether the noise axis
 produces usable data at all.
 """
@@ -48,7 +48,7 @@ def multiplicative_noise(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     severity_name="n/a",
     severity_units="",
     severity_direction="increasing",
-    ordinal=False,  # a pass/fail canary, NOT a rung on any monotone axis
+    ordinal=False,  # a pass/fail canary, NOT a severity level on any monotone axis
     stochastic=True,
     defaults={"match_moments": True},
 )

@@ -106,7 +106,7 @@ def translate_subpixel(
     severity_name="draw",
     severity_units="",
     severity_direction="increasing",
-    ordinal=False,   # a reference measurement, not a rung on a monotone axis
+    ordinal=False,   # a reference measurement, not a severity level on a monotone axis
     stochastic=True,
 )
 def random_large_translation(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:

@@ -120,7 +120,7 @@ class Style:
         return self.axis_styles.get(name, "-")
 
     def level_colours(self, base: str, n: int) -> list[str]:
-        """A lightness ramp within one hue: family by colour, rung by lightness.
+        """A lightness ramp within one hue: family by colour, severity level by lightness.
 
         Keeps twenty series readable when they are faceted a handful at a time.
         """

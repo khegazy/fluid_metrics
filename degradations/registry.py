@@ -97,7 +97,7 @@ class DegradationSpec:
         """Order a severity list by increasing damage.
 
         A ``decreasing`` operator (low-pass cutoff, say) is sorted descending, so index 0
-        is always the mildest rung whatever order the config author wrote.
+        is always the mildest severity level whatever order the config author wrote.
         """
         return sorted(severities, reverse=self.severity_direction == "decreasing")
 

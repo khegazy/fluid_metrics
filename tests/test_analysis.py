@@ -121,7 +121,7 @@ def test_non_monotone_axis_is_detected():
     assert row["monotone_fraction"] == pytest.approx(0.0)
 
 
-def test_overlapping_rungs_lower_the_separability_without_hurting_rho():
+def test_overlapping_severity_levels_lower_the_separability_without_hurting_rho():
     """A metric can be monotone in the median and still unable to rank two models."""
     clean = an.summarise_axes(make_frame(axes={"a": [1.0, 2.0]}, noise=0.0),
                               n_bootstrap=0).iloc[0]
@@ -132,7 +132,7 @@ def test_overlapping_rungs_lower_the_separability_without_hurting_rho():
 
 
 def test_probe_axes_get_no_rank_correlation():
-    """The IN-4 field and the anchor are not rungs; correlating them would be meaningless."""
+    """The IN-4 field and the anchor are not severity levels; correlating them would be meaningless."""
     df = make_frame(axes={"a": [1.0, 2.0], "gaussian_impostor": [9.0],
                           "uncorrelated": [10.0, 10.0]})
     axes = an.summarise_axes(df, n_bootstrap=0)
@@ -167,7 +167,7 @@ def test_bootstrap_is_skipped_when_there_are_too_few_frames():
 # --- probes ------------------------------------------------------------------------------
 
 
-def test_probe_summary_reports_damage_and_the_nearest_rung():
+def test_probe_summary_reports_damage_and_the_nearest_level():
     df = make_frame(
         axes={"a": [2.0, 5.0, 8.0], "gaussian_impostor": [5.0],
               "uncorrelated": [10.0, 10.0]}
@@ -175,7 +175,7 @@ def test_probe_summary_reports_damage_and_the_nearest_rung():
     probes = an.probe_summary(df, an.normalisation(df))
     row = probes.iloc[0]
     assert row["gaussian_impostor_damage"] == pytest.approx(0.5)
-    assert row["gaussian_impostor_nearest_rung"] == "a=2"
+    assert row["gaussian_impostor_nearest_level"] == "a=2"
     assert row["uncorrelated_damage"] == pytest.approx(1.0)
 
 
@@ -245,7 +245,7 @@ def test_cross_metric_correlation_finds_duplicates():
     assert rho.loc["a", "c"] == pytest.approx(-1.0)
 
 
-def test_cross_metric_correlation_excludes_the_reference_rung():
+def test_cross_metric_correlation_excludes_the_reference_level():
     """Every pairwise metric is 0 there, so keeping it would pull correlations to +1."""
     a = make_frame(metric="a", axes={"x": [1.0, 2.0, 3.0, 4.0]})
     c = make_frame(metric="c", axes={"x": [4.0, 3.0, 2.0, 1.0]})
@@ -277,7 +277,7 @@ def test_per_frame_correlation_survives_a_trend_in_the_field():
     """The defect this statistic exists to avoid.
 
     A field whose amplitude grows along the trajectory makes the pooled correlation
-    meaningless: the worst rung early is smaller than the mildest rung late. Measured on
+    meaningless: the worst severity level early is smaller than the mildest severity level late. Measured on
     the real density field, every axis was perfectly ordered within every frame while the
     pooled value read between 0.10 and 0.91.
     """

@@ -42,9 +42,9 @@ def traj(tmp_path):
 
 def evaluate(traj, metric_names=("mse", "mae"), **kw):
     specs = [metric_registry.get(n) for n in metric_names]
-    rungs = build_ladder(LADDER)
+    severity_levels = build_ladder(LADDER)
     kw.setdefault("selection", TimeSelection(start=1))
-    return run(traj, specs, rungs, fields=["density", "velocity"],
+    return run(traj, specs, severity_levels, fields=["density", "velocity"],
                dataset=INFO, seed=7, **kw)
 
 
@@ -91,7 +91,7 @@ def test_provenance_is_on_every_row(traj):
 # --- correctness of the loop ----------------------------------------------------------
 
 
-def test_reference_rung_is_exactly_zero_for_pairwise_metrics(traj):
+def test_reference_level_is_exactly_zero_for_pairwise_metrics(traj):
     df = evaluate(traj).rows
     ref = df[df["variant_label"] == "reference"]
     assert len(ref) > 0

@@ -61,11 +61,11 @@ SECTIONS: tuple[Section, ...] = (
             "Rank correlation with degradation severity, computed within each ladder "
             "axis and never across, with an interval that accounts for the "
             "autocorrelation of the trace in time."),
-    Section(5, "separability", "Can it separate adjacent rungs?",
-            "Monotone medians are not sufficient. If the distributions of adjacent rungs "
+    Section(5, "separability", "Can it separate adjacent severity levels?",
+            "Monotone medians are not sufficient. If the distributions of adjacent severity levels "
             "overlap, the metric cannot rank two models that differ by one step."),
     Section(6, "sensitivity", "When and where does it fire?",
-            "The rung at which the metric first departs from its clean value, the rung at "
+            "The severity level at which the metric first departs from its clean value, the severity level at "
             "which it saturates, and what the field actually looks like at each -- so the "
             "numbers can be checked against the eye."),
     Section(7, "selectivity", "What does it detect?",

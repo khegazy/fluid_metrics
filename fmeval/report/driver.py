@@ -302,7 +302,7 @@ def _section_prose(key: str, ctx: ReportContext) -> str:
             # than an error, so the section says so instead of taking down the report.
             return (
                 "Rank correlation is undefined on every ladder axis: the metric's value does "
-                "not vary across the rungs by more than floating-point round-off. For a "
+                "not vary across the severity levels by more than floating-point round-off. For a "
                 "single-field invariant measured against operators that preserve it, that is "
                 "the correct result rather than a defect."
             )

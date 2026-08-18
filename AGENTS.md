@@ -141,7 +141,7 @@ because smoothing reduces such quantities rather than increasing them. If you fi
 
 On an axis the quantity is *invariant* to — a translation, for a quantity that does not depend on
 position — `rho` is reported as **NaN**, not as a number. It used to be a number: `np.roll` cannot
-change enstrophy but it does change the summation order inside `np.mean`, so the rungs differed in
+change enstrophy but it does change the summation order inside `np.mean`, so the severity levels differed in
 the last bits, in an arbitrary order, and ranking that produced a confident-looking 0.707 printed
 beside genuine correlations. Anything whose variation across an axis is below a relative
 `analysis.DEGENERATE_SPAN` is now withheld rather than reported. The same applies to the damage
@@ -232,18 +232,18 @@ deterministic operators stay consistent across fields and stochastic ones draw i
 If you genuinely need cross-field access, declare `whole_frame=True`.
 
 **`severity_direction` is not cosmetic.** The ladder builder sorts severities into
-increasing-damage order before numbering the rungs. Get this wrong and a low-pass cutoff list
+increasing-damage order before numbering the severity levels. Get this wrong and a low-pass cutoff list
 written `[64, 32, 16, 8]` produces a perfectly inverted ladder and a rank correlation of −1,
 with nothing else in the pipeline noticing. A test *verifies* your declaration by measuring
 that damage really rises with level.
 
 **`ordinal=False` for probes.** The Gaussian impostor and the unrelated-field anchor are not
-rungs on any monotone axis. Folding a probe into a family as "level 6" silently corrupts every
+severity levels on any monotone axis. Folding a probe into a family as "level 6" silently corrupts every
 rank correlation it touches.
 
 **Express relative severities against the fluctuation, never the raw value.** Density here is
 `1.0 ± 1.8e-4`. A noise amplitude expressed as a fraction of the raw RMS would make the mildest
-rung total destruction and the ladder flat-topped for every metric.
+severity level total destruction and the ladder flat-topped for every metric.
 
 **`calibration` is how you avoid a severity that means different things on different fields.**
 A wavenumber or a smoothing width in cells lands in a completely different place depending on
@@ -268,7 +268,7 @@ real number while many operators act on a quantised one — a sharp filter selec
 modes, a windowed kernel takes an odd number of cells — so two different nominal severities can
 resolve to the *same experiment*. The harness detects that by measurement rather than by
 declaration: identical operations produce a bitwise identical field and therefore an exactly equal
-`energy_changed`, so the repeat is flagged as `severity_degenerate` and excluded. A rung that
+`energy_changed`, so the repeat is flagged as `severity_degenerate` and excluded. A severity level that
 resolves to doing nothing at all is caught the same way, by measuring that the output moved by more
 than round-off relative to the field's own fluctuation.
 
@@ -359,7 +359,7 @@ resolve onto a wall on another.
 The run logs one line per field and writes `data/calibration.csv`. Read four things from it:
 
 1. **`characteristic_scale`**, in cells. This is the unit every smoothing width is a fraction of.
-   If it approaches the grid size, the harsher blur rungs are smoothing over the whole domain and
+   If it approaches the grid size, the harsher blur severity levels are smoothing over the whole domain and
    are no longer probing anything local.
 2. **`scale_spread`**, the fractional variation across the sampled frames. Above `DRIFT_WARN`
    (0.25) the run warns, and it means what it says: **a single calibration is not trustworthy for
@@ -370,10 +370,10 @@ The run logs one line per field and writes `data/calibration.csv`. Read four thi
 3. **`k_energy_50 / 90 / 99`**, the wavenumbers holding those fractions of the fluctuation energy.
    These tell you immediately how much room a filter ladder has. Density on this data reads
    1 / 2 / 5: with only about three usable shells, a *sharp* filter cannot produce four distinct
-   rungs on density no matter what the config says.
-4. **The degenerate-rung warnings.** The run names every `(field, axis, level)` that resolved onto
-   a milder rung's severity or onto a no-op, and excludes them. A handful is normal and is a fact
-   about the field. Whole axes collapsing to one rung means the severity list does not suit this
+   severity levels on density no matter what the config says.
+4. **The degenerate-severity level warnings.** The run names every `(field, axis, level)` that resolved onto
+   a milder severity level's severity or onto a no-op, and excludes them. A handful is normal and is a fact
+   about the field. Whole axes collapsing to one severity level means the severity list does not suit this
    data, and the fix is a wider or better-placed list of *fractions* — never a per-field number,
    which would make the metric gameable.
 
@@ -572,15 +572,15 @@ listed so nobody has to rediscover them.
 
 | Trap | What happens | Where the fix lives |
 |---|---|---|
-| **Pooling frames for rank correlation** | The flow evolves, so the worst rung early is numerically smaller than the mildest rung late. Every density axis was perfectly ordered *within* every frame while the pooled value read 0.10–0.91 | `analysis.py::_per_frame_rho` |
+| **Pooling frames for rank correlation** | The flow evolves, so the worst severity level early is numerically smaller than the mildest severity level late. Every density axis was perfectly ordered *within* every frame while the pooled value read 0.10–0.91 | `analysis.py::_per_frame_rho` |
 | **Averaging a derived field after a remap** | Block-averaged vorticity is not the curl of the velocity beside it: 5.6% / 18.3% / 25.9% at factors 2 / 4 / 8 | `fmeval/derived.py` |
 | **Mixing stored and recomputed derived fields** | The solver's lattice stencil and a spectral derivative differ by 8.1% rms, so grid-independence would measure the discretisation, not the grid | `fmeval/derived.py::recompute_frame` |
 | **Forgetting that spacing scales with the coarsening factor** | A spectral derivative at a coarse grid with fine spacing is inflated by exactly the factor | `GridSpec.coarsened` |
-| **Deleting k=0 in a high-pass filter** | On density that removes a component four orders of magnitude larger than the cutoff controls; every rung returned an identical damage of 2.7e7 | `degradations/spectral.py` |
+| **Deleting k=0 in a high-pass filter** | On density that removes a component four orders of magnitude larger than the cutoff controls; every severity level returned an identical damage of 2.7e7 | `degradations/spectral.py` |
 | **Drawing impostor phases directly** | Violates Hermitian symmetry at the self-conjugate modes, so `irfftn` discards the imaginary part and corrupts the spectrum. Gives flatness 47.9 instead of 3 | `degradations/stochastic.py` |
-| **Scavenging the unrelated-field anchor from a ladder rung** | A 16-cell translation reaches only ~0.6 of the true value, inflating every damage score by ~1.6x | `analysis.py::normalisation` |
+| **Scavenging the unrelated-field anchor from a ladder severity_level** | A 16-cell translation reaches only ~0.6 of the true value, inflating every damage score by ~1.6x | `analysis.py::normalisation` |
 | **Using a distant frame as a statistical twin** | The flow decays: 4000 steps away has 0.70 of the variance and a different flatness, and scores *closer* than a true twin | `degradations/geometric.py::random_large_translation` |
-| **Including the reference rung in cross-metric correlation** | Every pairwise metric is 0 there, adding a shared point that pulls every correlation toward +1 | `analysis.py::cross_metric_correlation` |
+| **Including the reference severity level in cross-metric correlation** | Every pairwise metric is 0 there, adding a shared point that pulls every correlation toward +1 | `analysis.py::cross_metric_correlation` |
 | **A raw `imshow` on a spatial field** | Data is `(X, Y)`, so it transposes every picture — and looks fine on square data | `fmeval/report/style.py::show_field` |
 | **Assuming `pressure == density / 3` bitwise** | The solver writes `density * float64(1/3)`; the two differ by one ulp | `fmeval/data/kinet_raw.py` |
 | **Reading `time_scale` as a clock** | `time_scale[0]` is NaN and the values are ~0.5 constant. It is a solver stability quantity; use `time` | `fmeval/data/kinet_raw.py` |
@@ -589,7 +589,7 @@ listed so nobody has to rediscover them.
 | **`import kinet`** | Pulls in `mpi4py`, which cannot load libmpi on a login node. The spectral diagnostics are vendored instead | `fmeval/external/kinet_spectral.py` |
 | **Two definitions of `\|k\|`** | The filters compared a continuous magnitude, the calibration binned into shells of `rint(\|k\|)`, so the diagonal modes fell on opposite sides of one cutoff. On density a low-pass asked to remove 30% removed 99.997% | `fmeval/wavenumbers.py` |
 | **Ranking values that differ only in the last bits** | `np.roll` cannot change a translation-invariant quantity but does change the summation order in `np.mean`. The reported `rho` was 0.707 over a relative 1.6e-16 | `analysis.py::_is_round_off` |
-| **A median as the scale in a degeneracy guard** | When most rungs are round-off the median collapses with them, so the guard compares noise against noise and passes — defeated in exactly the case it exists for. Use the largest value | `analysis.py::normalisation` |
+| **A median as the scale in a degeneracy guard** | When most severity levels are round-off the median collapses with them, so the guard compares noise against noise and passes — defeated in exactly the case it exists for. Use the largest value | `analysis.py::normalisation` |
 | **Assuming every metric rises with damage** | Three one-sided statistics scored a perfectly ordered similarity metric at `monotone_fraction = 0`, `AUC = 0`, `rho = -1`, flagging a correct metric on three criteria | `analysis.py::response_direction` |
 
 Two interpretive traps, which are not bugs but produce wrong conclusions:

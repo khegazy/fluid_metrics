@@ -25,12 +25,12 @@ must be pinned for any comparison. That is the reason the IN-2 remap was built f
 ## What is needed
 
 Dataset configs for the four remaining members, and a renderer for section 12 plotting
-rho, the Gaussian-field damage and the sensitivity rung against `complexity_rank`.
+rho, the Gaussian-field damage and the sensitivity severity level against `complexity_rank`.
 
 ## Acceptance criteria
 
 A multirun over the family produces one comparison folder whose section 12 renders, and
-absolute values are not compared across rungs -- only normalised damage and rank statistics.
+absolute values are not compared across severity levels -- only normalised damage and rank statistics.
 
 ## Related
 

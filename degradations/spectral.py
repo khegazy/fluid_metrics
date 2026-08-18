@@ -14,7 +14,7 @@ directions therefore mean the same thing and rise with damage, and the same conf
 lands in the same relative place on every field. A wavenumber cannot: measured, 99% of the
 density fluctuation energy sits below k = 6 against k = 63 for vorticity, so the previously
 configured cutoffs [2, 4, 8, 16] removed 0.278/0.475/0.684/0.811 of vorticity energy -- a good
-spread -- but 0.697/0.947/0.997/1.000 of density energy, saturating at the second rung so two
+spread -- but 0.697/0.947/0.997/1.000 of density energy, saturating at the second severity level so two
 of the four were the same experiment run twice. The ladder resolves the fraction to a cutoff
 per field against the measured spectrum; the resolved wavenumber is recorded on every row.
 
@@ -109,7 +109,7 @@ def highpass_ideal(x: np.ndarray, severity: float, *, ctx) -> np.ndarray:
     **The k=0 mode is preserved deliberately.** Deleting it removes the spatial mean, which
     for a field like density (1.0 with fluctuations of 2e-4) is a change four orders of
     magnitude larger than anything the cutoff controls. Measured before this was fixed:
-    every rung gave an identical damage of 2.7e7 relative to the unrelated-field level, so
+    every severity level gave an identical damage of 2.7e7 relative to the unrelated-field level, so
     the axis carried no ordering at all and its rank correlation collapsed to 0.10. Keeping
     the mean makes the operator measure what it is named for -- removal of large-scale
     structure -- and restores a monotone ladder on every field.

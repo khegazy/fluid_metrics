@@ -136,7 +136,7 @@ def test_a_ctx_using_pairwise_metric_needs_no_harness_change(temporary_metric):
     assert len(result.rows) > 0
     reference_rows = result.rows[result.rows["level"] == 0]
     assert np.allclose(reference_rows["value"], 0.0), (
-        "a pairwise metric must return exactly 0 on the reference rung"
+        "a pairwise metric must return exactly 0 on the reference severity level"
     )
 
 
@@ -197,12 +197,12 @@ def test_a_new_degradation_inherits_the_whole_contract(temporary_degradation_loc
         step = 2.0 * scale / severity
         return mean + np.round(fluctuation / step) * step
 
-    rungs = build_ladder({"quantise": {"op": "_probe_quantise",
+    severity_levels = build_ladder({"quantise": {"op": "_probe_quantise",
                                        "severities": [4, 16, 64]}},
                          include_reference=False)
 
-    # `decreasing` means a smaller value is worse, so the mildest rung must be the largest.
-    assert [r.severity for r in rungs] == [64.0, 16.0, 4.0], (
+    # `decreasing` means a smaller value is worse, so the mildest severity level must be the largest.
+    assert [r.severity for r in severity_levels] == [64.0, 16.0, 4.0], (
         "sort_severities did not order a decreasing-direction ladder by increasing damage"
     )
 
@@ -210,10 +210,10 @@ def test_a_new_degradation_inherits_the_whole_contract(temporary_degradation_loc
     spec = deg_registry.get("_probe_quantise")
     damage = [
         float(np.mean((field - spec.fn(field, r.severity, ctx=ctx_for(field))) ** 2))
-        for r in rungs
+        for r in severity_levels
     ]
     assert damage == sorted(damage), (
-        f"damage {damage} is not increasing across rungs {[r.severity for r in rungs]}; "
+        f"damage {damage} is not increasing across severity_levels {[r.severity for r in severity_levels]}; "
         "severity_direction='decreasing' would be wrong"
     )
 
@@ -365,7 +365,7 @@ def test_h_minus_one_is_more_displacement_tolerant_than_the_l2_baseline(temporar
             return recompute_frame(self._inner.frame(t, fields))
 
     specs = [metric_registry.get("mse"), metric_registry.get("_h_minus_one")]
-    rungs = build_ladder({
+    severity_levels = build_ladder({
         "translate_x": {"op": "translate", "severities": [1, 2, 4],
                         "options": {"axis": "x"}},
         "uncorrelated": {"op": "random_large_translation", "severities": [0, 1, 2]},
@@ -373,7 +373,7 @@ def test_h_minus_one_is_more_displacement_tolerant_than_the_l2_baseline(temporar
     trajectory = _Recomputing(KinetRawTrajectory(path))
     try:
         result = run(
-            trajectory, specs, rungs, fields=["velocity", "vorticity"],
+            trajectory, specs, severity_levels, fields=["velocity", "vorticity"],
             # Developed flow: the dev trajectory is the first 100 solver steps and is
             # explicitly not physically representative.
             selection=TimeSelection(start=5000, stop=6001, reduction=250),
@@ -423,13 +423,13 @@ def test_two_metrics_can_rank_identically_and_still_differ_in_magnitude(temporar
     metric_registry.discover()
     deg_registry.discover()
     specs = [metric_registry.get("mae"), metric_registry.get("mse")]
-    rungs = build_ladder({
+    severity_levels = build_ladder({
         "gaussian_blur": {"severities": [0.5, 1.0, 2.0, 4.0]},
         "translate_x": {"op": "translate", "severities": [1, 2, 4],
                         "options": {"axis": "x"}},
         "uncorrelated": {"op": "random_large_translation", "severities": [0, 1, 2]},
     })
-    result = run(SyntheticTrajectory(SHAPE), specs, rungs, fields=["density"],
+    result = run(SyntheticTrajectory(SHAPE), specs, severity_levels, fields=["density"],
                  dataset=DatasetInfo(name="synthetic"), seed=0)
 
     correlation = an.cross_metric_correlation(result.rows, field="density")

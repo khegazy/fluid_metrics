@@ -120,7 +120,7 @@ each would have quietly corrupted results:
    stored vorticity with a recomputed one — they differ by 8.1% rms because the solver used a
    lattice stencil.
 3. **High-pass filters must preserve the spatial mean.** Deleting k=0 on density removes a
-   component four orders of magnitude larger than the cutoff controls; every rung gave an
+   component four orders of magnitude larger than the cutoff controls; every severity level gave an
    identical damage of 2.7e7 and the axis carried no ordering at all.
 4. **The unrelated-field anchor must be measured, not scavenged.** A 16-cell translation
    reaches only ~0.6 of the true value, which inflated every damage score by ~1.6x. A distant
@@ -129,21 +129,21 @@ each would have quietly corrupted results:
 5. **Severity ranges must follow each field's spectrum.** Fixed cutoffs applied to every field
    alike produce flags that point at the axis rather than the metric: the same blur list reached
    1.2% of the unrelated-field level on density while working well on vorticity, and the same
-   filter cutoffs saturated by the second rung on density. Fixed: severities on the
+   filter cutoffs saturated by the second severity level on density. Fixed: severities on the
    smoothing and spectral axes are now *relative* — a fraction of the field's characteristic
    scale, or of the energy a filter removes — and resolved per field against a spectrum measured
    from the data. Every calibrated axis is now monotone on both fields from one config that names
    no field. Three further defects surfaced only when this was measured: a low-pass severity
    mapped to the wrong side of its cutoff inverted that axis while leaving every number
    plausible; rounding a calibrated width to an even window displaced the field by half a cell
-   and broke monotonicity; and a rung can resolve onto a milder rung's severity or onto a no-op,
-   which the rank correlation would otherwise score as agreement. Rungs that are not distinct
+   and broke monotonicity; and a severity level can resolve onto a milder severity level's severity or onto a no-op,
+   which the rank correlation would otherwise score as agreement. Severity levels that are not distinct
    experiments are now detected and excluded (`severity_degenerate`).
 
    Two limits calibration does not remove, both properties of these fields rather than of the
    config: 69% of density's fluctuation energy sits in the four diagonal modes at |k| = √2 and
    only 3e-5 of it in the axis modes at |k| = 1, so the available cutoffs there are few and far
-   apart and a *sharp* filter cannot resolve four rungs at all. The high-pass axis is squeezed
+   apart and a *sharp* filter cannot resolve four severity levels at all. The high-pass axis is squeezed
    between a no-op below those diagonal modes and near-total damage above them, so it alone does
    not reach the factor-five damage range the other axes do.
 

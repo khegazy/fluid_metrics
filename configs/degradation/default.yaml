@@ -19,11 +19,11 @@ ladder:
   # cells that bite on vorticity do almost nothing on density -- the old list reached 1.2% of
   # the unrelated-field level there, so that axis carried no signal at all.
   #
-  # A Gaussian takes a fractional sigma and its rungs stay distinct at any spacing. The windowed
+  # A Gaussian takes a fractional sigma and its severity levels stay distinct at any spacing. The windowed
   # kernels round to an ODD number of cells -- an even window has no centre cell, so it displaces
   # the field by half a cell -- which quantises them coarsely: on a ~34-cell field two fractions
   # closer than about 0.06 land on the same width. The lists below are spaced to clear that on
-  # both fields, and any rung that collapses anyway is flagged and excluded rather than counted.
+  # both fields, and any severity level that collapses anyway is flagged and excluded rather than counted.
   gaussian_blur:       {enabled: true,  severities: [0.02, 0.05, 0.10, 0.20]}
   box_blur:            {enabled: true,  severities: [0.06, 0.14, 0.25, 0.40]}
   median_blur:         {enabled: true,  severities: [0.06, 0.14, 0.22]}
@@ -37,23 +37,23 @@ ladder:
   #
   # A cutoff in absolute wavenumber cannot serve both fields: [2, 4, 8, 16] removed
   # 0.28/0.48/0.68/0.81 of the vorticity energy but 0.70/0.95/1.00/1.00 of the density energy,
-  # saturating at the second rung so two of four rungs were the same experiment.
+  # saturating at the second severity level so two of four severity levels were the same experiment.
   #
   # A sharp filter must still land on an available set of modes, and no config can undo that.
   # Density's fluctuation energy is 69% in the four diagonal modes at |k| = sqrt(2) and only 3e-5
   # in the axis modes at |k| = 1 just below them, so two consecutive available cutoffs there
-  # differ by most of the field and a sharp ladder has only a couple of distinct rungs however
+  # differ by most of the field and a sharp ladder has only a couple of distinct severity levels however
   # these numbers are written. The Butterworth pair rolls off smoothly and does resolve them,
   # which is a second reason to run both rather than treating the smooth filter as only a ringing
-  # control. The report prints the fraction each rung actually removed beside the fraction it was
-  # asked for, so a rung that landed on the wrong side of those diagonal modes is visible.
+  # control. The report prints the fraction each severity level actually removed beside the fraction it was
+  # asked for, so a severity level that landed on the wrong side of those diagonal modes is visible.
   #
   # Both filters are floored at the lowest usable cutoff, |k| = 1. That squeezes the high-pass
   # axis from both sides on a bottom-heavy field: at the floor the filter passes essentially
-  # everything -- with the k=0 mean deliberately preserved -- so the rung is not an experiment at
+  # everything -- with the k=0 mean deliberately preserved -- so the severity level is not an experiment at
   # all, while one step above it the damage is already most of the way to an unrelated field. The
   # window below is the widest measured: it spans a factor 3.4 in damage on vorticity and gives
-  # density two clearly separated rungs of four. That is a property of these fields' spectra, not
+  # density two clearly separated severity levels of four. That is a property of these fields' spectra, not
   # something a severity list can fix, and it is why the high-pass axis alone does not reach the
   # factor-five damage range the other axes do.
   lowpass_ideal:       {enabled: true,  severities: [0.05, 0.15, 0.30, 0.45]}
@@ -82,5 +82,5 @@ ladder:
 
   # Measures the value a metric gives two statistically identical but positionally
   # unrelated fields. This defines D = 1 for the dimensionless damage score, so it is a
-  # reference measurement rather than a rung; several draws average out its variance.
+  # reference measurement rather than a severity level; several draws average out its variance.
   uncorrelated:        {enabled: true, op: random_large_translation, severities: [0, 1, 2, 3, 4, 5]}

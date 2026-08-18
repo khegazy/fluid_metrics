@@ -1,4 +1,4 @@
-# No ladder rung reaches the unrelated-field level
+# No ladder severity level reaches the unrelated-field level
 
 **Category:** method
 **Priority:** medium
@@ -7,7 +7,7 @@
 ## Context
 
 `saturation_level` is undefined for every axis and metric measured so far: nothing on the
-ladder reaches 90% of the way from clean to the unrelated-field value. The most severe rung
+ladder reaches 90% of the way from clean to the unrelated-field value. The most severe severity_level
 available is a 16-cell translation, which reaches 0.45 for MSE and 0.68 for MAE on vorticity.
 
 That is honest -- and it means the saturation column carries no information at present, and a

@@ -39,7 +39,7 @@ Designed, hooks in place, not built.
 
 | ID | Title | Priority |
 |---|---|---|
-| [031](031-saturation-never-reached.md) | No ladder rung reaches the unrelated-field level | medium |
+| [031](031-saturation-never-reached.md) | No ladder severity level reaches the unrelated-field level | medium |
 
 ## Technical debt
 

@@ -1,4 +1,4 @@
-"""Turn a config ladder into concrete rungs, and apply them to frames.
+"""Turn a config ladder into concrete severity levels, and apply them to frames.
 
 A **ladder entry** (its label) is the unit of rank correlation, not the family. The config
 keys the ladder by an arbitrary instance label with ``op`` naming the registry entry, so
@@ -30,7 +30,7 @@ from .data.base import Frame
 
 
 @dataclass(frozen=True)
-class Rung:
+class SeverityLevel:
     """One point on one ladder axis."""
 
     label: str
@@ -53,7 +53,7 @@ class Rung:
 
     @property
     def variant_label(self) -> str:
-        """Stable identifier for this rung, used in filenames and result rows."""
+        """Stable identifier for this severity level, used in filenames and result rows."""
         if self.op == "identity":
             return "reference"
         return f"{self.label}_l{self.level}"
@@ -63,7 +63,7 @@ class Rung:
         return self.op == "identity"
 
 
-REFERENCE_RUNG = Rung(
+REFERENCE_LEVEL = SeverityLevel(
     label="identity",
     op="identity",
     family="identity",
@@ -83,27 +83,27 @@ def build_ladder(
     include_reference: bool = True,
     only: Sequence[str] = (),
     skip: Sequence[str] = (),
-) -> list[Rung]:
-    """Expand a config ladder into a flat, ordered list of rungs.
+) -> list[SeverityLevel]:
+    """Expand a config ladder into a flat, ordered list of severity levels.
 
     Args:
         ladder_cfg: Mapping of entry label -> ``{op?, severities, options?, enabled?}``.
             ``op`` defaults to the label.
-        include_reference: Prepend the identity rung (level 0 of the whole ladder).
+        include_reference: Prepend the identity severity level (level 0 of the whole ladder).
         only: If non-empty, keep only these entry labels.
         skip: Entry labels to drop, applied after ``only``.
 
     Returns:
-        Rungs in config order, severities within each entry sorted into
+        Severity levels in config order, severities within each entry sorted into
         increasing-damage order and numbered from level 1.
 
     Raises:
         KeyError: On an unknown operator name.
         ValueError: On a malformed entry.
     """
-    rungs: list[Rung] = []
+    severity_levels: list[SeverityLevel] = []
     if include_reference:
-        rungs.append(REFERENCE_RUNG)
+        severity_levels.append(REFERENCE_LEVEL)
 
     for label, raw in ladder_cfg.items():
         entry = dict(raw or {})
@@ -130,8 +130,8 @@ def build_ladder(
         # Sorted by increasing damage, so a decreasing-direction list written in any
         # order still gets correct ordinal levels. Getting this wrong inverts a Spearman.
         for level, severity in enumerate(spec.sort_severities(severities), start=1):
-            rungs.append(
-                Rung(
+            severity_levels.append(
+                SeverityLevel(
                     label=label,
                     op=op_name,
                     family=spec.family,
@@ -145,10 +145,10 @@ def build_ladder(
                     options=options,
                 )
             )
-    return rungs
+    return severity_levels
 
 
-def resolve_severity(rung: Rung, field: str,
+def resolve_severity(severity_level: SeverityLevel, field: str,
                     calibration: Calibration | None) -> float:
     """Turn a nominal severity into the absolute value to apply to ``field``.
 
@@ -162,32 +162,32 @@ def resolve_severity(rung: Rung, field: str,
             energy fraction as though it were a wavenumber, which is meaningless and would
             look like a plausible result.
     """
-    if rung.calibration is None:
-        return rung.severity
+    if severity_level.calibration is None:
+        return severity_level.severity
     if calibration is None or field not in calibration:
         raise KeyError(
-            f"{rung.op!r} declares calibration={rung.calibration!r} but no calibration was "
+            f"{severity_level.op!r} declares calibration={severity_level.calibration!r} but no calibration was "
             f"measured for field {field!r}. Its severity is a relative quantity and cannot "
             "be applied as an absolute one."
         )
     measured: FieldCalibration = calibration[field]
-    if rung.calibration in ("energy_above", "energy_below"):
-        side = "above" if rung.calibration == "energy_above" else "below"
-        return measured.cutoff_removing_energy(rung.severity, side)
-    if rung.calibration == "scale":
-        return measured.length_for_scale_fraction(rung.severity)
-    raise KeyError(f"unknown calibration kind {rung.calibration!r}")
+    if severity_level.calibration in ("energy_above", "energy_below"):
+        side = "above" if severity_level.calibration == "energy_above" else "below"
+        return measured.cutoff_removing_energy(severity_level.severity, side)
+    if severity_level.calibration == "scale":
+        return measured.length_for_scale_fraction(severity_level.severity)
+    raise KeyError(f"unknown calibration kind {severity_level.calibration!r}")
 
 
 @dataclass(frozen=True)
-class RungApplication:
-    """The result of applying one rung to one frame, with what it measurably did.
+class SeverityLevelApplication:
+    """The result of applying one severity level to one frame, with what it measurably did.
 
-    A rung's *requested* severity and its *realised* effect are different numbers, and on a field
+    A severity level's *requested* severity and its *realised* effect are different numbers, and on a field
     whose energy is concentrated in a few modes they differ a lot: a sharp filter must land on an
     available set of modes, so the nearest cutoff to a request can remove far more or far less than
     was asked for. Measured on density, whose fluctuation energy is 69% in the four diagonal modes
-    at |k| = sqrt(2), the mildest high-pass rung removes 3e-5 of the energy and the next removes
+    at |k| = sqrt(2), the mildest high-pass severity level removes 3e-5 of the energy and the next removes
     0.70. Reporting only the request would leave a reader unable to tell those apart, so the effect
     is measured per field and carried on every result row.
     """
@@ -197,7 +197,7 @@ class RungApplication:
     resolved: dict[str, float]
     """Absolute severity actually applied, per field. Differs between fields when calibrated."""
     unchanged: set[str]
-    """Fields the operator left alone to within round-off, so the rung is not an experiment."""
+    """Fields the operator left alone to within round-off, so the severity level is not an experiment."""
     energy_removed: dict[str, float]
     """Fraction of the reference's fluctuation energy the operator eliminated.
 
@@ -216,10 +216,10 @@ class RungApplication:
 
 
 @dataclass(frozen=True)
-class RungApplication:
-    """The result of applying one rung to one frame, with what it measurably did.
+class SeverityLevelApplication:
+    """The result of applying one severity level to one frame, with what it measurably did.
 
-    A rung's *requested* severity and its *realised* effect are different numbers, and on a field
+    A severity level's *requested* severity and its *realised* effect are different numbers, and on a field
     with a steep spectrum they differ a lot: a sharp high-pass asked to remove 45% of the density
     energy resolves to the lowest available cutoff and removes either none of it or 69%, because
     69% sits in that one wavenumber shell. Reporting only the request would leave a reader unable
@@ -231,7 +231,7 @@ class RungApplication:
     resolved: dict[str, float]
     """Absolute severity actually applied, per field. Differs between fields when calibrated."""
     unchanged: set[str]
-    """Fields the operator left alone to within round-off, so the rung is not an experiment."""
+    """Fields the operator left alone to within round-off, so the severity level is not an experiment."""
     energy_removed: dict[str, float]
     """Fraction of the reference's fluctuation energy the operator eliminated.
 
@@ -249,8 +249,8 @@ class RungApplication:
     """
 
 
-def apply_rung(
-    rung: Rung,
+def apply_severity_level(
+    severity_level: SeverityLevel,
     frame: Frame,
     fields: Sequence[str],
     *,
@@ -258,43 +258,43 @@ def apply_rung(
     reference_rms: Mapping[str, float] | None = None,
     calibration: Calibration | None = None,
 ) -> tuple[dict[str, np.ndarray], dict[str, float]]:
-    """Apply one rung to the requested fields of a frame.
+    """Apply one severity level to the requested fields of a frame.
 
     Each field gets its own RNG derived from ``(seed, label, frame_index, field)``, so
     stochastic operators draw independently per field while deterministic ones stay
     automatically consistent, and nothing depends on iteration order.
 
     Args:
-        rung: The rung to apply.
+        severity level: The severity level to apply.
         frame: Source frame; its arrays are not modified.
         fields: Which fields to degrade.
         seed: Run-level seed.
         reference_rms: Precomputed fluctuation RMS per field, so noise amplitudes are
-            relative to the *reference* rather than to whatever the previous rung left.
+            relative to the *reference* rather than to whatever the previous severity level left.
         calibration: Measured field properties, needed by any operator declaring a
             ``calibration``.
 
     Returns:
-        A :class:`RungApplication`: the degraded arrays, the absolute severity applied to each
+        A :class:`SeverityLevelApplication`: the degraded arrays, the absolute severity applied to each
         field, the fields left untouched, and how much of each field's fluctuation energy the
         operator removed and changed.
 
         ``unchanged`` exists because a calibrated severity can resolve to a value at which the
-        operator does nothing, and such a rung is not an experiment. Measured: a mild high-pass
+        operator does nothing, and such a severity level is not an experiment. Measured: a mild high-pass
         request on density floors at the lowest usable cutoff |k| = 1, and since the axis modes
         there hold only 3e-5 of the energy -- with the k=0 mean deliberately preserved -- the filter
-        passes essentially everything. Left unflagged such a rung contributes an exactly-zero damage
+        passes essentially everything. Left unflagged such a severity level contributes an exactly-zero damage
         that makes the axis appear to span eleven orders of magnitude.
     """
-    if rung.is_reference:
-        return RungApplication(
+    if severity_level.is_reference:
+        return SeverityLevelApplication(
             fields={name: frame.fields[name] for name in fields},
             resolved={}, unchanged=set(),
             energy_removed={name: 0.0 for name in fields},
             energy_changed={name: 0.0 for name in fields},
         )
 
-    spec = deg_registry.get(rung.op)
+    spec = deg_registry.get(severity_level.op)
     out: dict[str, np.ndarray] = {}
     resolved: dict[str, float] = {}
     unchanged: set[str] = set()
@@ -302,7 +302,7 @@ def apply_rung(
     changed: dict[str, float] = {}
 
     if spec.whole_frame:
-        out = _apply_whole_frame(spec, rung, frame, fields, seed=seed,
+        out = _apply_whole_frame(spec, severity_level, frame, fields, seed=seed,
                                  reference_rms=reference_rms, calibration=calibration,
                                  resolved=resolved)
     for name in fields:
@@ -322,7 +322,7 @@ def apply_rung(
         if spec.fields != ("*",) and name not in spec.fields:
             out[name] = source
             continue
-        severity = resolve_severity(rung, name, calibration)
+        severity = resolve_severity(severity_level, name, calibration)
         resolved[name] = severity
         rms = (
             reference_rms[name]
@@ -335,28 +335,28 @@ def apply_rung(
             frame_index=frame.index,
             time=frame.time,
             fluctuation_rms=rms,
-            rng=derive_rng(seed, rung.variant_label, frame.index, name),
+            rng=derive_rng(seed, severity_level.variant_label, frame.index, name),
         )
-        kwargs = dict(rung.options)
+        kwargs = dict(severity_level.options)
         if spec.takes_ctx:
             kwargs["ctx"] = ctx
         result = np.asarray(spec.fn(source, severity, **kwargs), dtype=np.float64)
         if result.shape != source.shape:
             raise ValueError(
-                f"{rung.op} changed the shape of {name}: {source.shape} -> {result.shape}"
+                f"{severity_level.op} changed the shape of {name}: {source.shape} -> {result.shape}"
             )
         out[name] = result
         if _is_noop(source, result, rms):
             unchanged.add(name)
         removed[name], changed[name] = _energy_effect(source, result)
-    return RungApplication(fields=out, resolved=resolved, unchanged=unchanged,
+    return SeverityLevelApplication(fields=out, resolved=resolved, unchanged=unchanged,
                            energy_removed=removed, energy_changed=changed)
 
 
 #: Relative change below which an operator is treated as having done nothing. Bitwise equality
 #: is too strict: every spectral operator makes an FFT round trip, so a filter whose transfer
 #: function is identically one still returns an array that differs from its input in the last
-#: bits. Round-trip error is of order 1e-16 relative while the mildest genuine rung measured here
+#: bits. Round-trip error is of order 1e-16 relative while the mildest genuine severity level measured here
 #: changes the field by about 2e-2 of its fluctuation RMS, so any threshold in between separates
 #: them cleanly and 1e-8 is nowhere near either.
 NOOP_RELATIVE_TOLERANCE = 1e-8
@@ -364,7 +364,7 @@ NOOP_RELATIVE_TOLERANCE = 1e-8
 
 def _apply_whole_frame(
     spec: DegradationSpec,
-    rung: Rung,
+    severity_level: SeverityLevel,
     frame: Frame,
     fields: Sequence[str],
     *,
@@ -381,7 +381,7 @@ def _apply_whole_frame(
     returns one, and its context describes the frame rather than any single field.
 
     This was declared, defaulted and documented in two places for a long time while
-    :func:`apply_rung` never read it, so such an operator would have received a bare array where
+    :func:`apply_severity_level` never read it, so such an operator would have received a bare array where
     it expected a mapping and failed with a message pointing at numpy rather than at the ignored
     declaration.
 
@@ -393,12 +393,12 @@ def _apply_whole_frame(
         KeyError: If it drops a requested field.
         ValueError: If it changes a field's shape.
     """
-    severity = resolve_severity(rung, fields[0], calibration) if fields else rung.severity
+    severity = resolve_severity(severity_level, fields[0], calibration) if fields else severity_level.severity
     for name in fields:
-        resolved[name] = resolve_severity(rung, name, calibration)
+        resolved[name] = resolve_severity(severity_level, name, calibration)
     if len({resolved[name] for name in fields}) > 1:
         raise ValueError(
-            f"{rung.op!r} declares whole_frame=True and calibration={rung.calibration!r}, but a "
+            f"{severity_level.op!r} declares whole_frame=True and calibration={severity_level.calibration!r}, but a "
             "calibrated severity resolves per field and a whole-frame operator gets one call for "
             "all of them. Use per-field application, or an absolute severity."
         )
@@ -413,9 +413,9 @@ def _apply_whole_frame(
             else fluctuation_rms(frame.fields[name])
             for name in fields
         ])) if fields else 0.0,
-        rng=derive_rng(seed, rung.variant_label, frame.index, "*"),
+        rng=derive_rng(seed, severity_level.variant_label, frame.index, "*"),
     )
-    kwargs = dict(rung.options)
+    kwargs = dict(severity_level.options)
     if spec.takes_ctx:
         kwargs["ctx"] = ctx
 
@@ -423,20 +423,20 @@ def _apply_whole_frame(
     result = spec.fn(source, severity, **kwargs)
     if not isinstance(result, Mapping):
         raise TypeError(
-            f"{rung.op!r} declares whole_frame=True so it must return a mapping of field name "
+            f"{severity_level.op!r} declares whole_frame=True so it must return a mapping of field name "
             f"to array, not {type(result).__name__}"
         )
     out: dict[str, np.ndarray] = {}
     for name in fields:
         if name not in result:
             raise KeyError(
-                f"{rung.op!r} declares whole_frame=True and dropped field {name!r}; it must "
+                f"{severity_level.op!r} declares whole_frame=True and dropped field {name!r}; it must "
                 f"return every field it was given ({sorted(fields)})"
             )
         array = np.asarray(result[name], dtype=np.float64)
         if array.shape != frame.fields[name].shape:
             raise ValueError(
-                f"{rung.op} changed the shape of {name}: "
+                f"{severity_level.op} changed the shape of {name}: "
                 f"{frame.fields[name].shape} -> {array.shape}"
             )
         out[name] = array
@@ -474,24 +474,24 @@ def reference_fluctuation_rms(frame: Frame, fields: Sequence[str]) -> dict[str, 
     return {name: fluctuation_rms(frame.fields[name]) for name in fields}
 
 
-def ladder_axes(rungs: Sequence[Rung]) -> list[str]:
+def ladder_axes(severity_levels: Sequence[SeverityLevel]) -> list[str]:
     """Distinct ladder-entry labels, excluding the reference. The Spearman units."""
     seen: list[str] = []
-    for r in rungs:
+    for r in severity_levels:
         if not r.is_reference and r.label not in seen:
             seen.append(r.label)
     return seen
 
 
-def ordinal_axes(rungs: Sequence[Rung]) -> list[str]:
+def ordinal_axes(severity_levels: Sequence[SeverityLevel]) -> list[str]:
     """Ladder axes that participate in rank correlation (the IN-4 canary does not)."""
     return [
         label
-        for label in ladder_axes(rungs)
-        if next(r for r in rungs if r.label == label).ordinal
+        for label in ladder_axes(severity_levels)
+        if next(r for r in severity_levels if r.label == label).ordinal
     ]
 
 
-def spec_for(rung: Rung) -> DegradationSpec:
-    """The registry spec behind a rung."""
-    return deg_registry.get(rung.op)
+def spec_for(severity_level: SeverityLevel) -> DegradationSpec:
+    """The registry spec behind a severity level."""
+    return deg_registry.get(severity_level.op)

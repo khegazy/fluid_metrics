@@ -17,16 +17,17 @@ We have one trusted simulation and no model predictions, so the thing to compare
 manufactured. The reference field is damaged in controlled steps, and each candidate metric
 is asked to score the damaged versions against the original.
 
-**Rung.** One damaged version of the reference. Rung 0 is the reference itself, so any
+**Severity level.** One damaged version of the reference: one degradation applied at one
+strength. Severity level 0 is the reference itself, so any
 pairwise error metric must return exactly zero there.
 
-**Axis.** One family of rungs sharing a single severity knob — for instance Gaussian blur at
+**Axis.** One family of severity levels sharing a single severity knob — for instance Gaussian blur at
 sigma = 0.5, 1, 2, 4, 8. An axis is *the unit of rank correlation*. Blur at sigma = 2 and a
 4-cell translation have no order relative to one another, and neither do Gaussian blur and
 median blur even though both smooth, so correlations are never computed across axes.
 
 **Severity direction.** Some knobs get worse as they grow (blur sigma) and some as they
-shrink (a low-pass cutoff). Each operator declares which, and the rungs are sorted into
+shrink (a low-pass cutoff). Each operator declares which, and the severity levels are sorted into
 increasing-damage order before numbering, so a cutoff list written `[64, 32, 16, 8]` gets the
 right ordinal levels rather than a perfectly inverted ladder.
 
@@ -47,8 +48,8 @@ the vorticity of the velocity beside it. Measured, the difference between recomp
 averaging is 5.6% / 18.3% / 25.9% at coarsening factors 2 / 4 / 8 — not a rounding detail.
 
 **Why so many numbers per axis.** A metric can be monotone and still useless: if adjacent
-rungs overlap across frames it cannot rank two models one step apart. It can be monotone and
-still uninformative: if it saturates at rung 1 it has no resolution in the interesting
+severity levels overlap across frames it cannot rank two models one step apart. It can be monotone and
+still uninformative: if it saturates at severity level 1 it has no resolution in the interesting
 regime. Each quantity below closes one of those gaps.
 
 ---
@@ -57,17 +58,17 @@ regime. Each quantity below closes one of those gaps.
 
 ### `rho`
 
-**What it is.** How reliably the metric orders the rungs of one axis from mildest to worst.
+**What it is.** How reliably the metric orders the severity levels of one axis from mildest to worst.
 1.0 means it gets the order right every time, 0 means no relationship, -1 means it is exactly
 backwards.
 
-**How it is computed.** Spearman rank correlation between the rung number and the metric
+**How it is computed.** Spearman rank correlation between the severity level number and the metric
 value, computed **within each frame separately**, then the median over frames is reported.
 
 **Why not pooled over frames.** Because that measures the wrong thing. The flow evolves along
 the trajectory, and on this data the density perturbation grows six orders of magnitude from
-start to end. Pooling every frame together means the worst rung early is numerically smaller
-than the mildest rung late, so the correlation collapses even when the ordering is perfect
+start to end. Pooling every frame together means the worst severity level early is numerically smaller
+than the mildest severity level late, so the correlation collapses even when the ordering is perfect
 inside every single frame. Measured: every density axis was perfectly ordered within every
 frame while the pooled value read between 0.10 and 0.91 depending on the axis. Per-frame is
 the statistic that answers the question actually being asked.
@@ -83,7 +84,7 @@ than a defective metric.
 not rank a worse model as better. A non-monotone metric is worse than no metric, because
 optimising against it moves in the wrong direction.
 
-**Caveats.** With only four or five rungs the per-frame value takes a small discrete set of
+**Caveats.** With only four or five severity levels the per-frame value takes a small discrete set of
 values, so the median over frames is coarse. It says nothing about *how much* the metric
 changes — see `sensitivity_level` and the damage columns for that.
 
@@ -93,7 +94,7 @@ summary.
 ### `rho_frame_min`
 
 **What it is.** The worst per-frame value behind `rho`. If `rho` is 1.0 but this is -0.8, the
-metric orders the rungs correctly on most frames and gets them badly wrong on at least one.
+metric orders the severity levels correctly on most frames and gets them badly wrong on at least one.
 
 **Why we report it.** A median hides a tail. On our data MAE on vorticity had `rho = 0.40`
 with `rho_frame_min = -0.8` on the high-pass axis, and that tail is what identified the
@@ -131,7 +132,7 @@ currently a configured constant, not measured from the data.
 
 ### `monotone_fraction`
 
-**What it is.** The fraction of frames on which the rungs are ordered *strictly* correctly,
+**What it is.** The fraction of frames on which the severity levels are ordered *strictly* correctly,
 with no ties or inversions anywhere in the ladder.
 
 **Range.** 0 to 1. 1.0 means every frame was perfect.
@@ -144,24 +145,24 @@ trend right but often muddles a neighbouring pair.
 
 ### `separability_auc_min`
 
-**What it is.** Whether the metric can actually tell two *neighbouring* rungs apart, given how
+**What it is.** Whether the metric can actually tell two *neighbouring* severity levels apart, given how
 much its value scatters from frame to frame. The smallest such separation across all adjacent
 pairs on the axis.
 
-**How it is computed.** For each adjacent pair of rungs, the Mann-Whitney U statistic divided
+**How it is computed.** For each adjacent pair of severity levels, the Mann-Whitney U statistic divided
 by the product of the sample sizes — the probability that a randomly chosen frame from the
-worse rung scores worse than a randomly chosen frame from the milder rung. The minimum over
+worse severity level scores worse than a randomly chosen frame from the milder severity level. The minimum over
 pairs is reported.
 
-**Range.** 0 to 1. 0.5 means the two rungs' distributions are indistinguishable; 1.0 means
+**Range.** 0 to 1. 0.5 means the two severity_levels' distributions are indistinguishable; 1.0 means
 they never overlap.
 
-**Good and bad.** Above 0.8 the metric can rank models one rung apart with confidence. Around
+**Good and bad.** Above 0.8 the metric can rank models one severity level apart with confidence. Around
 0.5 it cannot, no matter how clean the median curve looks — which is exactly the failure a
 monotonicity number alone would hide.
 
 **Why we report it.** Monotone medians are not enough. If you intend to select between two
-models that differ by roughly one rung's worth of quality, this number tells you whether the
+models that differ by roughly one severity level's worth of quality, this number tells you whether the
 metric can see the difference at all.
 
 **Caveats.** **Deliberately reported without a p-value.** The metric trace is autocorrelated
@@ -173,10 +174,10 @@ also needs a reasonable number of frames; with ten or twenty it is noisy.
 
 ### `sensitivity_level`
 
-**What it is.** The first rung at which the metric has moved 10% of the way from its clean
+**What it is.** The first severity level at which the metric has moved 10% of the way from its clean
 value to the unrelated-field value. In short: how early does it start complaining?
 
-**How it is computed.** The lowest rung whose median value reaches `clean + 0.10 * span`,
+**How it is computed.** The lowest severity level whose median value reaches `clean + 0.10 * span`,
 where `span` is the **shared** clean-to-unrelated range rather than the axis's own maximum.
 Using each axis's own range would make an axis that barely damages the field look just as
 sensitive as one that destroys it, so the numbers would not be comparable between rows.
@@ -184,24 +185,24 @@ sensitive as one that destroys it, so the numbers would not be comparable betwee
 The 10% fraction is fixed once in the code and is never tuned per metric — otherwise the
 quantity becomes something one can adjust until the answer is pleasing.
 
-**Range.** An integer rung number, or `--` when the threshold is never reached.
+**Range.** An integer severity level number, or `--` when the threshold is never reached.
 
 **Good and bad.** Lower is more sensitive, but earlier is not automatically better: a metric
-that fires at rung 1 on every axis may simply be noisy. Read it against the `field_gallery`
-figure, which shows what each rung actually looks like — a metric that first complains only
+that fires at severity level 1 on every axis may simply be noisy. Read it against the `field_gallery`
+figure, which shows what each severity level actually looks like — a metric that first complains only
 after the field is visibly ruined is not earning its place.
 
 **Where it appears.** `axis_detail__field-*.csv`; `sensitivity_level_median` in the summary.
 
 ### `saturation_level`
 
-**What it is.** The first rung at which the metric has used up 90% of its range — beyond which
+**What it is.** The first severity level at which the metric has used up 90% of its range — beyond which
 it can no longer distinguish worse from much worse.
 
-**Range.** An integer rung, or `--` if never reached, which is the common case and is
+**Range.** An integer severity level, or `--` if never reached, which is the common case and is
 informative in itself: it means nothing on the ladder is as damaging as full decorrelation.
 
-**Good and bad.** Saturating at rung 1 is the quantitative form of the double-penalty
+**Good and bad.** Saturating at severity level 1 is the quantitative form of the double-penalty
 complaint: the metric reports "as bad as possible" for damage that is in fact mild, so it
 cannot rank anything above that point.
 
@@ -212,7 +213,7 @@ cannot rank anything above that point.
 ## Group B: can it be fooled?
 
 Two fields are constructed specifically to mislead. They probe different weaknesses, and
-neither is a rung on any axis, so both are excluded from every rank correlation.
+neither is a severity level on any axis, so both are excluded from every rank correlation.
 
 ### `gaussian_impostor_value`, `gaussian_impostor_damage`
 
@@ -247,9 +248,9 @@ matched variance has none — but this is conjecture and has not been tested.
 
 **Where they appear.** `deception_table.csv`; the deception figure; the summary.
 
-### `gaussian_impostor_nearest_rung`
+### `gaussian_impostor_nearest_level`
 
-**What it is.** The ordinary rung whose damage is closest to the Gaussian field's, which is
+**What it is.** The ordinary severity level whose damage is closest to the Gaussian field's, which is
 what makes the damage figure interpretable. An entry of `translate_x=16` reads: *this metric
 considers the Gaussian field about as bad as displacing the reference by 16 cells.*
 
@@ -324,8 +325,8 @@ not comparable between runs with different metric sets.
 **What it is.** Rank correlation between every pair of metrics across the whole ladder. Two
 metrics that correlate near 1 are near-duplicates and one of them is a wasted panel slot.
 
-**How it is computed.** One observation per (axis, rung), using the median over frames — which
-is the level at which the panel decision is actually made. The **reference rung is excluded**:
+**How it is computed.** One observation per (axis, severity level), using the median over frames — which
+is the level at which the panel decision is actually made. The **reference severity level is excluded**:
 every pairwise error metric is exactly zero there, so keeping it would add a point all metrics
 share by construction and pull every correlation toward +1.
 
@@ -371,7 +372,7 @@ units.
 
 ### `value_clean`
 
-The metric's value on the reference rung, the median over frames. Exactly 0 for any pairwise
+The metric's value on the reference severity level, the median over frames. Exactly 0 for any pairwise
 error metric — a nonzero entry means a bug.
 
 ### `value_min`, `value_max`
@@ -422,14 +423,14 @@ The largest damage the metric reached anywhere on that axis. A convenient one-nu
 
 ### `n_axes`, `n_levels`, `n_frames`
 
-Sample sizes: how many ladder axes contributed to a summary row, how many rungs an axis had,
+Sample sizes: how many ladder axes contributed to a summary row, how many severity levels an axis had,
 and how many frames were evaluated. Read the statistics above against these; several of them
 are noisy below about twenty frames.
 
 ### `n_levels_configured`
 
-How many rungs the config asked for on that axis, against the `n_levels` that were usable. They
-differ when a rung resolved to the same experiment as a milder one or to no experiment at all —
+How many severity levels the config asked for on that axis, against the `n_levels` that were usable. They
+differ when a severity level resolved to the same experiment as a milder one or to no experiment at all —
 see `severity_degenerate`. A gap here is a statement about the field's spectrum, not a mistake:
 the acceptance statistics for that axis were computed from fewer points than the config appears
 to request, and the run log names which levels were dropped.
@@ -458,7 +459,7 @@ share one operator and one family. The family is used only for colour and groupi
 
 ### `level`, `severity`, `severity_name`, `variant_label`
 
-`level` is the ordinal rung, 0 being the reference; `severity` is the physical knob value
+`level` is the ordinal severity level, 0 being the reference; `severity` is the physical knob value
 **actually applied** and `severity_name` says what it means (sigma, cutoff, distance);
 `variant_label` is the stable identifier used in filenames.
 
@@ -507,10 +508,10 @@ a calibrated row carries both. They are equal on an uncalibrated axis.
 **Why this exists.** A severity in absolute units lands in a completely different place depending
 on where a field keeps its energy, and on this data those places differ by a factor of five: the
 density fluctuation varies on about 160 cells against 34 for vorticity. One fixed list of blur
-widths was therefore simultaneously far too fine for density — the harshest rung reached 1.2% of
+widths was therefore simultaneously far too fine for density — the harshest severity level reached 1.2% of
 the unrelated-field level, so the axis carried no signal — and about right for vorticity, while
-one fixed list of filter cutoffs saturated by the second rung on density, making two of four
-rungs the same experiment. Expressing them relatively and resolving against a measurement makes
+one fixed list of filter cutoffs saturated by the second severity level on density, making two of four
+severity levels the same experiment. Expressing them relatively and resolving against a measurement makes
 the same config number mean the same thing on every field.
 
 The calibration itself is measured once per (field, analysis grid) from frames sampled evenly
@@ -521,7 +522,7 @@ recorded in `data/calibration.csv`.
 
 ### `energy_removed`, `energy_changed`
 
-**What they are.** What a rung *measurably did* to the field, as opposed to what its severity
+**What they are.** What a severity level *measurably did* to the field, as opposed to what its severity
 asked for. `energy_removed` is the fraction of the reference's fluctuation energy the operator
 eliminated; `energy_changed` is the fraction of it sitting in the difference between the degraded
 field and the reference.
@@ -548,9 +549,9 @@ whose energy is concentrated in a few modes the two come apart. A cutoff has to 
 available set of modes, so the realised removal jumps rather than tracking the request: 69% of
 density's fluctuation energy is in the four diagonal modes at |k| = √2 and only 3×10⁻⁵ of it in
 the axis modes just below them, so two consecutive available cutoffs there differ by most of the
-field. Measured, the mildest sharp high-pass rung on density asks to remove 45% and removes
-3×10⁻⁵, and one density low-pass rung asks for 45% and removes 99.997%. Only these columns reveal
-that. They are also the honest way to compare a rung across fields, since the same width or cutoff
+field. Measured, the mildest sharp high-pass severity level on density asks to remove 45% and removes
+3×10⁻⁵, and one density low-pass severity level asks for 45% and removes 99.997%. Only these columns reveal
+that. They are also the honest way to compare a severity level across fields, since the same width or cutoff
 does very different amounts of damage on a smooth field than on a broadband one.
 
 **Caveats.** `energy_removed` is only a statement about *how much* energy went, never about
@@ -564,35 +565,35 @@ reproducibility section, and `energy_removed` annotated on the `energy_spectrum`
 
 ### `severity_degenerate`
 
-True when a rung is **not a distinct experiment**: either it resolved to the same severity as a
-milder rung on the same axis, or it resolved to a severity at which the operator does nothing at
+True when a severity level is **not a distinct experiment**: either it resolved to the same severity as a
+milder severity level on the same axis, or it resolved to a severity at which the operator does nothing at
 all. Such rows are excluded from every acceptance statistic.
 
 This happens because a calibrated severity is a real number while many operators act on a
 quantised one — a sharp filter selects whole sets of modes, and a windowed kernel takes an odd
-number of cells. It is detected by measurement rather than by declaration: two rungs performing
+number of cells. It is detected by measurement rather than by declaration: two severity levels performing
 the same operation produce a bitwise identical field and therefore an exactly equal
 `energy_changed`.
 
 It is a limit of the field rather than a misconfiguration. 69% of density's fluctuation energy sits
 in the four diagonal modes at |k| = √2 and only 3×10⁻⁵ of it below them, so the available cutoffs
-there are few and far apart and a sharp filter supports only a couple of distinct rungs however the
+there are few and far apart and a sharp filter supports only a couple of distinct severity levels however the
 config is written. Asking a high-pass for less removal than the lowest available cutoff provides
 resolves to a filter that passes essentially every mode.
 
-A related case that is **not** flagged, because the rung is a genuine experiment: a cutoff can be
+A related case that is **not** flagged, because the severity level is a genuine experiment: a cutoff can be
 distinct from its neighbours and still be far from the fraction that was requested, since it must
 land on an available set of modes. The resolved-severity table reports the requested and realised
-fractions side by side and names any rung where they differ substantially — measured here, one
-density low-pass rung asked to remove 45% removes 99.997%, because the nearest available cutoff
+fractions side by side and names any severity level where they differ substantially — measured here, one
+density low-pass severity level asked to remove 45% removes 99.997%, because the nearest available cutoff
 below it excludes the diagonal modes that hold most of the field.
 
 Left uncounted, both cases corrupt the statistics rather than merely padding them. A repeated
-rung makes the rank correlation score a tie as agreement and makes the adjacent-rung separability
-compare a distribution against itself; a rung that does nothing contributes an exactly-zero
+severity level makes the rank correlation score a tie as agreement and makes the adjacent-severity level separability
+compare a distribution against itself; a severity level that does nothing contributes an exactly-zero
 damage, which made one axis appear to span eleven orders of magnitude.
 
-Compare `n_levels` against `n_levels_configured` to see how many rungs an axis actually
+Compare `n_levels` against `n_levels_configured` to see how many severity levels an axis actually
 contributed.
 
 ### `analysis_grid`, `remap_op`
@@ -643,7 +644,7 @@ to cells per field (`calibration: scale`).
 
 | operator | severity | what it does, and why it is separate |
 |---|---|---|
-| `gaussian_blur` | fraction of scale → sigma | Attenuates every scale and amplifies none, so it is the well-behaved reference the others are read against. Takes a fractional sigma, so its rungs stay distinct at any spacing |
+| `gaussian_blur` | fraction of scale → sigma | Attenuates every scale and amplifies none, so it is the well-behaved reference the others are read against. Takes a fractional sigma, so its severity levels stay distinct at any spacing |
 | `box_blur` | fraction of scale → width | A square moving average. Its transfer function is a sinc, so it *amplifies* some wavenumbers, and it is anisotropic. Rounded to an **odd** width |
 | `median_blur` | fraction of scale → width | Nonlinear, and preserves the sharp edges a Gaussian smears. A metric that scores this the same as Gaussian blur at matched width is not seeing sharp structure. Rounded to an **odd** width |
 | `disk_blur` | fraction of scale → radius | Isotropic top-hat, unlike the square box |
@@ -653,7 +654,7 @@ to cells per field (`calibration: scale`).
 cell, so it is placed asymmetrically and displaces the field by half a cell. Since the whole
 concern of this project is that metrics over-punish displacement, that artefact dominates:
 measured on vorticity, widths that rounded to 2, 3, 6 and 13 cells gave damage 0.0121, 0.0041,
-0.0338 and 0.0880 — non-monotone, because the even rung carried a half-cell shift the odd one did
+0.0338 and 0.0880 — non-monotone, because the even severity level carried a half-cell shift the odd one did
 not. It also means two scale fractions closer than about `2 / scale` land on the same width and
 one of them is flagged `severity_degenerate`.
 
@@ -668,8 +669,8 @@ with damage, which they did not when the severity was an absolute cutoff.
 | operator | severity | notes |
 |---|---|---|
 | `lowpass_ideal` | fraction of energy removed | Sharp cutoff, removing the small scales; rings near sharp features |
-| `lowpass_butterworth` | fraction of energy removed | Smooth rolloff; the ringing-free control for the above, and it resolves rungs a sharp filter cannot |
-| `highpass_ideal` | fraction of energy removed | Removes large scales. **Keeps the spatial mean deliberately** — deleting it removes a component four orders of magnitude larger than anything the cutoff controls, and before this was fixed every rung gave an identical damage of 2.7e7 and the axis carried no ordering at all |
+| `lowpass_butterworth` | fraction of energy removed | Smooth rolloff; the ringing-free control for the above, and it resolves severity levels a sharp filter cannot |
+| `highpass_ideal` | fraction of energy removed | Removes large scales. **Keeps the spatial mean deliberately** — deleting it removes a component four orders of magnitude larger than anything the cutoff controls, and before this was fixed every severity level gave an identical damage of 2.7e7 and the axis carried no ordering at all |
 | `highpass_butterworth` | fraction of energy removed | As above, smooth |
 
 **The high-pass axis has a narrow usable window on these fields, and that is a property of the
@@ -678,7 +679,7 @@ at that magnitude hold almost nothing while the diagonal modes just above them h
 fluctuation energy. A mild request therefore resolves to a filter that passes essentially every
 mode; one step harsher puts the damage already most of the way to an unrelated field.
 The configured window is the widest measured — it spans a factor 3.4 in damage on vorticity and
-gives density two usable rungs of four — so the high-pass axis alone does not reach the factor of
+gives density two usable severity levels of four — so the high-pass axis alone does not reach the factor of
 five that the other axes do. No severity list fixes this; a field with more energy at high
 wavenumbers would.
 | `band_attenuate` | retained fraction | Damages one wavenumber band only. The direct test of whether a metric is scale-selective |
@@ -690,7 +691,7 @@ position changes.
 |---|---|---|
 | `translate` | distance, cells | Whole-cell periodic shift. Quantised: the smallest step is one cell |
 | `translate_subpixel` | distance, cells | Fractional shift by a Fourier phase ramp, exact on a periodic grid. Resolves the sub-cell region where metrics differ most, and reproduces `translate` at integer distances |
-| `random_large_translation` | draw index | Not a rung. Measures the unrelated-field anchor |
+| `random_large_translation` | draw index | Not a severity level. Measures the unrelated-field anchor |
 
 **Resolution.**
 
@@ -703,9 +704,9 @@ position changes.
 
 | operator | severity | notes |
 |---|---|---|
-| `additive_noise` | fraction of fluctuation RMS | **Relative to the fluctuation, never the raw RMS.** Density here is 1.0 +/- 1.8e-4, so a fraction of the raw RMS would make even the mildest rung total destruction |
+| `additive_noise` | fraction of fluctuation RMS | **Relative to the fluctuation, never the raw RMS.** Density here is 1.0 +/- 1.8e-4, so a fraction of the raw RMS would make even the mildest severity level total destruction |
 | `multiplicative_noise` | relative | Error proportional to the local value |
-| `gaussian_impostor` | — | Not a rung. See Group B |
+| `gaussian_impostor` | — | Not a severity level. See Group B |
 
 **Pointwise** — the complement of displacement: correct position, wrong magnitude.
 
@@ -713,7 +714,7 @@ position changes.
 |---|---|---|
 | `gain` | relative | Scales the fluctuation, leaving the mean and every gradient's sign intact |
 | `bias` | fraction of fluctuation RMS | A uniform offset, invisible to any metric built on fluctuations or gradients |
-| `identity` | — | Rung 0 |
+| `identity` | — | severity level 0 |
 
 ---
 
@@ -721,13 +722,13 @@ position changes.
 
 | figure | section | what it shows, and how to read it |
 |---|---|---|
-| `energy_spectrum` | 3 | Cumulative fluctuation energy against wavenumber, per field, with the applied spectral cutoffs drawn on. This sets the resolution of every filter ladder: a spectral severity is a fraction of energy to remove and is converted to a cutoff using exactly this curve, so where the curve rises sharply neighbouring rungs land on the same set of modes and become the same experiment. The density curve is almost a step — 3×10⁻⁵ of its fluctuation energy at or below |k| = 1 and 69% at |k| = √2 — which is why a sharp filter has only a couple of usable rungs there; vorticity rises gradually, 50% by |k| = 3.2 and 99% by 51, and its cutoffs spread over more than a factor of ten. Dashed lines are cutoffs in use, dotted lines rungs excluded for repeating a milder rung or for doing nothing. It says nothing about phase — two fields with identical curves can look entirely different, which is the premise of the impostor test |
-| `ladder_curves` | 3 | Value against rung for every axis, with an interquartile band over frames. The curve the correlation summarises. Flat means blind to that failure mode |
+| `energy_spectrum` | 3 | Cumulative fluctuation energy against wavenumber, per field, with the applied spectral cutoffs drawn on. This sets the resolution of every filter ladder: a spectral severity is a fraction of energy to remove and is converted to a cutoff using exactly this curve, so where the curve rises sharply neighbouring severity levels land on the same set of modes and become the same experiment. The density curve is almost a step — 3×10⁻⁵ of its fluctuation energy at or below |k| = 1 and 69% at |k| = √2 — which is why a sharp filter has only a couple of usable severity levels there; vorticity rises gradually, 50% by |k| = 3.2 and 99% by 51, and its cutoffs spread over more than a factor of ten. Dashed lines are cutoffs in use, dotted lines severity levels excluded for repeating a milder severity level or for doing nothing. It says nothing about phase — two fields with identical curves can look entirely different, which is the premise of the impostor test |
+| `ladder_curves` | 3 | Value against severity level for every axis, with an interquartile band over frames. The curve the correlation summarises. Flat means blind to that failure mode |
 | `monotonicity_heatmap` | 4 | `rho` for every metric against every axis. Down a column: is this metric monotone? Across a row: what does it detect? Hatched cells fall below the reference value |
-| `rung_separation` | 5 | The spread of each rung across frames, as violins. Where neighbouring violins overlap, the metric cannot rank models one rung apart |
+| `severity_level_separation` | 5 | The spread of each severity level across frames, as violins. Where neighbouring violins overlap, the metric cannot rank models one severity level apart |
 | `field_gallery` | 6 | The per-cell contribution to the metric, on **shared colour limits**. Autoscaling each panel would make a heavily smoothed field look identical to the reference. A displaced feature shows as two lobes — one where it should be and is not, one where it is and should not be |
 | `selectivity_profile` | 7 | Each metric's response across every axis, as grouped bars. Needs two or more metrics |
-| `deception_panel` | 8 | Damage assigned to the Gaussian field (star) against the ordinary rungs (open circles). A star near zero means the metric sees only second-order statistics |
+| `deception_panel` | 8 | Damage assigned to the Gaussian field (star) against the ordinary severity levels (open circles). A star near zero means the metric sees only second-order statistics |
 | `displacement_response` | 9 | Damage against displacement distance, log x. Shape and amplitude are exactly correct at every point on this curve; only position changes. The project's central figure |
 | `cost_frontier` | 10 | Worst-axis correlation against cost. Upper left is useful; upper right is right-but-unaffordable, so a diagnostic rather than a loss |
 
@@ -754,7 +755,7 @@ one a pointwise norm notices.
 **Flatness.** The fourth moment normalised by the square of the second,
 mean(x^4) / mean(x^2)^2. Exactly 3 for a Gaussian.
 
-**Reference, or clean.** Rung 0: the undamaged field.
+**Reference, or clean.** Severity level 0: the undamaged field.
 
 **Unrelated field.** A field with identical statistics and no positional alignment. Defines
 D = 1.

@@ -143,17 +143,17 @@ def test_a_scale_fraction_resolves_to_a_length_in_cells():
 
 
 def test_an_absolute_operator_passes_its_severity_through_untouched():
-    rung = build_ladder({"translate_x": {"op": "translate", "severities": [4]}},
+    severity_level = build_ladder({"translate_x": {"op": "translate", "severities": [4]}},
                         include_reference=False)[0]
-    assert resolve_severity(rung, "density", None) == 4.0
+    assert resolve_severity(severity_level, "density", None) == 4.0
 
 
 def test_a_calibrated_operator_without_a_calibration_fails_loudly():
     """Silently falling back would apply an energy fraction as if it were a wavenumber."""
-    rung = build_ladder({"lowpass_ideal": {"severities": [0.3]}},
+    severity_level = build_ladder({"lowpass_ideal": {"severities": [0.3]}},
                         include_reference=False)[0]
     with pytest.raises(KeyError, match="no calibration was measured"):
-        resolve_severity(rung, "density", None)
+        resolve_severity(severity_level, "density", None)
 
 
 def test_the_same_config_severity_resolves_differently_per_field():
@@ -162,18 +162,18 @@ def test_the_same_config_severity_resolves_differently_per_field():
         {"density": [band_limited(2.0)], "vorticity": [band_limited(20.0)]},
         grid(), ["density", "vorticity"],
     )
-    rung = build_ladder({"gaussian_blur": {"severities": [0.1]}},
+    severity_level = build_ladder({"gaussian_blur": {"severities": [0.1]}},
                         include_reference=False)[0]
-    on_density = resolve_severity(rung, "density", cal)
-    on_vorticity = resolve_severity(rung, "vorticity", cal)
+    on_density = resolve_severity(severity_level, "density", cal)
+    on_vorticity = resolve_severity(severity_level, "vorticity", cal)
     assert on_density > 2 * on_vorticity, (
         "a smoother field must get a wider kernel from the same config number"
     )
 
 
-# --- degenerate rungs -----------------------------------------------------------------
+# --- degenerate severity levels -----------------------------------------------------------------
 #
-# Detected by measurement, in the pipeline: two rungs whose severities resolve to the same
+# Detected by measurement, in the pipeline: two severity levels whose severities resolve to the same
 # quantised operation produce a bitwise identical field and therefore an exactly equal
 # energy_changed. See tests/test_pipeline.py for the end-to-end check; here we verify the
 # property the detection relies on.
@@ -205,7 +205,7 @@ def test_two_widths_rounding_to_one_odd_window_are_the_same_experiment():
 
 
 def test_distinct_experiments_do_not_collide():
-    """The detection must not fold together rungs that really differ."""
+    """The detection must not fold together severity levels that really differ."""
     x = band_limited(24.0, seed=11)
     effects = [apply("lowpass_ideal", [f], "vorticity", x).energy_changed["vorticity"]
                for f in (0.05, 0.2, 0.45)]
@@ -220,7 +220,7 @@ def test_a_cutoff_quantises_to_an_available_magnitude():
         assert snapped in set(cal.wavenumbers)
 
 
-# --- the realised effect of a rung ------------------------------------------------------
+# --- the realised effect of a severity level ------------------------------------------------------
 
 
 def _frame_of(field: str, array: np.ndarray):
@@ -230,14 +230,14 @@ def _frame_of(field: str, array: np.ndarray):
 
 
 def apply(label: str, severities: list[float], field: str, array: np.ndarray):
-    """Apply the first rung of a one-entry ladder, calibrating from the array itself."""
+    """Apply the first severity level of a one-entry ladder, calibrating from the array itself."""
     from fmeval.calibration import Calibration
-    from fmeval.ladder import apply_rung
+    from fmeval.ladder import apply_severity_level
 
     frame = _frame_of(field, array)
-    rung = build_ladder({label: {"severities": severities}}, include_reference=False)[0]
+    severity_level = build_ladder({label: {"severities": severities}}, include_reference=False)[0]
     cal = Calibration({field: calibrate_field([array], frame.grid, field)})
-    return apply_rung(rung, frame, [field], seed=0, calibration=cal)
+    return apply_severity_level(severity_level, frame, [field], seed=0, calibration=cal)
 
 
 def test_a_sharp_lowpass_removes_the_energy_it_was_asked_to():
@@ -279,47 +279,47 @@ def test_a_steep_spectrum_makes_the_realised_removal_miss_the_request():
 
 def test_a_translation_relocates_energy_rather_than_removing_it():
     """energy_removed near zero with energy_changed large is the signature, not a defect."""
-    from fmeval.ladder import apply_rung
+    from fmeval.ladder import apply_severity_level
 
     x = band_limited(12.0, seed=5)
     frame = _frame_of("vorticity", x)
-    rung = build_ladder({"translate_x": {"op": "translate", "severities": [6],
+    severity_level = build_ladder({"translate_x": {"op": "translate", "severities": [6],
                                          "options": {"axis": "x"}}},
                         include_reference=False)[0]
-    applied = apply_rung(rung, frame, ["vorticity"], seed=0)
+    applied = apply_severity_level(severity_level, frame, ["vorticity"], seed=0)
     assert applied.energy_removed["vorticity"] == pytest.approx(0.0, abs=1e-10)
     assert applied.energy_changed["vorticity"] > 0.1
 
 
 def test_additive_noise_adds_energy_so_the_removed_fraction_is_negative():
-    from fmeval.ladder import apply_rung
+    from fmeval.ladder import apply_severity_level
 
     x = band_limited(12.0, seed=6)
     frame = _frame_of("vorticity", x)
-    rung = build_ladder({"additive_noise": {"severities": [0.5]}},
+    severity_level = build_ladder({"additive_noise": {"severities": [0.5]}},
                         include_reference=False)[0]
-    applied = apply_rung(rung, frame, ["vorticity"], seed=0)
+    applied = apply_severity_level(severity_level, frame, ["vorticity"], seed=0)
     assert applied.energy_removed["vorticity"] < 0
     assert applied.energy_changed["vorticity"] > 0
 
 
-def test_the_reference_rung_removes_and_changes_nothing():
-    from fmeval.ladder import REFERENCE_RUNG, apply_rung
+def test_the_reference_level_removes_and_changes_nothing():
+    from fmeval.ladder import REFERENCE_LEVEL, apply_severity_level
 
     x = band_limited(12.0, seed=7)
-    applied = apply_rung(REFERENCE_RUNG, _frame_of("vorticity", x), ["vorticity"], seed=0)
+    applied = apply_severity_level(REFERENCE_LEVEL, _frame_of("vorticity", x), ["vorticity"], seed=0)
     assert applied.energy_removed["vorticity"] == 0.0
     assert applied.energy_changed["vorticity"] == 0.0
 
 
 def test_the_effect_is_measured_about_the_spatial_mean():
     """A large mean must not hide the effect, as it would if energies were taken about zero."""
-    from fmeval.ladder import apply_rung
+    from fmeval.ladder import apply_severity_level
 
     fluctuation = band_limited(12.0, seed=8)
     frame_small = _frame_of("density", fluctuation)
     frame_large = _frame_of("density", fluctuation + 1000.0)
-    rung = build_ladder({"lowpass_butterworth": {"severities": [0.3]}},
+    severity_level = build_ladder({"lowpass_butterworth": {"severities": [0.3]}},
                         include_reference=False)[0]
     from fmeval.calibration import Calibration
 
@@ -327,7 +327,7 @@ def test_the_effect_is_measured_about_the_spatial_mean():
         cal = Calibration(
             {"density": calibrate_field([frame.fields["density"]], frame.grid, "density")}
         )
-        return apply_rung(rung, frame, ["density"], seed=0,
+        return apply_severity_level(severity_level, frame, ["density"], seed=0,
                           calibration=cal).energy_removed["density"]
 
     assert removed(frame_large) == pytest.approx(removed(frame_small), rel=1e-6)
