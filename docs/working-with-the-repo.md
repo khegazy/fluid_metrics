@@ -134,25 +134,45 @@ what to type to fix it.
 
 ### `card.md` — your argument, in prose
 
-Seven sections each for a metric and a degradation, in a fixed order, all required. They
+Six sections each for a metric and a degradation, in a fixed order, all required. They
 exist so that three different readers each get what they need: an early graduate student
 from any STEM field, a domain expert, and a coding agent.
 
 The order runs from what the metric *is* to what it *did here*:
 
 ```
-Definition -> Intuition -> Reading the output -> Limitations -> Evidence -> Assessment
+Definition -> Intuition -> Reading the output -> Limitations -> Results
 ```
 
 Definition opens because the equation is the thing being documented and everything after
 it is commentary on that equation. Intuition restates it in words, then Reading the output
 and Limitations finish the account of the metric itself — how to interpret a value, and
-where a value misleads. Only then does the card turn to this repository's measurements:
-Evidence is generated from the canonical run, and Assessment interprets it. That break
-matters if you are adopting a metric elsewhere — the first four sections hold for any
-dataset, the last two are findings about our run. Degradation cards follow the same shape,
-with Severity scale in place of Reading the output and Exemplars and What to look for in
-place of Evidence and Assessment.
+where a value misleads. Only then does the card turn to this repository's
+measurements. That break matters if you are adopting a metric elsewhere — the first four
+sections hold for any dataset, and Results is findings about our run. Degradation cards
+follow the same shape, with Severity scale in place of Reading the output and Exemplars
+in place of Results.
+
+`## Results` is built from one `### subsection per kind of test` — smoothing, spectral
+filtering, displacement, resolution loss, noise, the canaries, and anything that holds
+across the whole ladder. Each subsection opens with its generated include and continues
+with what those particular numbers show:
+
+```
+### Displacement
+
+{{ include _generated/results_geometric.md }}
+
+The damage ratios per doubling of sub-cell displacement are 3.99, 3.95 and 3.82 ...
+```
+
+Evidence and explanation used to be two separate sections, and a reader checking a
+sentence against the number behind it had to scroll between them and work out which
+figure the sentence meant. Keeping them together also discourages an assessment that
+summarises the ladder in general instead of saying what each test found. You still never
+write the numbers: run `python -m fmeval.cards evidence <name> --results results/<run>`
+and never edit anything under `_generated/`. A subsection whose evidence has not been
+generated yet warns rather than fails, because there is nothing there to explain.
 
 `## Definition` must contain a `### Boundary handling` subsection, and the checker
 enforces it. `None.` is a fine answer — write it, with one clause saying why, rather than

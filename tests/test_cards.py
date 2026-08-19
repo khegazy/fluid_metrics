@@ -195,7 +195,10 @@ def build_prose(name="example", **bodies):
         "Body for Definition. " * 20
         + "\n\n### Boundary handling\n\nNone. The operation is local to each cell."
     )
-    defaults["Evidence"] = "{{ include _generated/evidence.md }}"
+    defaults["Results"] = (
+        "### Smoothing\n\n{{ include _generated/results_smoothing.md }}\n\n"
+        + "What the smoothing axes found, stated in enough words to clear the floor. " * 4
+    )
     defaults["References"] = "\\bibliography"
     defaults.update(bodies)
     text = f"---\nname: {name}\nkind: metric\n---\n\n"
@@ -242,8 +245,7 @@ def test_the_declared_order_is_the_one_the_cards_use():
         "Intuition",
         "Reading the output",
         "Limitations",
-        "Evidence",
-        "Assessment",
+        "Results",
         "References",
     )
     assert prose.DEGRADATION_SECTIONS == (
@@ -252,7 +254,6 @@ def test_the_declared_order_is_the_one_the_cards_use():
         "Severity scale",
         "Limitations",
         "Exemplars",
-        "What to look for",
         "References",
     )
 
@@ -298,10 +299,49 @@ def test_none_is_an_acceptable_boundary_answer():
     assert not any("Boundary handling" in p.message for p in problems_for(text))
 
 
-def test_a_hand_written_evidence_section_is_refused():
-    """Prose here would be a claim about measurements that nothing checks."""
-    text = build_prose(Evidence="MSE rises steeply with displacement, as predicted.")
-    assert any("generated" in p.message for p in problems_for(text))
+def test_results_must_be_broken_into_subsections():
+    """One kind of test per subsection, so evidence sits beside the claim it supports."""
+    text = build_prose(Results="Everything went well across the whole ladder. " * 10)
+    assert any("no '###' subsections" in p.message for p in problems_for(text))
+
+
+def test_a_result_subsection_needs_its_generated_numbers():
+    text = build_prose(
+        Results="### Smoothing\n\nMSE rose steeply with kernel width. " * 6
+    )
+    assert any("generated includes" in p.message for p in problems_for(text))
+
+
+def test_measurements_come_before_the_explanation():
+    """The number is the evidence; the prose reads it. Reversed, the prose leads."""
+    text = build_prose(
+        Results=(
+            "### Smoothing\n\nMSE rose steeply with kernel width, as the numbers below "
+            "show and as anyone would say. \n\n{{ include _generated/results_smoothing.md }}\n"
+        )
+    )
+    assert any("before its generated numbers" in p.message for p in problems_for(text))
+
+
+def test_an_unexplained_result_subsection_warns_but_does_not_fail():
+    """A subsection whose evidence has not been generated has nothing to explain yet."""
+    text = build_prose(
+        Results="### Smoothing\n\n{{ include _generated/results_smoothing.md }}\n"
+    )
+    problems = problems_for(text)
+    unexplained = [p for p in problems if "without saying what they mean" in p.message]
+    assert unexplained and all(p.severity == "warning" for p in unexplained)
+
+
+def test_an_include_outside_a_subsection_is_refused():
+    text = build_prose(
+        Results=(
+            "{{ include _generated/results_summary.md }}\n\n### Smoothing\n\n"
+            "{{ include _generated/results_smoothing.md }}\n\n"
+            + "What the smoothing axes found, at length. " * 5
+        )
+    )
+    assert any("outside any subsection" in p.message for p in problems_for(text))
 
 
 @pytest.mark.parametrize("sentinel", prose.SENTINELS)

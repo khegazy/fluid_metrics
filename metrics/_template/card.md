@@ -90,18 +90,65 @@ misleading answer, described so precisely that a reader can recognise it in thei
 results. Saturation, blind spots, and any case where the number disagrees with what a
 person sees when they look at the two fields.
 
-## Evidence
+## Results
 
-{{ include _generated/evidence.md }}
+One subsection per kind of test, each opening with its generated numbers and continuing
+with what those numbers show. Keep the evidence beside the claim it supports: a reader
+checking a sentence should not have to hunt for the figure behind it.
 
-## Assessment
+Run `python -m fmeval.cards evidence <name> --results results/<run>` to produce the
+includes. Never write the numbers yourself, and never edit anything under `_generated/`.
+Delete any subsection whose axes this metric was not run against, and add `### Canaries`
+and `### Across the ladder` only if you have measurements for them.
 
-TODO(fill) At least 60 words. What the measurements actually show: where the predictions
-held, where they did not, what this metric detects that the controls do not, and where it
-simply tracks them. State plainly what it is blind to, including any canary it fails —
-that is information a reader needs, not a mark against the metric. Finish with the
-situations in which someone should reach for this metric. Do not write a verdict; nothing
-in this repository passes or fails a metric.
+### Smoothing
+
+{{ include _generated/results_smoothing.md }}
+
+TODO(fill) At least 25 words on what the smoothing axes found. Say what the numbers show,
+not what you expected them to show.
+
+### Spectral filtering
+
+{{ include _generated/results_spectral.md }}
+
+TODO(fill) At least 25 words on what the spectral axes found.
+
+### Displacement
+
+{{ include _generated/results_geometric.md }}
+
+TODO(fill) At least 25 words on what the displacement axes found. This is where a
+pointwise norm is usually at its worst, so say how yours compares.
+
+### Resolution loss
+
+{{ include _generated/results_resolution.md }}
+
+TODO(fill) At least 25 words on what coarsening found.
+
+### Noise
+
+{{ include _generated/results_stochastic.md }}
+
+TODO(fill) At least 25 words on what the noise axis found.
+
+### Canaries
+
+{{ include _generated/results_canaries.md }}
+
+TODO(fill) At least 25 words. The phase-randomised impostor and the unrelated-field
+anchor. State plainly what your metric does with them, including a canary it fails —
+that is information a reader needs, not a mark against the metric.
+
+### Across the ladder
+
+{{ include _generated/results_summary.md }}
+
+TODO(fill) At least 25 words on what holds across every axis: how this metric correlates
+with the controls, where it merely tracks them, and the situations in which someone
+should reach for it. Do not write a verdict; nothing in this repository passes or fails a
+metric.
 
 ## References
 

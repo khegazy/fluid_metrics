@@ -60,11 +60,11 @@ one or onto a no-op, say under what conditions.
 
 ## Exemplars
 
+### The panel
+
 {{ include _generated/exemplars.md }}
 
-## What to look for
-
-TODO(fill) At least 60 words, no mathematical notation. The figure above does not explain
+TODO(fill) At least 25 words, no mathematical notation. The figure does not explain
 itself. Say what changes between the weak and the strong columns, which diagnostic row
 makes it visible, and what a reader should check first. If the effect is invisible in the
 field images and only shows up in one of the other rows, say that explicitly — that is

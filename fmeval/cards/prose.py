@@ -35,8 +35,7 @@ METRIC_SECTIONS: tuple[str, ...] = (
     "Intuition",
     "Reading the output",
     "Limitations",
-    "Evidence",
-    "Assessment",
+    "Results",
     "References",
 )
 """Required H2 headings of a metric card, in the order they must appear.
@@ -64,7 +63,6 @@ DEGRADATION_SECTIONS: tuple[str, ...] = (
     "Severity scale",
     "Limitations",
     "Exemplars",
-    "What to look for",
     "References",
 )
 """Required H2 headings of a degradation card, in order.
@@ -88,15 +86,50 @@ to be said, with the reason, rather than left to be inferred from silence. An em
 statement and an absent one look identical to a reader; only one of them is a claim.
 """
 
-GENERATED_SECTIONS = frozenset({"Evidence", "Exemplars"})
-"""Sections whose body is written by a generator and must not be typed by hand."""
+RESULT_SECTIONS = frozenset({"Results", "Exemplars"})
+"""Sections that pair generated measurements with the prose explaining them.
+
+Each is built from ``###`` subsections, one per kind of test, and each subsection opens
+with a generated include and continues with a human explanation of what those particular
+numbers show.
+
+The two halves used to be separate sections -- generated evidence, then an assessment of
+all of it at once. Splitting them that way meant a reader comparing a claim to the number
+behind it had to scroll between two places and work out which figure the sentence was
+about, and it invited an assessment that summarised the ladder in general rather than
+saying what each test found.
+
+The generated half still may not be typed by hand: a number written by a person here is a
+claim about a measurement that nothing checks.
+"""
+
+FAMILY_HEADINGS: dict[str, str] = {
+    "smoothing": "Smoothing",
+    "spectral": "Spectral filtering",
+    "geometric": "Displacement",
+    "resolution": "Resolution loss",
+    "stochastic": "Noise",
+    "pointwise": "Pointwise distortion",
+}
+"""Subsection heading for each degradation family, for ``## Results``.
+
+Readable names rather than the registry's own vocabulary, because the card is read by
+people who do not know this repository. Two subsections sit outside this mapping:
+``Canaries`` for the probes that carry no ordered severity, and ``Across the ladder`` for
+findings that span every test, such as how the metric correlates with the controls.
+"""
+
+RESULT_PROSE_FLOOR = 25
+"""Words of explanation each result subsection needs beside its generated numbers.
+
+Low on purpose. A subsection whose evidence has not been generated yet has nothing to
+explain, so this is a warning until a card claims ``validated``.
+"""
 
 WORD_FLOORS: dict[str, int] = {
     "Intuition": 90,
     "Reading the output": 80,
-    "Assessment": 60,
     "Limitations": 80,
-    "What to look for": 60,
     "Severity scale": 40,
 }
 
@@ -207,6 +240,7 @@ def check_math(text: str) -> list[Problem]:
 _HEADING = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 _INCLUDE = re.compile(r"^\{\{\s*include\s+\S+\s*\}\}$", re.MULTILINE)
+_SUBHEADING = re.compile(r"^### (.+?)\s*$", re.MULTILINE)
 _TABLE_OR_CODE = re.compile(r"^```|^\s*\|", re.MULTILINE)
 
 
@@ -274,6 +308,89 @@ def _words(body: str) -> int:
     prose = _TABLE_OR_CODE.sub("", body)
     prose = re.sub(r"```.*?```", "", prose, flags=re.DOTALL)
     return len(prose.split())
+
+
+def _check_result_section(section: str, body: str, name: str) -> list[Problem]:
+    """Check one ``## Results`` or ``## Exemplars`` section.
+
+    The shape is one ``###`` subsection per kind of test, each opening with a generated
+    include and continuing with the explanation of those numbers. Checked here: that the
+    subsections exist, that each carries exactly one include, that nothing hand-written
+    precedes the include inside a subsection, and that some explanation follows it.
+
+    Args:
+        section: The section name, used in messages.
+        body: The section body, headings included.
+        name: The bundle name, used in the suggested fix commands.
+
+    Returns:
+        One problem per structural fault.
+    """
+    generator = "exemplars" if section == "Exemplars" else "evidence"
+    regenerate = f"python -m fmeval.cards {generator} {name}"
+    problems: list[Problem] = []
+
+    parts = _SUBHEADING.split(body)
+    preamble, rest = parts[0], parts[1:]
+    subsections = list(zip(rest[::2], rest[1::2]))
+
+    if _INCLUDE.search(preamble):
+        problems.append(
+            Problem(
+                section,
+                f"'## {section}' has an include outside any subsection. Every set of "
+                "numbers belongs under the heading naming the test that produced it.",
+                f"move it under a '### <test>' heading, then run  {regenerate}",
+            )
+        )
+    if not subsections:
+        problems.append(
+            Problem(
+                section,
+                f"'## {section}' has no '###' subsections. Results are reported one "
+                "kind of test at a time, so a reader can find the evidence for a claim "
+                "beside the claim.",
+                "add a '### <test>' subsection per test, each with its generated "
+                f"include followed by what those numbers show; see {', '.join(sorted(set(FAMILY_HEADINGS.values())))}",
+            )
+        )
+
+    for heading, sub in subsections:
+        includes = _INCLUDE.findall(sub)
+        if len(includes) != 1:
+            problems.append(
+                Problem(
+                    section,
+                    f"'### {heading}' carries {len(includes)} generated includes; it "
+                    "needs exactly one, naming the measurements being explained.",
+                    f"give the subsection one include line, then run  {regenerate}",
+                )
+            )
+            continue
+
+        before, after = sub.split(includes[0], 1)
+        if before.strip():
+            problems.append(
+                Problem(
+                    section,
+                    f"'### {heading}' has prose before its generated numbers. The "
+                    "measurement comes first; the explanation reads it.",
+                    "move the text below the include line",
+                )
+            )
+        if len(after.split()) < RESULT_PROSE_FLOOR:
+            problems.append(
+                Problem(
+                    section,
+                    f"'### {heading}' shows numbers without saying what they mean. "
+                    f"Say what this test found, in at least {RESULT_PROSE_FLOOR} words.",
+                    "write the explanation below the include line; if the evidence has "
+                    f"not been generated yet, run  {regenerate}  first",
+                    severity="warning",
+                )
+            )
+
+    return problems
 
 
 def check_prose(text: str, *, kind: str, name: str) -> list[Problem]:
@@ -358,19 +475,8 @@ def check_prose(text: str, *, kind: str, name: str) -> list[Problem]:
     for section, body in sections.items():
         if section not in required:
             continue
-        if section in GENERATED_SECTIONS:
-            if not _INCLUDE.search(body) or len(body.splitlines()) > 3:
-                problems.append(
-                    Problem(
-                        section,
-                        f"'## {section}' is generated, but contains hand-written text. "
-                        "Prose here would be a claim about measurements that nothing "
-                        "checks.",
-                        f"replace the body with the include line and run  "
-                        f"python -m fmeval.cards "
-                        f"{'evidence' if section == 'Evidence' else 'exemplars'} {name}",
-                    )
-                )
+        if section in RESULT_SECTIONS:
+            problems.extend(_check_result_section(section, body, name))
             continue
         if not body:
             problems.append(Problem(section, f"'## {section}' is empty.", check))

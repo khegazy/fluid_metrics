@@ -112,41 +112,62 @@ because the differences are squared, a single badly wrong cell can dominate the 
 field; this is an advantage when outliers are what matters and a liability when they are
 an artefact of the reader or the remap.
 
-## Evidence
+## Results
 
-{{ include _generated/evidence.md }}
+### Smoothing
 
-## Assessment
+{{ include _generated/results_smoothing.md }}
+
+### Spectral filtering
+
+{{ include _generated/results_spectral.md }}
+
+### Displacement
+
+{{ include _generated/results_geometric.md }}
 
 Measurements on 256-squared vorticity at Reynolds 5e4, over 21 frames of developed flow,
-confirm the quadratic scaling of Equation (3): the damage ratios
-per doubling of sub-cell displacement are 3.99, 3.95 and 3.82, against the 4 implied by a
-quadratic response, and MAE gives 2.00, 1.98 and 1.93 against the 2 implied by a
-linear one. The
-practical consequence is large and easy to miss. At an eighth of a cell MAE assigns 55
-times the damage MSE does, and at one full cell 6.5 times. If what you need is a pointwise
-metric that notices sub-cell displacement, MAE is strictly the better choice, and the
-quadratic suppression is why MSE reads as tolerant of small shifts while being severe
-about moderate ones. The double penalty has no single onset; where it begins depends on
-the order of the norm.
+confirm the quadratic scaling of Equation (3). The damage ratios per doubling of sub-cell
+displacement are 3.99, 3.95 and 3.82, against the 4 implied by a quadratic response; MAE
+over the same displacements gives 2.00, 1.98 and 1.93, against the 2 implied by a linear
+one. The practical consequence is large and easy to miss: at an eighth of a cell MAE
+assigns 55 times the damage MSE does, and at one full cell 6.5 times. If what you need is
+a pointwise metric that notices sub-cell displacement, MAE is the better choice. The
+quadratic suppression is also why MSE reads as tolerant of small shifts while being
+severe about moderate ones — the double penalty has no single onset, and where it begins
+depends on the order of the norm.
 
-The phase-randomised impostor does not catch this family: MSE assigns it
-0.80 damage on vorticity and 0.51 on velocity, which is firm rejection. That canary is
-aimed at metrics that depend only on the amplitude spectrum, and a report in which every
-implemented metric rejects the impostor should not be read as reassuring until such a
-metric is actually in the panel.
+### Resolution loss
 
-Against the controls, the three pointwise baselines correlate at 0.995 (MAE against MSE),
-0.970 (MSE against NRMSE) and 0.968 (MAE against NRMSE) across the full ladder, all above
-the 0.95 redundancy threshold, so they order the degradations almost identically. They
-still differ by a factor of 55 in displacement damage. High rank correlation means two
-metrics *order* damage the same way, not that they *weight* it the same. For selecting
-models by ranking, these three are duplicates; as training losses they are not.
+{{ include _generated/results_resolution.md }}
 
-Reach for MSE when the errors you care about are errors of amplitude — a model that
-damps, that adds noise, that loses the small scales — and when you want a cheap,
-differentiable quantity with a long history behind its interpretation. Do not reach for it
-alone when position is what matters.
+### Noise
+
+{{ include _generated/results_stochastic.md }}
+
+### Canaries
+
+{{ include _generated/results_canaries.md }}
+
+The phase-randomised impostor does not catch this family: MSE assigns it 0.80 damage on
+vorticity and 0.51 on velocity, which is firm rejection. That canary is aimed at metrics
+depending only on the amplitude spectrum, so a report in which every implemented metric
+rejects the impostor should not be read as reassuring until such a metric is actually in
+the panel.
+
+### Across the ladder
+
+{{ include _generated/results_summary.md }}
+
+The three pointwise baselines correlate at 0.995 (MAE against MSE), 0.970 (MSE against
+NRMSE) and 0.968 (MAE against NRMSE) across the full ladder, all above the 0.95 redundancy
+threshold, so they order the degradations almost identically. They still differ by a factor
+of 55 in displacement damage. High rank correlation means two metrics *order* damage the
+same way, not that they *weight* it the same: for selecting models by ranking these three
+are duplicates, while as training losses they are not. Reach for MSE when the errors that
+matter are errors of amplitude — a model that damps, that adds noise, that loses the small
+scales — and when a cheap differentiable quantity with a long history behind its
+interpretation is what you want. Do not reach for it alone when position is what matters.
 
 ## References
 
