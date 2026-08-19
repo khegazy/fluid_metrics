@@ -7,7 +7,10 @@
 
 site_name: pde_metrics
 site_description: Metrics for evaluating machine-learning surrogates of PDEs.
-site_url: https://khegazy.github.io/pde_metrics/
+# The custom domain the repository's CNAME points at. docs/CNAME is a copy, so the built
+# site carries it too: mkdocs copies unrecognised files in docs/ straight through, and
+# without it a deploy that replaces the published tree would drop the domain.
+site_url: https://www.pdemetricspreliminary.ai/
 repo_url: https://github.com/khegazy/pde_metrics
 edit_uri: edit/main/
 
