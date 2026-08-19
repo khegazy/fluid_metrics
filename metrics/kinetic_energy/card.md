@@ -26,9 +26,20 @@ boundary condition can enter.
 
 ## Performance
 
-<!-- GENERATED performance: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+| test | field | axes | rank correlation | weakest separation | first detected |
+|---|---|---|---|---|---|
+| geometric | velocity | 2 | — to — | 0.497 | level — |
+| resolution | velocity | 1 | -1 to -1 | 0 | level — |
+| smoothing | velocity | 3 | -1 to -1 | 0 | level — |
+| spectral | velocity | 4 | -1 to -1 | 0 | level — |
+| stochastic | velocity | 1 | 1 to 1 | 0.511 | level — |
+| canary: phase-randomised impostor | velocity | 1 | — | — | damage — |
+
+Rank correlation is the per-frame Spearman correlation of the metric with severity, reported as the range over the axes in that family; 1 means every severity ordered correctly in every frame. Weakest separation is the smallest Mann-Whitney overlap between neighbouring severities. First detected is the lowest severity level at which the metric departs from clean by a tenth of the distance to an unrelated field. Damage is on that same scale: 0 is the reference and 1 is an unrelated field.
+
+This table reports what was measured and grades none of it. What the numbers mean for this metric is in the subsections below, beside the test that produced each.
 
 <!-- END GENERATED performance -->
 
@@ -95,9 +106,11 @@ form is the one to reach for.
 
 ## Results
 
-<!-- GENERATED run: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED run: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+Measured on `kinet_re5e4`, frames 2000 to 10000 (161 frames of developed flow), on the 256 analysis grid, seed 20260807, at commit `85ddd3788061` (working tree dirty). Run `comparison_1787115827`.
+
+Every number in this section comes from that one run. Regenerate with `python -m fmeval.cards evidence <name> --results results/comparison_1787115827`.
 
 <!-- END GENERATED run -->
 
@@ -112,9 +125,13 @@ the drift away from the reference value rather than an error.
 [box_blur](../../degradations/box_blur/card.md) ·
 [median_blur](../../degradations/median_blur/card.md)
 
-<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `box_blur` | velocity | 4 | -1 | 0 | 0 |
+| `gaussian_blur` | velocity | 4 | -1 | 0 | 0 |
+| `median_blur` | velocity | 3 | -1 | 0 | 0.000502 |
 
 <!-- END GENERATED results_smoothing -->
 
@@ -125,9 +142,14 @@ Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
 [highpass_ideal](../../degradations/highpass_ideal/card.md) ·
 [highpass_butterworth](../../degradations/highpass_butterworth/card.md)
 
-<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `highpass_butterworth` | velocity | 3 | -1 | 0 | 0 |
+| `highpass_ideal` | velocity | 2 | -1 | 0 | 0 |
+| `lowpass_butterworth` | velocity | 3 | -1 | 0 | 0 |
+| `lowpass_ideal` | velocity | 2 | -1 | 0 | 0 |
 
 <!-- END GENERATED results_spectral -->
 
@@ -136,9 +158,12 @@ Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
 [translate_x](../../degradations/translate/card.md) ·
 [translate_subpixel](../../degradations/translate_subpixel/card.md)
 
-<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `translate_subpixel` | velocity | 6 | — | 0 | 0.497 |
+| `translate_x` | velocity | 5 | — | 0 | 0.5 |
 
 <!-- END GENERATED results_geometric -->
 
@@ -151,9 +176,11 @@ should — which is one of the things a reference-free diagnostic is useful for.
 
 [coarsen](../../degradations/coarsen/card.md)
 
-<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `coarsen` | velocity | 4 | -1 | 0 | 0 |
 
 <!-- END GENERATED results_resolution -->
 
@@ -161,9 +188,11 @@ Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
 
 [additive_noise](../../degradations/additive_noise/card.md)
 
-<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `additive_noise` | velocity | 4 | 1 | 0.969 | 0.511 |
 
 <!-- END GENERATED results_stochastic -->
 
@@ -172,17 +201,29 @@ Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
 
-<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+| field | impostor damage | nearest severity level | unrelated-field value |
+|---|---|---|---|
+| velocity | — | `` | 0.00157 |
+
+Damage of 1 is what an unrelated field scores, so the impostor column says how close to useless this metric considers a field with the reference's spectrum and random phases. The nearest severity level names the ordinary degradation whose damage the impostor most resembles, which is the more legible statement of the same thing.
 
 <!-- END GENERATED results_canaries -->
 
 ### Across the ladder
 
-<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence kinetic_energy`, do not edit -->
+<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence kinetic_energy`.
+| against | rank correlation across the ladder |
+|---|---|
+| `enstrophy` | 0.862 |
+| `mae` | -0.208 |
+| `mse` | -0.23 |
+| `rmse` | -0.23 |
+| `nrmse` | -0.29 |
+
+Computed on the median value at each (axis, severity level), over every axis and field in the run, with the reference excluded. Two metrics correlating near 1 order the degradations alike; they may still weight them very differently, so this says they are redundant for ranking models rather than interchangeable as training losses.
 
 <!-- END GENERATED results_summary -->
 

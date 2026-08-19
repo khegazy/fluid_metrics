@@ -192,6 +192,44 @@ def cmd_sign(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_evidence(args: argparse.Namespace) -> int:
+    """Fill in the measured half of one metric card, or of every one."""
+    from .evidence import generate as generate_evidence, load_run
+
+    try:
+        run = load_run(Path(args.results))
+    except (FileNotFoundError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+
+    names = [b.name for b in iter_bundles("metric")] if args.name == "--all" else [args.name]
+    for name in names:
+        try:
+            generate_evidence(name, run)
+        except KeyError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        print(f"wrote evidence for {name} from {run.folder.name}")
+    return 0
+
+
+def cmd_exemplars(args: argparse.Namespace) -> int:
+    """Render one degradation's exemplar panel, or every one."""
+    from .exemplars import generate as generate_panel
+
+    names = ([b.name for b in iter_bundles("degradation")]
+             if args.name == "--all" else [args.name])
+    for name in names:
+        try:
+            path = generate_panel(name)
+        except (KeyError, FileNotFoundError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        print(f"{name}: {'no panel (mode: none)' if path is None else path}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m fmeval.cards",
@@ -219,6 +257,18 @@ def build_parser() -> argparse.ArgumentParser:
     listing.add_argument("--kind", choices=("metric", "degradation"), default=None)
     listing.add_argument("--status", default=None)
     listing.set_defaults(func=cmd_list)
+
+    evidence = sub.add_parser(
+        "evidence", help="fill in a metric card's measurements from an evaluation run")
+    evidence.add_argument("name", help="the metric bundle, or --all for every one")
+    evidence.add_argument("--results", required=True,
+                          help="a results/<name>_<stamp> folder on the canonical dataset")
+    evidence.set_defaults(func=cmd_evidence)
+
+    exemplars = sub.add_parser(
+        "exemplars", help="render a degradation's exemplar panel from the canonical frame")
+    exemplars.add_argument("name", help="the degradation bundle, or --all for every one")
+    exemplars.set_defaults(func=cmd_exemplars)
 
     signer = sub.add_parser("sign", help="record that a human has read the prose")
     signer.add_argument("name")

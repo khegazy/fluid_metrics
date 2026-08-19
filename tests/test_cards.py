@@ -13,6 +13,7 @@ time.
 from __future__ import annotations
 
 import datetime as dt
+import json
 import pathlib
 import re
 
@@ -678,3 +679,58 @@ def test_template_is_not_itself_a_bundle(kind):
 def test_bundle_ids_are_unique():
     names = [f"{b.kind}:{b.name}" for b in BUNDLES]
     assert len(names) == len(set(names))
+
+
+# --------------------------------------------------------------------------------------
+# Evidence: the measured half of a card
+# --------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("bundle", [b for b in BUNDLES if b.kind == "metric"],
+                         ids=[b.name for b in BUNDLES if b.kind == "metric"])
+def test_a_fingerprint_never_cites_the_dev_dataset(bundle):
+    """The dev dataset is the first 100 solver steps, before the flow develops.
+
+    Its numbers mean nothing physically, and once written into a card they would be
+    indistinguishable from ones that do. The generator refuses such a run; this checks
+    nothing already committed slipped through by another route.
+    """
+    fingerprint = bundle.path / "_generated" / "fingerprint.json"
+    if not fingerprint.is_file():
+        pytest.skip(f"{bundle.name} has no measurements yet")
+    recorded = json.loads(fingerprint.read_text())["dataset"]
+    assert not recorded.endswith("_dev"), (
+        f"{bundle.name} cites {recorded}, which is a smoke-test dataset"
+    )
+
+
+@pytest.mark.parametrize("bundle", [b for b in BUNDLES if b.kind == "metric"],
+                         ids=[b.name for b in BUNDLES if b.kind == "metric"])
+def test_a_signed_card_has_measurements_behind_it(bundle):
+    """A signature stands behind claims about how the metric behaved.
+
+    Most of a card's claims are measured ones, so there is nothing for a signature to
+    stand behind until a run exists. `fmeval.cards sign` refuses in that case; this is the
+    check on what is committed.
+    """
+    card = yaml.safe_load(bundle.card_yaml.read_text())
+    if not card.get("review"):
+        return
+    assert (bundle.path / "_generated" / "fingerprint.json").is_file(), (
+        f"{bundle.name} is signed but has no fingerprint.json: the signature stands "
+        "behind claims nothing measured"
+    )
+
+
+def test_evidence_refuses_a_run_on_a_dataset_cards_may_not_cite(tmp_path):
+    import pandas as pd
+
+    from fmeval.cards import evidence
+
+    folder = tmp_path / "comparison_1"
+    (folder / "data").mkdir(parents=True)
+    pd.DataFrame({"dataset": ["kinet_re5e4_dev"], "metric": ["mse"], "field": ["vorticity"],
+                  "value": [1.0]}).to_csv(folder / "data" / "results.csv", index=False)
+
+    with pytest.raises(ValueError, match="cards may not cite"):
+        evidence.load_run(folder)

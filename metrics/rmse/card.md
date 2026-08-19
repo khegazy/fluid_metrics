@@ -32,9 +32,32 @@ boundary condition can enter.
 
 ## Performance
 
-<!-- GENERATED performance: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+| test | field | axes | rank correlation | weakest separation | first detected |
+|---|---|---|---|---|---|
+| geometric | density | 2 | 1 to 1 | 0.959 | level 3 |
+| geometric | velocity | 2 | 1 to 1 | 0.984 | level 4 |
+| geometric | vorticity | 2 | 1 to 1 | 0.754 | level 1 |
+| resolution | density | 1 | 1 to 1 | 0.96 | level 4 |
+| resolution | velocity | 1 | 1 to 1 | 1 | level — |
+| resolution | vorticity | 1 | 1 to 1 | 0.741 | level 1 |
+| smoothing | density | 3 | 1 to 1 | 0.955 | level 3 |
+| smoothing | velocity | 3 | 1 to 1 | 0.986 | level 3 |
+| smoothing | vorticity | 3 | 1 to 1 | 0.69 | level 2 |
+| spectral | density | 4 | 1 to 1 | 0.698 | level 1 |
+| spectral | velocity | 4 | 1 to 1 | 0.993 | level 1 |
+| spectral | vorticity | 4 | 1 to 1 | 0.62 | level 1 |
+| stochastic | density | 1 | 1 to 1 | 1 | level 4 |
+| stochastic | velocity | 1 | 1 to 1 | 1 | level 4 |
+| stochastic | vorticity | 1 | 1 to 1 | 1 | level 4 |
+| canary: phase-randomised impostor | density | 1 | — | — | damage 1.11 |
+| canary: phase-randomised impostor | velocity | 1 | — | — | damage 0.813 |
+| canary: phase-randomised impostor | vorticity | 1 | — | — | damage 0.95 |
+
+Rank correlation is the per-frame Spearman correlation of the metric with severity, reported as the range over the axes in that family; 1 means every severity ordered correctly in every frame. Weakest separation is the smallest Mann-Whitney overlap between neighbouring severities. First detected is the lowest severity level at which the metric departs from clean by a tenth of the distance to an unrelated field. Damage is on that same scale: 0 is the reference and 1 is an unrelated field.
+
+This table reports what was measured and grades none of it. What the numbers mean for this metric is in the subsections below, beside the test that produced each.
 
 <!-- END GENERATED performance -->
 
@@ -99,9 +122,11 @@ assumes it does.
 
 ## Results
 
-<!-- GENERATED run: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED run: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+Measured on `kinet_re5e4`, frames 2000 to 10000 (161 frames of developed flow), on the 256 analysis grid, seed 20260807, at commit `85ddd3788061` (working tree dirty). Run `comparison_1787115827`.
+
+Every number in this section comes from that one run. Regenerate with `python -m fmeval.cards evidence <name> --results results/comparison_1787115827`.
 
 <!-- END GENERATED run -->
 
@@ -114,9 +139,19 @@ their severity numbers mean, is documented in their own bundles.
 [box_blur](../../degradations/box_blur/card.md) ·
 [median_blur](../../degradations/median_blur/card.md)
 
-<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `box_blur` | density | 4 | 1 | 1 | 0.955 |
+| `box_blur` | velocity | 4 | 1 | 1 | 1 |
+| `box_blur` | vorticity | 4 | 1 | 1 | 0.69 |
+| `gaussian_blur` | density | 4 | 1 | 1 | 0.96 |
+| `gaussian_blur` | velocity | 4 | 1 | 1 | 1 |
+| `gaussian_blur` | vorticity | 4 | 1 | 1 | 0.749 |
+| `median_blur` | density | 3 | 1 | 1 | 0.972 |
+| `median_blur` | velocity | 3 | 1 | 1 | 0.986 |
+| `median_blur` | vorticity | 3 | 1 | 1 | 0.86 |
 
 <!-- END GENERATED results_smoothing -->
 
@@ -127,9 +162,22 @@ Not generated yet. Run `python -m fmeval.cards evidence rmse`.
 [highpass_ideal](../../degradations/highpass_ideal/card.md) ·
 [highpass_butterworth](../../degradations/highpass_butterworth/card.md)
 
-<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `highpass_butterworth` | density | 4 | 1 | 1 | 0.72 |
+| `highpass_butterworth` | velocity | 3 | 1 | 1 | 1 |
+| `highpass_butterworth` | vorticity | 4 | 1 | 1 | 0.633 |
+| `highpass_ideal` | density | 3 | 1 | 1 | 0.698 |
+| `highpass_ideal` | velocity | 2 | 1 | 1 | 1 |
+| `highpass_ideal` | vorticity | 4 | 1 | 1 | 0.62 |
+| `lowpass_butterworth` | density | 4 | 1 | 1 | 0.852 |
+| `lowpass_butterworth` | velocity | 3 | 1 | 1 | 1 |
+| `lowpass_butterworth` | vorticity | 4 | 1 | 1 | 0.684 |
+| `lowpass_ideal` | density | 3 | 1 | 1 | 0.951 |
+| `lowpass_ideal` | velocity | 2 | 1 | 1 | 0.993 |
+| `lowpass_ideal` | vorticity | 4 | 1 | 1 | 0.685 |
 
 <!-- END GENERATED results_spectral -->
 
@@ -138,9 +186,16 @@ Not generated yet. Run `python -m fmeval.cards evidence rmse`.
 [translate_x](../../degradations/translate/card.md) ·
 [translate_subpixel](../../degradations/translate_subpixel/card.md)
 
-<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `translate_subpixel` | density | 6 | 1 | 1 | 0.964 |
+| `translate_subpixel` | velocity | 6 | 1 | 1 | 0.984 |
+| `translate_subpixel` | vorticity | 6 | 1 | 1 | 0.838 |
+| `translate_x` | density | 5 | 1 | 1 | 0.959 |
+| `translate_x` | velocity | 5 | 1 | 1 | 0.984 |
+| `translate_x` | vorticity | 5 | 1 | 1 | 0.754 |
 
 <!-- END GENERATED results_geometric -->
 
@@ -152,9 +207,13 @@ though the reported values change more gently.
 
 [coarsen](../../degradations/coarsen/card.md)
 
-<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `coarsen` | density | 4 | 1 | 1 | 0.96 |
+| `coarsen` | velocity | 4 | 1 | 1 | 1 |
+| `coarsen` | vorticity | 4 | 1 | 1 | 0.741 |
 
 <!-- END GENERATED results_resolution -->
 
@@ -162,9 +221,13 @@ Not generated yet. Run `python -m fmeval.cards evidence rmse`.
 
 [additive_noise](../../degradations/additive_noise/card.md)
 
-<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `additive_noise` | density | 4 | 1 | 1 | 1 |
+| `additive_noise` | velocity | 4 | 1 | 1 | 1 |
+| `additive_noise` | vorticity | 4 | 1 | 1 | 1 |
 
 <!-- END GENERATED results_stochastic -->
 
@@ -173,17 +236,31 @@ Not generated yet. Run `python -m fmeval.cards evidence rmse`.
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
 
-<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+| field | impostor damage | nearest severity level | unrelated-field value |
+|---|---|---|---|
+| density | 1.11 | `lowpass_ideal=1.4029` | 0.0081 |
+| velocity | 0.813 | `highpass_ideal=4.02293` | 0.0691 |
+| vorticity | 0.95 | `translate_x=16` | 0.00381 |
+
+Damage of 1 is what an unrelated field scores, so the impostor column says how close to useless this metric considers a field with the reference's spectrum and random phases. The nearest severity level names the ordinary degradation whose damage the impostor most resembles, which is the more legible statement of the same thing.
 
 <!-- END GENERATED results_canaries -->
 
 ### Across the ladder
 
-<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence rmse`, do not edit -->
+<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence rmse`.
+| against | rank correlation across the ladder |
+|---|---|
+| `mse` | 1 |
+| `mae` | 0.987 |
+| `nrmse` | 0.979 |
+| `enstrophy` | -0.108 |
+| `kinetic_energy` | -0.23 |
+
+Computed on the median value at each (axis, severity level), over every axis and field in the run, with the reference excluded. Two metrics correlating near 1 order the degradations alike; they may still weight them very differently, so this says they are redundant for ranking models rather than interchangeable as training losses.
 
 <!-- END GENERATED results_summary -->
 

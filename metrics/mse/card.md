@@ -45,9 +45,32 @@ boundary condition can enter.
 
 ## Performance
 
-<!-- GENERATED performance: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+| test | field | axes | rank correlation | weakest separation | first detected |
+|---|---|---|---|---|---|
+| geometric | density | 2 | 1 to 1 | 0.959 | level 5 |
+| geometric | velocity | 2 | 1 to 1 | 0.984 | level — |
+| geometric | vorticity | 2 | 1 to 1 | 0.754 | level 3 |
+| resolution | density | 1 | 1 to 1 | 0.96 | level — |
+| resolution | velocity | 1 | 1 to 1 | 1 | level — |
+| resolution | vorticity | 1 | 1 to 1 | 0.741 | level 3 |
+| smoothing | density | 3 | 1 to 1 | 0.955 | level 4 |
+| smoothing | velocity | 3 | 1 to 1 | 0.986 | level — |
+| smoothing | vorticity | 3 | 1 to 1 | 0.69 | level 4 |
+| spectral | density | 4 | 1 to 1 | 0.698 | level 2 |
+| spectral | velocity | 4 | 1 to 1 | 0.993 | level 3 |
+| spectral | vorticity | 4 | 1 to 1 | 0.62 | level 1 |
+| stochastic | density | 1 | 1 to 1 | 1 | level 4 |
+| stochastic | velocity | 1 | 1 to 1 | 1 | level — |
+| stochastic | vorticity | 1 | 1 to 1 | 1 | level 4 |
+| canary: phase-randomised impostor | density | 1 | — | — | damage 1.23 |
+| canary: phase-randomised impostor | velocity | 1 | — | — | damage 0.661 |
+| canary: phase-randomised impostor | vorticity | 1 | — | — | damage 0.902 |
+
+Rank correlation is the per-frame Spearman correlation of the metric with severity, reported as the range over the axes in that family; 1 means every severity ordered correctly in every frame. Weakest separation is the smallest Mann-Whitney overlap between neighbouring severities. First detected is the lowest severity level at which the metric departs from clean by a tenth of the distance to an unrelated field. Damage is on that same scale: 0 is the reference and 1 is an unrelated field.
+
+This table reports what was measured and grades none of it. What the numbers mean for this metric is in the subsections below, beside the test that produced each.
 
 <!-- END GENERATED performance -->
 
@@ -122,9 +145,11 @@ an artefact of the reader or the remap.
 
 ## Results
 
-<!-- GENERATED run: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED run: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+Measured on `kinet_re5e4`, frames 2000 to 10000 (161 frames of developed flow), on the 256 analysis grid, seed 20260807, at commit `85ddd3788061` (working tree dirty). Run `comparison_1787115827`.
+
+Every number in this section comes from that one run. Regenerate with `python -m fmeval.cards evidence <name> --results results/comparison_1787115827`.
 
 <!-- END GENERATED run -->
 
@@ -137,9 +162,19 @@ their severity numbers mean, is documented in their own bundles.
 [box_blur](../../degradations/box_blur/card.md) ·
 [median_blur](../../degradations/median_blur/card.md)
 
-<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `box_blur` | density | 4 | 1 | 1 | 0.955 |
+| `box_blur` | velocity | 4 | 1 | 1 | 1 |
+| `box_blur` | vorticity | 4 | 1 | 1 | 0.69 |
+| `gaussian_blur` | density | 4 | 1 | 1 | 0.96 |
+| `gaussian_blur` | velocity | 4 | 1 | 1 | 1 |
+| `gaussian_blur` | vorticity | 4 | 1 | 1 | 0.749 |
+| `median_blur` | density | 3 | 1 | 1 | 0.972 |
+| `median_blur` | velocity | 3 | 1 | 1 | 0.986 |
+| `median_blur` | vorticity | 3 | 1 | 1 | 0.86 |
 
 <!-- END GENERATED results_smoothing -->
 
@@ -150,9 +185,22 @@ Not generated yet. Run `python -m fmeval.cards evidence mse`.
 [highpass_ideal](../../degradations/highpass_ideal/card.md) ·
 [highpass_butterworth](../../degradations/highpass_butterworth/card.md)
 
-<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `highpass_butterworth` | density | 4 | 1 | 1 | 0.72 |
+| `highpass_butterworth` | velocity | 3 | 1 | 1 | 1 |
+| `highpass_butterworth` | vorticity | 4 | 1 | 1 | 0.633 |
+| `highpass_ideal` | density | 3 | 1 | 1 | 0.698 |
+| `highpass_ideal` | velocity | 2 | 1 | 1 | 1 |
+| `highpass_ideal` | vorticity | 4 | 1 | 1 | 0.62 |
+| `lowpass_butterworth` | density | 4 | 1 | 1 | 0.852 |
+| `lowpass_butterworth` | velocity | 3 | 1 | 1 | 1 |
+| `lowpass_butterworth` | vorticity | 4 | 1 | 1 | 0.684 |
+| `lowpass_ideal` | density | 3 | 1 | 1 | 0.951 |
+| `lowpass_ideal` | velocity | 2 | 1 | 1 | 0.993 |
+| `lowpass_ideal` | vorticity | 4 | 1 | 1 | 0.685 |
 
 <!-- END GENERATED results_spectral -->
 
@@ -161,25 +209,37 @@ Not generated yet. Run `python -m fmeval.cards evidence mse`.
 [translate_x](../../degradations/translate/card.md) ·
 [translate_subpixel](../../degradations/translate_subpixel/card.md)
 
-<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `translate_subpixel` | density | 6 | 1 | 1 | 0.964 |
+| `translate_subpixel` | velocity | 6 | 1 | 1 | 0.984 |
+| `translate_subpixel` | vorticity | 6 | 1 | 1 | 0.838 |
+| `translate_x` | density | 5 | 1 | 1 | 0.959 |
+| `translate_x` | velocity | 5 | 1 | 1 | 0.984 |
+| `translate_x` | vorticity | 5 | 1 | 1 | 0.754 |
 
 <!-- END GENERATED results_geometric -->
 
-The response is quadratic in the displacement, as Equation (3) gives: the damage ratios
-per doubling below one cell are 3.99, 3.95 and 3.82 against the 4 implied by that scaling.
-MAE is linear over the same shifts and assigns 55 times the damage at an eighth of a cell,
-6.5 times at one cell. MSE therefore reads as tolerant of small displacements and severe
+The response is quadratic in the displacement, as Equation (3) gives: on vorticity the
+damage ratios per doubling below one cell are 3.98, 3.94 and 3.75 against the 4 implied by
+that scaling, falling to 3.18 and 2.10 above a cell as the expansion stops holding. MAE is
+linear over the same shifts, so it assigns 47 times the damage at an eighth of a cell and
+6.2 times at one cell. MSE therefore reads as tolerant of small displacements and severe
 about moderate ones, and the double penalty has no single onset.
 
 ### Resolution loss
 
 [coarsen](../../degradations/coarsen/card.md)
 
-<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `coarsen` | density | 4 | 1 | 1 | 0.96 |
+| `coarsen` | velocity | 4 | 1 | 1 | 1 |
+| `coarsen` | vorticity | 4 | 1 | 1 | 0.741 |
 
 <!-- END GENERATED results_resolution -->
 
@@ -187,9 +247,13 @@ Not generated yet. Run `python -m fmeval.cards evidence mse`.
 
 [additive_noise](../../degradations/additive_noise/card.md)
 
-<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+|---|---|---|---|---|---|
+| `additive_noise` | density | 4 | 1 | 1 | 1 |
+| `additive_noise` | velocity | 4 | 1 | 1 | 1 |
+| `additive_noise` | vorticity | 4 | 1 | 1 | 1 |
 
 <!-- END GENERATED results_stochastic -->
 
@@ -198,30 +262,46 @@ Not generated yet. Run `python -m fmeval.cards evidence mse`.
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
 
-<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+| field | impostor damage | nearest severity level | unrelated-field value |
+|---|---|---|---|
+| density | 1.23 | `lowpass_ideal=1.4029` | 6.56e-05 |
+| velocity | 0.661 | `highpass_ideal=4.02293` | 0.00477 |
+| vorticity | 0.902 | `translate_x=16` | 1.45e-05 |
+
+Damage of 1 is what an unrelated field scores, so the impostor column says how close to useless this metric considers a field with the reference's spectrum and random phases. The nearest severity level names the ordinary degradation whose damage the impostor most resembles, which is the more legible statement of the same thing.
 
 <!-- END GENERATED results_canaries -->
 
-MSE rejects the phase-randomised impostor firmly, at 0.80 damage on vorticity and 0.51 on
-velocity. The canary is aimed at metrics depending only on the amplitude spectrum, so it
-does not catch this family, and a panel in which every metric rejects it is not evidence
-of a well-guarded panel.
+MSE rejects the phase-randomised impostor firmly: 0.90 damage on vorticity, 0.66 on
+velocity, and 1.23 on density, where a damage above 1 means the impostor is scored worse
+than a field with no relation to the reference at all. The canary is aimed at metrics
+depending only on the amplitude spectrum, so it does not catch this family, and a panel in
+which every metric rejects it is not evidence of a well-guarded panel.
 
 ### Across the ladder
 
-<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence mse`, do not edit -->
+<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence mse`.
+| against | rank correlation across the ladder |
+|---|---|
+| `rmse` | 1 |
+| `mae` | 0.987 |
+| `nrmse` | 0.979 |
+| `enstrophy` | -0.108 |
+| `kinetic_energy` | -0.23 |
+
+Computed on the median value at each (axis, severity level), over every axis and field in the run, with the reference excluded. Two metrics correlating near 1 order the degradations alike; they may still weight them very differently, so this says they are redundant for ranking models rather than interchangeable as training losses.
 
 <!-- END GENERATED results_summary -->
 
-The three pointwise baselines correlate at 0.995, 0.970 and 0.968 across the ladder, above
-the 0.95 redundancy threshold, yet differ by 55 times in displacement damage: they order
-damage alike without weighting it alike. For ranking models they are duplicates; as
-training losses they are not. Reach for MSE when the errors that matter are errors of
-amplitude, not of position.
+MSE and RMSE correlate at exactly 1: the square root is monotone, so no ranking can ever
+separate them. Against the other baselines MSE sits at 0.987 with MAE and 0.979 with
+NRMSE, above the 0.95 redundancy threshold, yet MAE assigns 47 times the damage at an
+eighth of a cell. They order damage alike without weighting it alike, so for ranking
+models they are duplicates and as training losses they are not. Reach for MSE when the
+errors that matter are errors of amplitude, not of position.
 
 ## References
 

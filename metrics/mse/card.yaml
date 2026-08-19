@@ -1,30 +1,22 @@
 schema_version: 1
-
 name: mse
 kind: metric
 category: pointwise_norms
-
-summary: >-
-  Mean of the squared difference between the candidate and reference fields, taken cell by
-  cell on a common analysis grid.
-
-# A control, not a candidate: this is the pointwise baseline the position-tolerant metrics
-# are read against, rather than a metric competing for a panel slot of its own.
+summary: Mean of the squared difference between the candidate and reference fields, taken
+  cell by cell on a common analysis grid.
 status: control
-owners: [khegazy]
-
+owners:
+- khegazy
 output:
-  description: >-
-    Mean over all channels and grid cells of the squared field difference, in the square of
-    the field's units.
+  description: Mean over all channels and grid cells of the squared field difference, in the
+    square of the field's units.
   bounds:
     lower: 0.0
     upper: null
-
 math:
-  triangle_inequality: false   # MSE is a squared distance; the square root, RMSE, is a metric
-  scale_dependent: true        # scaling both fields by c scales the value by c squared
-  resolution_dependent: true   # a mean over cells, so refining the grid reweights the sum
-  complexity: "O(N)"
+  triangle_inequality: false
+  scale_dependent: true
+  resolution_dependent: true
+  complexity: O(N)
 references: []
 review: null
