@@ -67,15 +67,15 @@
         "power_retained": 1.0
       },
       "draw 2": {
-        "departure_wavenumber": NaN,
+        "departure_wavenumber": null,
         "power_retained": 1.0
       },
       "draw 3": {
-        "departure_wavenumber": NaN,
+        "departure_wavenumber": null,
         "power_retained": 1.0
       },
       "original": {
-        "departure_wavenumber": NaN,
+        "departure_wavenumber": null,
         "power_retained": 1.0
       }
     }

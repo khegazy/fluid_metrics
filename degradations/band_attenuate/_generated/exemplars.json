@@ -67,7 +67,7 @@
     },
     "radial_spectrum": {
       "original": {
-        "departure_wavenumber": NaN,
+        "departure_wavenumber": null,
         "power_retained": 1.0
       },
       "retained fraction = 0": {

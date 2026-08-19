@@ -79,7 +79,7 @@
         "power_retained": 0.0012788390368871395
       },
       "original": {
-        "departure_wavenumber": NaN,
+        "departure_wavenumber": null,
         "power_retained": 1.0
       }
     }

@@ -87,6 +87,18 @@ def load_run(folder: Path) -> Run:
                probes=an.probe_summary(rows, norm))
 
 
+def _cell(row: Any, column: str) -> Any:
+    """A probe column that may be absent from this run's analysis.
+
+    `probe_summary` only emits columns for the probes the ladder actually ran. A run whose
+    ladder skipped the impostor -- `degradation.skip=[gaussian_impostor]`, or a custom
+    ladder -- legitimately lacks those columns, and indexing them raised a bare KeyError
+    that named a column instead of the situation. Absent means not measured, which
+    `_fmt` renders as an em dash.
+    """
+    return row[column] if column in row.index else None
+
+
 def _fmt(value: Any, digits: int = 3) -> str:
     """A number for a table cell, or an em dash where there is none."""
     if value is None or (isinstance(value, float) and pd.isna(value)):
@@ -133,7 +145,7 @@ def performance_block(run: Run, metric: str) -> str:
     for _, row in probes.iterrows():
         lines.append(
             f"| canary: phase-randomised impostor | {row['field']} | 1 | — | — | "
-            f"damage {_fmt(row['gaussian_impostor_damage'])} |"
+            f"damage {_fmt(_cell(row, 'gaussian_impostor_damage'))} |"
         )
     lines += [
         "",
@@ -177,10 +189,11 @@ def canaries_block(run: Run, metric: str) -> str:
     lines = ["| field | impostor damage | nearest severity level | unrelated-field value |",
              "|---|---|---|---|"]
     for _, row in probes.sort_values("field").iterrows():
+        nearest = _cell(row, "gaussian_impostor_nearest_level")
         lines.append(
-            f"| {row['field']} | {_fmt(row['gaussian_impostor_damage'])} | "
-            f"`{row['gaussian_impostor_nearest_level']}` | "
-            f"{_fmt(row['uncorrelated_value'])} |"
+            f"| {row['field']} | {_fmt(_cell(row, 'gaussian_impostor_damage'))} | "
+            f"{'`' + str(nearest) + '`' if nearest is not None else '—'} | "
+            f"{_fmt(_cell(row, 'uncorrelated_value'))} |"
         )
     lines += [
         "",
@@ -268,7 +281,12 @@ def generate(metric: str, run: Run) -> Path:
         "probes": json.loads(probes.to_json(orient="records")),
     }
     out = bundle.path / "_generated" / "fingerprint.json"
-    out.write_text(json.dumps(fingerprint, indent=2, sort_keys=True) + "\n")
+    from .exemplars import sanitize_json
+
+    out.write_text(
+        json.dumps(sanitize_json(fingerprint), indent=2, sort_keys=True, allow_nan=False)
+        + "\n"
+    )
     for stale in bundle.path.glob("_generated/results_*.md"):
         stale.unlink()
     for stale in (bundle.path / "_generated" / "performance.md",

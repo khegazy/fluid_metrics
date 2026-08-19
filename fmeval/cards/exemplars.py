@@ -28,6 +28,23 @@ from fmeval.context import FieldContext, derive_rng
 from fmeval.ladder import resolve_severity, SeverityLevel
 
 REPO = Path(__file__).resolve().parent.parent.parent
+
+
+def sanitize_json(value: Any) -> Any:
+    """Replace NaN and infinities with None, recursively, before serialising.
+
+    ``json.dumps`` writes float('nan') as a bare ``NaN`` token, which is not JSON: a
+    strict parser refuses the whole file. These files exist precisely for machine
+    readers, and thirteen committed fingerprints were unreadable to them before this.
+    "Not a number" here always means "not measured", and null is how JSON says that.
+    """
+    if isinstance(value, dict):
+        return {k: sanitize_json(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [sanitize_json(v) for v in value]
+    if isinstance(value, float) and (value != value or value in (float("inf"), float("-inf"))):
+        return None
+    return value
 CARDS_CONFIG = REPO / "configs" / "cards" / "default.yaml"
 
 
@@ -195,7 +212,10 @@ def generate(name: str, *, seed: int = 20260807) -> Path | None:
         "applied": applied,
         "panels": panel.statistics,
     }
-    (out / "exemplars.json").write_text(json.dumps(fingerprint, indent=2, sort_keys=True) + "\n")
+    (out / "exemplars.json").write_text(
+        json.dumps(sanitize_json(fingerprint), indent=2, sort_keys=True, allow_nan=False)
+        + "\n"
+    )
     write_block(bundle.card_md, "exemplars",
                 _caption(name, card, frame, applied, panel.statistics),
                 command=f"python -m fmeval.cards exemplars {name}")

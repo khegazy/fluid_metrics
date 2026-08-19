@@ -839,3 +839,310 @@ def test_the_site_builds_without_the_dataset(tmp_path):
     assert (tmp_path / "llms.txt").is_file()
     assert (tmp_path / "metrics" / "mse" / "index.html").is_file()
     assert (tmp_path / "degradations" / "gallery" / "index.html").is_file()
+
+
+# --------------------------------------------------------------------------------------
+# The generators, tested end to end on synthetic data
+# --------------------------------------------------------------------------------------
+#
+# These functions rewrite committed files, so they were verified by hand when written and
+# then trusted. That is backwards: the failure modes here -- unstable ordering between
+# regenerations, a block swallowing its neighbour, regex escapes corrupting a body, silent
+# key drift between writer and reader -- are all quiet, and every one of them would put
+# wrong content into a card that looks exactly like right content.
+
+
+def _synthetic_run(tmp_path):
+    """A results folder small enough to analyse in milliseconds.
+
+    Built from the analysis suite's own fixture so the columns are exactly what
+    fmeval.analysis expects, then stamped with the canonical dataset name so
+    `load_run` accepts it as citable evidence.
+    """
+    from tests.test_analysis import make_frame
+
+    df = make_frame(
+        metric="mse",
+        axes={
+            "gaussian_blur": [1.0, 2.0, 3.0, 4.0],
+            "translate_x": [0.5, 1.0, 2.0, 4.0],
+            "uncorrelated": [10.0, 10.0, 10.0],
+            "gaussian_impostor": [8.0],
+        },
+    )
+    df["dataset"] = "kinet_re5e4"
+    folder = tmp_path / "comparison_synthetic"
+    (folder / "data").mkdir(parents=True)
+    df.to_csv(folder / "data" / "results.csv", index=False)
+    return folder
+
+
+def _bundle_copy(tmp_path, monkeypatch):
+    """A throwaway copy of the mse bundle, so generators never touch tracked files."""
+    import shutil
+
+    from fmeval.cards import loader as loader_module
+
+    dst = tmp_path / "mse"
+    shutil.copytree(REPO / "metrics" / "mse", dst,
+                    ignore=shutil.ignore_patterns("__pycache__"))
+    bundle = loader.Bundle(name="mse", kind="metric", path=dst)
+    monkeypatch.setattr(loader_module, "find_bundle", lambda *a, **k: bundle)
+    return bundle
+
+
+def test_evidence_generation_is_idempotent(tmp_path, monkeypatch):
+    """Generating twice from the same run must change nothing the second time.
+
+    The card and the fingerprint are committed, so any instability -- a dict whose
+    ordering varies, a timestamp sneaking in, a DataFrame serialised in group order --
+    shows up as a meaningless diff on every regeneration, and reviewers learn to ignore
+    exactly the files where a real change matters most.
+    """
+    from fmeval.cards import evidence
+
+    bundle = _bundle_copy(tmp_path, monkeypatch)
+    run = evidence.load_run(_synthetic_run(tmp_path))
+
+    evidence.generate("mse", run)
+    first_card = bundle.card_md.read_bytes()
+    first_print = (bundle.path / "_generated" / "fingerprint.json").read_bytes()
+
+    evidence.generate("mse", run)
+    assert bundle.card_md.read_bytes() == first_card
+    assert (bundle.path / "_generated" / "fingerprint.json").read_bytes() == first_print
+
+
+def test_evidence_fills_every_block_the_card_carries(tmp_path, monkeypatch):
+    """Every generated block in the card must be written, not silently skipped.
+
+    The generator only writes blocks whose marker it finds, which is right for family
+    blocks a card legitimately lacks -- but it means a typo in a marker name would leave
+    that block permanently saying "not generated yet" with no error anywhere. This pins
+    the count: after generating, no block in the mse card still carries the placeholder.
+    """
+    from fmeval.cards import evidence
+
+    bundle = _bundle_copy(tmp_path, monkeypatch)
+    run = evidence.load_run(_synthetic_run(tmp_path))
+    evidence.generate("mse", run)
+
+    text = bundle.card_md.read_text()
+    assert "Not generated yet" not in text, (
+        "a generated block kept its placeholder; its marker name and the generator's "
+        "block name disagree"
+    )
+    # And the numbers written are the synthetic run's, not leftovers.
+    assert "comparison_synthetic" in text
+
+
+def test_the_catalog_reads_what_the_evidence_writes(tmp_path, monkeypatch):
+    """The fingerprint's keys are a contract between two modules; pin it.
+
+    `evidence.py` writes `rho`; `catalog.py` reads `row.get("rho")` and publishes it as
+    `rank_correlation`. `.get` means a renamed key would not raise -- it would publish
+    null for every metric and the catalog would look measured-but-empty, which is worse
+    than an error.
+    """
+    from fmeval.cards import catalog, evidence
+
+    bundle = _bundle_copy(tmp_path, monkeypatch)
+    run = evidence.load_run(_synthetic_run(tmp_path))
+    evidence.generate("mse", run)
+
+    measured = catalog._measured(bundle)
+    assert measured["measured"] is True
+    ordinary = [a for a in measured["axes"] if not a["is_probe"]]
+    assert ordinary, "no ordinary axes surfaced from the fingerprint"
+    for axis in ordinary:
+        assert axis["rank_correlation"] is not None, (
+            f"{axis['axis']}: rank_correlation is null -- the key contract between "
+            "evidence.py and catalog.py has drifted"
+        )
+        assert axis["levels"] is not None
+    probes = measured["probes"]
+    assert probes and probes[0]["unrelated_field_value"] is not None
+
+
+def test_write_block_replaces_only_its_block(tmp_path):
+    """One block's rewrite must not disturb its neighbours or mangle its body.
+
+    The body goes through a regex substitution, where a bare `\\1` or `$` in the
+    replacement is interpreted rather than written. Measured tables contain dollar signs
+    and backslashes routinely, so corruption here would be routine too.
+    """
+    from fmeval.cards.exemplars import write_block
+
+    card = tmp_path / "card.md"
+    card.write_text(
+        "prose above\n\n"
+        "<!-- GENERATED alpha: written by `cmd`, do not edit -->\n\nold alpha\n\n"
+        "<!-- END GENERATED alpha -->\n\nprose between\n\n"
+        "<!-- GENERATED beta: written by `cmd`, do not edit -->\n\nold beta\n\n"
+        "<!-- END GENERATED beta -->\n\nprose below\n"
+    )
+    tricky = "a table with $ and \\1 and \\g<0> and $$maths$$"
+    write_block(card, "alpha", tricky, command="cmd")
+
+    text = card.read_text()
+    assert tricky in text, "regex escapes corrupted the body"
+    assert "old beta" in text, "writing alpha disturbed beta"
+    assert "old alpha" not in text
+    assert text.startswith("prose above") and text.rstrip().endswith("prose below")
+
+
+def test_write_block_refuses_a_missing_marker_and_leaves_the_file_alone(tmp_path):
+    from fmeval.cards.exemplars import write_block
+
+    card = tmp_path / "card.md"
+    original = "no markers here\n"
+    card.write_text(original)
+    with pytest.raises(KeyError, match="no 'alpha' generated block"):
+        write_block(card, "alpha", "body", command="cmd")
+    assert card.read_text() == original
+
+
+def test_the_review_ledger_through_a_real_regeneration(tmp_path, monkeypatch):
+    """The signature's whole point, exercised on files rather than strings.
+
+    Regenerating evidence must not invalidate a human's signature -- they signed the
+    prose, not the tables. Editing the prose must invalidate it. Both directions were
+    tested on strings at the unit level; this drives them through sign, generate and
+    review_state on a real bundle copy, which is the path production takes.
+    """
+    from fmeval.cards import evidence
+    from fmeval.cards.review import review_state, sign
+
+    bundle = _bundle_copy(tmp_path, monkeypatch)
+    run = evidence.load_run(_synthetic_run(tmp_path))
+    evidence.generate("mse", run)                      # the gate: evidence before signing
+
+    assert review_state(bundle, None) == "unsigned"
+    signature = sign(bundle, "someone")["prose_sha256"]
+    assert review_state(bundle, signature) == "current"
+
+    evidence.generate("mse", run)                      # regeneration: signature survives
+    assert review_state(bundle, signature) == "current"
+
+    bundle.card_md.write_text(bundle.card_md.read_text() + "\nA new sentence of prose.\n")
+    assert review_state(bundle, signature) == "stale"  # prose edit: signature dies
+
+
+def test_evidence_survives_a_run_whose_ladder_skipped_a_probe(tmp_path, monkeypatch):
+    """A ladder without the impostor is legitimate; the generator must not crash on it.
+
+    `probe_summary` only emits columns for probes that ran, so a run produced with
+    `degradation.skip=[gaussian_impostor]` has no impostor columns at all. This used to
+    raise a bare KeyError naming a column. Absent probes are "not measured", rendered as
+    an em dash, never an error.
+    """
+    from tests.test_analysis import make_frame
+
+    from fmeval.cards import evidence
+
+    df = make_frame(metric="mse",
+                    axes={"gaussian_blur": [1.0, 2.0], "uncorrelated": [10.0, 10.0]})
+    df["dataset"] = "kinet_re5e4"
+    folder = tmp_path / "comparison_noimpostor"
+    (folder / "data").mkdir(parents=True)
+    df.to_csv(folder / "data" / "results.csv", index=False)
+
+    bundle = _bundle_copy(tmp_path, monkeypatch)
+    evidence.generate("mse", evidence.load_run(folder))
+
+    text = bundle.card_md.read_text()
+    assert "comparison_noimpostor" in text
+    assert "gaussian_blur" in text
+
+
+def test_exemplar_panels_are_byte_identical_within_one_environment(tmp_path):
+    """Rendering the same panel twice must produce the same bytes.
+
+    The panels are committed, so nondeterminism here -- a timestamp in the PNG metadata,
+    an unseeded jitter, an unordered iteration -- turns every regeneration into a diff on
+    unchanged figures, and reviewers learn to skim exactly the files where a real change
+    matters. Byte identity is only promised within one matplotlib version, which is what
+    a single test run is.
+    """
+    import numpy as np
+    from scipy.ndimage import gaussian_filter
+
+    from fmeval.cards.figures import Column, exemplar_panel
+
+    base = np.random.default_rng(0).normal(size=(48, 48))
+    columns = [Column("original", base)] + [
+        Column(f"sigma = {s} cells", gaussian_filter(base, s, mode="wrap"))
+        for s in (1.0, 2.0, 4.0)
+    ]
+    rows = ["difference", "radial_spectrum", "pdf"]
+
+    first = exemplar_panel(columns, rows, path=tmp_path / "a.png", title="determinism")
+    second = exemplar_panel(columns, rows, path=tmp_path / "b.png", title="determinism")
+
+    assert (tmp_path / "a.png").read_bytes() == (tmp_path / "b.png").read_bytes()
+    # Compared through the sanitiser, because a NaN statistic -- "not measured" -- is
+    # never equal to itself, and comparing raw dicts would fail on unchanged output.
+    from fmeval.cards.exemplars import sanitize_json
+
+    assert sanitize_json(first.statistics) == sanitize_json(second.statistics)
+
+
+def test_every_panel_row_shares_one_set_of_limits(tmp_path):
+    """The rule that keeps a strong degradation from looking like the original.
+
+    Per-panel autoscaling is the single most effective way to make a severe degradation
+    invisible, and it fails silently -- the figure looks fine. The difference row's limits
+    must come from the strongest column, so the weak column reads as faint; a weak
+    difference drawn on its own scale would look as severe as the strong one.
+    """
+    import numpy as np
+
+    from fmeval.cards.figures import Column, _row_limits
+
+    base = np.zeros((16, 16))
+    weak, strong = base.copy(), base.copy()
+    weak[8, 8] = 0.1
+    strong[8, 8] = 10.0
+    columns = [Column("original", base), Column("weak", weak), Column("strong", strong)]
+
+    low, high = _row_limits("difference", columns, base)
+    assert high == 10.0 and low == -10.0, (
+        "difference limits must span the strongest severity, not each panel's own range"
+    )
+
+
+@pytest.mark.parametrize("bundle", BUNDLES, ids=IDS)
+def test_every_generated_json_is_strict_json(bundle):
+    """A committed fingerprint must be readable by an ordinary JSON parser.
+
+    These files exist for machine readers. `json.dumps` writes float('nan') as a bare
+    `NaN` token, which is not JSON and which a strict parser refuses -- so a single
+    unmeasured statistic made a whole fingerprint unreadable. Thirteen committed files
+    were in that state before this test existed. "Not a number" means "not measured", and
+    null is how JSON says that.
+    """
+    def refuse(token):
+        raise AssertionError(
+            f"{bundle.name}: non-standard JSON token {token!r}. Regenerate: the writers "
+            "sanitise NaN to null, so this file predates that fix."
+        )
+
+    for path in sorted((bundle.path / "_generated").glob("*.json")):
+        json.loads(path.read_text(), parse_constant=refuse)
+
+
+@pytest.mark.parametrize("bundle", BUNDLES, ids=IDS)
+def test_a_committed_figure_has_its_numbers_beside_it(bundle):
+    """Every panel must ship the statistics behind it.
+
+    An agent reading the site cannot open a PNG. A figure with no numeric counterpart is
+    unreadable to half this repository's intended audience, and the rule is easy to break
+    by adding a figure without extending the generator that records its numbers.
+    """
+    for panel in sorted((bundle.path / "_generated").glob("*.png")):
+        numbers = panel.with_suffix(".json")
+        assert numbers.is_file(), (
+            f"{bundle.name}: {panel.name} has no {numbers.name} beside it"
+        )
+        recorded = json.loads(numbers.read_text())
+        assert recorded.get("panels"), f"{bundle.name}: {numbers.name} records no panels"
