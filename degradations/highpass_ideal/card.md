@@ -16,8 +16,8 @@ cutoff, so the spatial mean survives the filter.
 
 That exception is essential rather than cosmetic. Deleting $k = 0$ on the density field
 would remove a component four orders of magnitude larger than anything the cutoff
-controls: every severity then produced an identical damage of 2.7e7 and the axis carried
-no ordering at all.
+controls: every severity then produced an identical damage of 2.7e7 and the degradation
+carried no ordering at all.
 
 The wavenumber magnitude $|k|$ is the single definition shared with the severity
 calibration, in ``fmeval.wavenumbers``. That sharing is not incidental: the filters and
@@ -52,14 +52,14 @@ spatial mean    0.0625                 spatial mean    0.0625
 The mean is untouched and the peak is almost gone: the block was built almost entirely
 from the small scales the filter removed.
 
-What it leaves untouched is the spatial mean, which is preserved deliberately: the
-k = 0 mode is kept even though it lies below the cutoff.
+What this degradation leaves untouched is the spatial mean, which is preserved
+deliberately: the k = 0 mode is kept even though it lies below the cutoff.
 
 ## Severity scale
 
 The severity is the fraction of spectral energy removed, which here means the energy
 **below** the cutoff, and the numbers are large because that is where the energy is: the
-ladder asks for 45%, 70%, 90% and 97%.
+configured strengths ask for 45%, 70%, 90% and 97%.
 
 Those look extreme beside the low-pass list and are not. Removing 45% of a turbulent
 field's energy from the bottom of the spectrum takes only the first few modes, because the
@@ -67,20 +67,20 @@ spectrum is so steep.
 
 ## Limitations
 
-This axis is squeezed between a no-op and near-total destruction, and on density it is
-badly squeezed. With 69% of the fluctuation energy in the four diagonal modes at
-$|k| = \sqrt{2}$, a cutoff below them removes essentially nothing and a cutoff above them
-removes essentially everything; there is very little room in between. The axis therefore
-does not reach the factor-five damage range the other axes achieve, and that is a property
-of these fields rather than of the configuration.
+This degradation is squeezed between doing nothing at all and near-total destruction, and
+on density it is badly squeezed. With 69% of the fluctuation energy in the four diagonal
+modes at $|k| = \sqrt{2}$, a cutoff below them removes essentially nothing and a cutoff
+above them removes essentially everything; there is very little room in between. The
+degradation therefore does not reach the factor-five damage range the other degradations
+achieve, and that is a property of these fields rather than of the configuration.
 
 Keeping $k = 0$ is the right choice but it makes the "fraction of energy removed" slightly
 inconsistent with the name: the fraction is computed over the fluctuation, excluding the
 mean, so a request for 97% does not mean 97% of the total field energy.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars highpass_ideal`, do not edit -->
 
@@ -98,13 +98,13 @@ mean, so a request for 97% does not mean 97% of the total field energy.
 
 The field row looks unlike anything else in the gallery: a flat background with only
 texture on it. Check that the background level matches the original's mean rather than
-zero -- that is the preserved $k = 0$ mode, and it is the difference between this axis
-being informative and being a constant.
+zero -- that is the preserved $k = 0$ mode, and it is the difference between this
+degradation being informative and being a constant.
 
 The radial spectrum row shows the mirror image of the low-pass panels, with the curve
 suppressed at low wavenumber and following the reference above the cutoff. Watch how few
-modes lie between the weak and strong columns: that narrowness is why this axis carries
-less dynamic range than the others.
+modes lie between the weak and strong columns: that narrowness is why this degradation
+carries less dynamic range than the others.
 
 ## References
 

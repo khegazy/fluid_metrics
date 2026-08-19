@@ -21,10 +21,10 @@ The expansion is nearest-neighbour rather than interpolated on purpose: it reint
 information and adds no smoothing of its own, so what is measured is resolution loss alone
 rather than resolution loss convolved with an interpolation kernel.
 
-This is distinct from the IN-2 analysis grid, which puts *both* fields on a coarse grid
-and compares there. Here only the candidate is coarsened and the comparison happens at full
-resolution, which asks how much losing resolution hurts rather than at what resolution we
-are willing to judge.
+This is distinct from the common analysis grid, which puts *both* fields on a coarse grid
+and compares there. Here only the candidate is coarsened and the comparison happens at
+full resolution, which asks how much losing resolution hurts rather than at what
+resolution we are willing to judge.
 
 ### Boundary handling
 
@@ -55,20 +55,20 @@ before                 after (factor 2)
 The feature vanishes entirely into a uniform field of its own mean value. On a real field
 the effect is less total but the mechanism is the same.
 
-What it leaves untouched is the spatial mean, exactly, and the large scales: structures
-much wider than a block come through nearly unchanged.
+What this degradation leaves untouched is the spatial mean, exactly, and the large scales:
+structures much wider than a block come through nearly unchanged.
 
 ## Severity scale
 
 The severity is the coarsening factor -- the number of cells per block along each
-axis -- and is **absolute** rather than calibrated. A factor of four means four on density
-and on vorticity alike, because the quantity of interest is resolution in cells rather
-than resolution relative to the flow's own scale.
+degradation -- and is **absolute** rather than calibrated. A factor of four means four on
+density and on vorticity alike, because the quantity of interest is resolution in cells
+rather than resolution relative to the flow's own scale.
 
-The ladder runs at 2, 4, 8 and 16, each a doubling. The factor must divide the analysis
-grid size, which is what bounds the ladder from above: on a small analysis grid the larger
-factors are not runnable and are dropped before the run rather than silently producing
-something else.
+The strengths run at 2, 4, 8 and 16, each a doubling. The factor must divide the analysis
+grid size, which is what bounds the sequence from above: on a small analysis grid the
+larger factors are not runnable and are dropped before the run rather than silently
+producing something else.
 
 ## Limitations
 
@@ -87,9 +87,9 @@ A derived field must be recomputed after coarsening rather than block-averaged: 
 average of a curl is not the curl of the average, and the difference reaches 5.6%, 18.3%
 and 25.9% at factors of 2, 4 and 8.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars coarsen`, do not edit -->
 
@@ -112,7 +112,7 @@ The difference row shows error concentrated where the field varies fastest and n
 in smooth regions, which is the same signature as a smoothing kernel. The radial spectrum
 row is where the two separate: a block average imposes a hard cut with sidelobes rather
 than a smooth roll-off, so the curve drops abruptly and then rings, where a Gaussian
-descends smoothly. If a metric responds identically here and on the Gaussian axis at
+descends smoothly. If a metric responds identically here and on the Gaussian blur at
 matched damage, it is not seeing the difference between a soft and a hard loss of
 scales.
 

@@ -30,7 +30,7 @@ This stands in for a surrogate whose error is random and uncorrelated between
 neighbouring cells: an under-trained model, a stochastic method with too few realisations,
 or measurement noise in data assimilation.
 
-It is the most easily detected degradation in the ladder, and that is its value. Any
+It is the most easily detected degradation in the default set, and that is its value. Any
 metric worth having responds strongly and monotonically to noise, so a metric that does
 *not* is broken in an obvious way. It is the sanity check of the suite rather than a
 discriminating test.
@@ -50,8 +50,8 @@ Every cell has moved, including the ones that were zero, and neighbouring cells 
 independently -- there is no pattern in the perturbation. The spatial mean shifts slightly,
 by an amount that averages to zero over many draws but is not zero for any single one.
 
-What it leaves untouched is position: no structure moves, and the underlying field is still
-exactly where it was, buried under the grain.
+What this degradation leaves untouched is position: no structure moves, and the underlying
+field is still exactly where it was, buried under the grain.
 
 ## Severity scale
 
@@ -64,29 +64,30 @@ Normalising against the *fluctuation* rather than the raw RMS matters for the sa
 it does in NRMSE: the density field sits at 1.0 with variations of order 1e-4, so noise
 scaled to the raw RMS would obliterate it.
 
-The ladder runs at 0.001, 0.01, 0.1 and 0.5 -- three orders of magnitude, chosen wide
+The strengths run at 0.001, 0.01, 0.1 and 0.5 -- three orders of magnitude, chosen wide
 because every metric responds here and the interesting question is how early rather than
 how strongly.
 
 ## Limitations
 
-White noise is the least realistic failure in the ladder. A real surrogate's errors
+White noise is the least realistic failure in the default set. A real surrogate's errors
 are strongly correlated in space, because the model producing them is smooth; uncorrelated
-per-cell error is what almost no model actually does. A metric that detects this axis well
-has been shown very little.
+per-cell error is what almost no model actually does. A metric that detects this
+degradation well has been shown very little.
 
-It is also the axis most likely to flatter a metric. Noise adds energy at every wavenumber,
-including the highest, where the reference has least -- so any metric with sensitivity to
-small scales registers it immediately. Strong performance here should not be read across
-to the smoothing axes, which are the harder version of the same question.
+It is also the degradation most likely to flatter a metric. Noise adds energy at every
+wavenumber, including the highest, where the reference has least -- so any metric with
+sensitivity to small scales registers it immediately. Strong performance here should not
+be read across to the smoothing degradations, which are the harder version of the same
+question.
 
 Because it is stochastic, a single draw at a low amplitude carries real sampling
 variation, and the response at the weakest level is noisier than on the deterministic
-axes.
+degradations.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars additive_noise`, do not edit -->
 
@@ -109,8 +110,8 @@ of a hundredth changes the width by five parts in a hundred thousand. Only at 0.
 become visible, at 0.002873.
 
 That is worth knowing before reading a metric's response: the two weakest levels of this
-axis are invisible in every panel here, so a metric that separates them is not agreeing
-with the eye but exceeding it.
+degradation are invisible in every panel here, so a metric that separates them is not
+agreeing with the eye but exceeding it.
 
 In the difference row, look for the absence of structure. Every other degradation in this
 gallery produces a difference concentrated somewhere -- at edges, at particular scales, in

@@ -284,7 +284,7 @@ def test_the_declared_order_is_the_one_the_cards_use():
         "Intuition",
         "Severity scale",
         "Limitations",
-        "Exemplars",
+        "What the degradation looks like",
         "References",
     )
 

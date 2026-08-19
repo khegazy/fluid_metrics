@@ -93,8 +93,9 @@ The displaced candidate scores twice as badly as the damped one. Mean squared er
 these same fields, makes it four times. Both prefer the damped candidate; they disagree
 about by how much, and below one cell that disagreement grows into a factor of tens.
 
-What it ignores is the arrangement of the errors: the same total error concentrated at a
-sharp front and scattered as noise across the domain are the same number.
+What this metric ignores is the arrangement of the errors: the same total error
+concentrated at a sharp front and scattered as noise across the domain are the same
+number.
 
 ## Reading the output
 
@@ -124,11 +125,11 @@ error spread thinly everywhere. A model that is excellent across the domain and 
 wrong in one small area can score better than one that is mediocre throughout, and MAE
 will not tell you which situation you are in.
 
-It is also blind to position in the same way as every pointwise norm, so a shock with
-exactly the right shape and strength sitting one cell over is penalised twice: once where
-it should be and is not, once where it is and should not be. And the absolute value is not
-differentiable at zero error, which matters if it is used as a training loss rather than a
-diagnostic.
+It is also blind to position in the same way as every metric that compares fields cell by
+cell, so a shock with exactly the right shape and strength sitting one cell over is
+penalised twice: once where it should be and is not, once where it is and should not be.
+And the absolute value is not differentiable at zero error, which matters if it is used as
+a training loss rather than a diagnostic.
 
 ## Results
 
@@ -140,8 +141,8 @@ Every number in this section comes from that one run. Regenerate with `python -m
 
 <!-- END GENERATED run -->
 
-Each subsection links to the degradations it reports; what those degradations do, and what
-their severity numbers mean, is documented in their own bundles.
+Each subsection links to the degradations that subsection reports. What those degradations
+do, and what their strength numbers mean, is documented on their own pages.
 
 ### Smoothing
 
@@ -213,7 +214,7 @@ The response is linear in the displacement, as Equation (2) gives: on vorticity 
 ratios per doubling below one cell are 2.00, 1.98 and 1.93 against the 2 implied by that
 scaling. Against MSE over the same shifts, MAE assigns 47 times the damage at an eighth of
 a cell and 6.2 times at one cell, and its damage at an eighth of a cell is 0.023 against
-MSE's 0.00048. Of the pointwise controls it is the one that notices sub-cell
+MSE's 0.00048. Of the cell-by-cell baselines, MAE is the one that notices sub-cell
 displacement.
 
 ### Resolution loss
@@ -244,7 +245,7 @@ displacement.
 
 <!-- END GENERATED results_stochastic -->
 
-### Canaries
+### Trap tests
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
@@ -261,7 +262,7 @@ Damage of 1 is what an unrelated field scores, so the impostor column says how c
 
 <!-- END GENERATED results_canaries -->
 
-### Across the ladder
+### Compared with the other metrics
 
 <!-- GENERATED results_summary: written by `python -m fmeval.cards evidence mae --results results/comparison_1787115827`, do not edit -->
 
@@ -277,15 +278,15 @@ Computed on the median value at each (axis, severity level), over every axis and
 
 <!-- END GENERATED results_summary -->
 
-MAE and MSE correlate at 0.987 across the full ladder, above the 0.95 redundancy
+MAE and MSE correlate at 0.987 across every degradation, above the 0.95 redundancy
 threshold, and MAE against NRMSE at 0.977 — they order the degradations almost identically
 while differing by 47 times in sub-cell displacement damage. For ranking models the
-pointwise controls are duplicates of one another; as training losses they are not.
+cell-by-cell baselines are duplicates of one another; as training losses they are not.
 
-One place MAE differs in kind rather than degree: it assigns the phase-randomised impostor
-a damage of 1.41 on vorticity, above the 1.0 an unrelated field scores. Reach for MAE over
-MSE when small displacements are what you need to see, and when you do not want the score
-dominated by the worst cell.
+One place MAE differs in kind rather than degree: it assigns the phase-scrambled fake
+prediction a damage of 1.41 on vorticity, above the 1.0 an unrelated field scores. Reach
+for MAE over MSE when small displacements are what you need to see, and when you do not
+want the score dominated by the worst cell.
 
 ## References
 

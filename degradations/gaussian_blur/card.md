@@ -12,8 +12,8 @@ g(x) = \sum_{y} \frac{1}{Z} \exp\!\left(-\frac{|y|^2}{2\sigma^2}\right) f(x - y)
 $$
 
 with $Z$ chosen so the weights sum to one, applied independently to each channel and
-separably along each spatial axis. Because the weights are positive and normalised, the
-spatial mean of the field is preserved exactly.
+separably along each spatial direction. Because the weights are positive and normalised,
+the spatial mean of the field is preserved exactly.
 
 In wavenumber space Equation (1) multiplies each mode by
 $\exp(-\tfrac{1}{2}\sigma^2 k^2)$, which is monotone in $|k|$: every scale is attenuated,
@@ -28,10 +28,11 @@ created at the boundary.
 
 ## Intuition
 
-This stands in for a surrogate that is too dissipative — one whose fields are smooth
-where the truth is sharp. It is the most common way an ML surrogate fails: trained to
-minimise a pointwise error, a model does best by predicting something blurry, because a
-sharp feature in slightly the wrong place is punished harder than no sharp feature at all.
+This stands in for a surrogate that is too dissipative — one whose fields are smooth where
+the truth is sharp. It is the most common way an ML surrogate fails: trained to minimise
+an error measured cell by cell, a model does best by predicting something blurry, because
+a sharp feature in slightly the wrong place is punished harder than no sharp feature at
+all.
 
 Applied weakly, the field looks almost unchanged and only the finest grain softens.
 Applied strongly, eddies merge, sharp fronts spread into ramps, and the picture takes on
@@ -51,9 +52,9 @@ The corners are not near zero, and that is the periodic wrap at work: on a four-
 grid every cell is within a cell or two of the bright square the other way round the
 domain. The mean is exactly preserved.
 
-What it leaves untouched is the total: the mean of the field is exactly preserved, and
-nothing is moved anywhere. Only the contrast between neighbours is reduced, which makes
-this a clean test of whether a metric is measuring amplitude at small scales.
+What this degradation leaves untouched is the total: the mean of the field is exactly
+preserved, and nothing is moved anywhere. Only the contrast between neighbours is reduced,
+which makes this a clean test of whether a metric is measuring amplitude at small scales.
 
 ## Severity scale
 
@@ -65,11 +66,11 @@ That indirection is necessary rather than decorative. Measured on this dataset, 
 varies on a scale of roughly 136 cells against roughly 29 for vorticity, so a fixed
 sigma in cells that bites on vorticity does almost nothing to density: the previously
 configured fixed list reached a damage of 0.142 on vorticity and 0.012 on density, an
-axis carrying no signal at all on the smoother field. Because the resolution is
+degradation carrying no signal at all on the smoother field. Because the resolution is
 per-field, the same configured severity becomes a different number of cells on each
-field, and the ladder is comparable in effect rather than in cells.
+field, and the sequence of strengths is comparable in effect rather than in cells.
 
-The ladder runs at fractions 0.02, 0.05, 0.10 and 0.20 of the characteristic scale.
+The strengths run at fractions 0.02, 0.05, 0.10 and 0.20 of the characteristic scale.
 
 ## Limitations
 
@@ -80,14 +81,14 @@ smooth gradients. This operator removes structure everywhere at once, so a metri
 handles it well has not been shown to handle realistic smoothing errors.
 
 Because a Gaussian takes a fractional sigma, its severity levels stay distinct at any
-spacing, which makes it the best-behaved axis in this family — the windowed kernels
+spacing, which makes it the best-behaved degradation in this family — the windowed kernels
 quantise to odd cell counts and can collapse. The trade is that its roll-off is gentle,
 so a metric sensitive only to a sharp spectral cut-off will see less here than the ideal
 low-pass provides.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars gaussian_blur`, do not edit -->
 
@@ -112,7 +113,7 @@ concentrated: at the edges of features, not in the smooth interiors, which is th
 signature of a derivative-like operator.
 
 If a metric reports little change while the spectrum row shows the small scales gone,
-that metric is not measuring what it needs to.
+that metric is not measuring what it must.
 
 ## References
 

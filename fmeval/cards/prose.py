@@ -52,16 +52,17 @@ because the equation is the thing being documented and everything after it is co
 on that equation. ``Intuition`` then says the same thing in words, and ``Reading the
 output`` and ``Limitations`` complete the account of the metric itself -- how to
 interpret a value, and where a value misleads. Only then does the card turn to this
-repository's measurements: ``Evidence`` is generated, and ``Assessment`` interprets it.
+repository's measurements: ``Performance`` and ``Results`` are generated, and the prose
+beside them reads what was measured.
 
 The split matters for reuse. A reader adopting this metric in another project needs the
 first four sections and nothing else; they hold for any dataset. The last two are
 findings about the canonical run and change when it does.
 
-``Assessment`` is deliberately not called "Verdict". A verdict invites a yes or a no, and
-no metric here earns one: the useful thing to record is what this metric sees, what it
-misses, and how it compares to the controls, so a reader can decide whether it fits the
-question they are asking.
+``Results`` is deliberately not called "Verdict". A verdict invites a yes or a no, and no
+metric here earns one: the useful thing to record is what this metric sees, what this
+metric misses, and how this metric compares to the baseline controls, so a reader can
+decide whether it fits the question they are asking.
 """
 
 DEGRADATION_SECTIONS: tuple[str, ...] = (
@@ -69,14 +70,18 @@ DEGRADATION_SECTIONS: tuple[str, ...] = (
     "Intuition",
     "Severity scale",
     "Limitations",
-    "Exemplars",
+    "What the degradation looks like",
     "References",
 )
 """Required H2 headings of a degradation card, in order.
 
-``What to look for`` is the human companion to the generated figure. A panel of images
-does not explain itself; this section says, in plain language, what changes between the
-weak and strong columns and which diagnostic row reveals it.
+``What the degradation looks like`` is the human companion to the generated figure. A
+panel of images does not explain itself, so this section says, in plain language, what
+changes between the weak and the strong columns and which row of the panel makes the
+change visible.
+
+The section used to be called ``Exemplars``. That word told a first-time reader neither
+what was being exemplified nor what to look at, so the heading now says both.
 """
 
 REQUIRED_SUBSECTIONS: dict[str, str] = {"Definition": "Boundary handling"}
@@ -98,8 +103,10 @@ GENERATED_ONLY_SECTIONS = frozenset({"Performance"})
 
 ``Performance`` is the summary of how the metric behaved on every test, near the top of
 the card so it can be read at a glance and compared across metrics without opening
-``## Results``. It is a table of measurements -- rank correlation, separability, damage
-range, canary response, per field -- and it carries no prose at all.
+``## Results``. The section is a table of measurements, one row per test family and
+physical field -- how reliably the metric ordered the severities, how well neighbouring
+severities separated, how much damage the metric reported, and how the metric scored the
+trap tests -- and the section carries no prose at all.
 
 No prose because there is nothing here a person could add that would not be either a
 number they typed by hand, which nothing checks, or a judgement about whether those
@@ -107,7 +114,7 @@ numbers are good, which this repository does not make. The reading of the number
 in ``## Results``, beside the test that produced each one.
 """
 
-RESULT_SECTIONS = frozenset({"Results", "Exemplars"})
+RESULT_SECTIONS = frozenset({"Results", "What the degradation looks like"})
 """Sections that pair generated measurements with the prose explaining them.
 
 Each is built from ``###`` subsections, one per kind of test, and each subsection opens
@@ -116,9 +123,9 @@ numbers show.
 
 The two halves used to be separate sections -- generated evidence, then an assessment of
 all of it at once. Splitting them that way meant a reader comparing a claim to the number
-behind it had to scroll between two places and work out which figure the sentence was
-about, and it invited an assessment that summarised the ladder in general rather than
-saying what each test found.
+behind that claim had to scroll between two places and work out which figure the sentence
+was about, and it invited an assessment that summarised the whole degradation ladder in
+general rather than saying what each test found.
 
 The generated half still may not be typed by hand: a number written by a person here is a
 claim about a measurement that nothing checks.
@@ -130,25 +137,26 @@ FAMILY_HEADINGS: dict[str, str] = {
     "geometric": "Displacement",
     "resolution": "Resolution loss",
     "stochastic": "Noise",
-    "pointwise": "Pointwise distortion",
+    "pointwise": "Cell-value distortion",
 }
 """Subsection heading for each degradation family, for ``## Results``.
 
 Readable names rather than the registry's own vocabulary, because the card is read by
 people who do not know this repository. Two subsections sit outside this mapping:
-``Canaries`` for the probes that carry no ordered severity, and ``Across the ladder`` for
-findings that span every test, such as how the metric correlates with the controls.
+``Trap tests`` for the deliberately fake predictions, which carry no ordered severity,
+and ``Compared with the other metrics`` for findings that span every test, such as how
+this metric correlates with the baseline controls.
 """
 
-CROSS_CUTTING_SUBSECTIONS = frozenset({"Across the ladder"})
+CROSS_CUTTING_SUBSECTIONS = frozenset({"Compared with the other metrics"})
 """Result subsections that report no single degradation and so link to none.
 
-Everything else in ``## Results`` reports named axes and must link to the bundles that
-define them; this one reports what holds over all of them at once, such as how the metric
-correlates with the controls.
+Every other subsection of ``## Results`` reports named degradations and must link to the
+bundles that define them. This one reports what holds over all the degradations at once,
+such as how this metric correlates with the baseline controls.
 """
 
-NO_MATH_SECTIONS = frozenset({"Intuition", "What to look for"})
+NO_MATH_SECTIONS = frozenset({"Intuition", "What the degradation looks like"})
 """Sections a reader from outside the field must be able to follow, so notation is not
 allowed in them. The audience is an early graduate student: avoid jargon, not rigor."""
 

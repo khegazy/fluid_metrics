@@ -5,8 +5,8 @@ kind: degradation
 
 ## Definition
 
-The field is rolled by a random offset drawn per axis, uniformly from the middle half
-of the domain:
+The field is rolled by a random offset drawn independently for each spatial direction,
+uniformly from the middle half of the domain:
 
 $$
 n_i \sim \mathcal{U}\{N/4,\; 3N/4\}, \qquad g(x) = f(x - n) \tag{1}
@@ -20,7 +20,8 @@ Restricting the offset to the middle half is what makes this an anchor rather th
 severity: a small offset would leave the field partly correlated with its reference, and
 an offset near the full domain would wrap back to near-alignment.
 
-This operator is declared ``ordinal=False``. Its levels are draws, not severities, so it
+This operator is declared ``ordinal=False``, meaning its levels carry no order from mild
+to severe. Its levels are independent random draws rather than increasing strengths, so it
 is excluded from every rank correlation.
 
 ### Boundary handling
@@ -31,8 +32,8 @@ bijection on the grid and no value is created or destroyed.
 ## Intuition
 
 This one is not imitating a model failure. It exists to answer a question the other
-axes cannot: what number does a metric give for a field that is as wrong as a field can
-be while still being the right kind of field?
+degradations cannot: what number does a metric give for a field that is as wrong as a
+field can be while still being the right kind of field?
 
 That question needs an answer because raw metric values mean nothing on their own. The
 suite reports damage, a rescaling in which zero is the reference and one is what this
@@ -58,21 +59,22 @@ The feature is intact, the same size and the same brightness, and it is somewher
 The multiset of values is identical to the original's, so the mean, the variance and the
 histogram all match exactly.
 
-What it leaves untouched is every statistic that does not depend on position. That is the
-whole design.
+What this degradation leaves untouched is every statistic that does not depend on
+position. That is the whole design.
 
 ## Severity scale
 
 There is no severity here. The configured numbers 0 through 5 are draw indices, and
-the ladder entry named ``uncorrelated`` runs six of them.
+the configuration entry named ``uncorrelated`` runs six of them.
 
 Six draws rather than one because a single random offset is a single sample: on a flow
 with any large-scale structure, one particular offset can happen to land in partial
 alignment and give an anomalously low value. Averaging over draws gives an anchor that is
 a property of the field rather than of a lucky shift.
 
-Because the levels are not ordered, this axis is excluded from rank correlation and from
-monotonicity checks. It contributes the denominator of the damage scale and nothing else.
+Because the levels are not ordered, this degradation is excluded from rank correlation and
+from monotonicity checks. It contributes the denominator of the damage scale and nothing
+else.
 
 ## Limitations
 
@@ -89,9 +91,9 @@ The anchor is also specific to a periodic domain. On a non-periodic problem a la
 translation would move real structure off the edge, and a different anchor would be
 needed.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars random_large_translation`, do not edit -->
 

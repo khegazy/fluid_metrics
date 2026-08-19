@@ -86,8 +86,8 @@ reference        moved one cell    half brightness
 the displaced candidate scores twice the damped one, where the squared error made it four
 times. The underlying preference is identical; the square root simply compresses it.
 
-What it ignores is everything the squared error ignores: the arrangement of the errors,
-and therefore position.
+What this metric ignores is everything the squared error ignores: the arrangement of the
+errors, and therefore position.
 
 ## Reading the output
 
@@ -109,12 +109,12 @@ reporting both adds no information about which model is better.
 
 ## Limitations
 
-Sharing an ordering with mean squared error means sharing every blind spot it has. A
-displaced feature is penalised twice, once where it should be and once where it is, and
-the response to sub-cell displacement is quadratic — RMSE inherits that even though its
-own numbers look linear, because the square root is applied after the average, not per
-cell. Reading the score as though it responded linearly to displacement is the mistake
-this metric invites.
+Sharing an ordering with mean squared error means sharing every blind spot mean squared
+error has. A displaced feature is penalised twice, once where it should be and once where
+it is, and the response to sub-cell displacement is quadratic — RMSE inherits that even
+though its own numbers look linear, because the square root is applied after the average,
+not per cell. Reading the score as though it responded linearly to displacement is the
+mistake this metric invites.
 
 It also cannot be compared across fields with different units, and the stored per-cell map
 does not average to the metric value, which will silently mislead any consumer that
@@ -130,8 +130,8 @@ Every number in this section comes from that one run. Regenerate with `python -m
 
 <!-- END GENERATED run -->
 
-Each subsection links to the degradations it reports; what those degradations do, and what
-their severity numbers mean, is documented in their own bundles.
+Each subsection links to the degradations that subsection reports. What those degradations
+do, and what their strength numbers mean, is documented on their own pages.
 
 ### Smoothing
 
@@ -231,7 +231,7 @@ though the reported values change more gently.
 
 <!-- END GENERATED results_stochastic -->
 
-### Canaries
+### Trap tests
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
@@ -248,7 +248,7 @@ Damage of 1 is what an unrelated field scores, so the impostor column says how c
 
 <!-- END GENERATED results_canaries -->
 
-### Across the ladder
+### Compared with the other metrics
 
 <!-- GENERATED results_summary: written by `python -m fmeval.cards evidence rmse --results results/comparison_1787115827`, do not edit -->
 
@@ -264,9 +264,9 @@ Computed on the median value at each (axis, severity level), over every axis and
 
 <!-- END GENERATED results_summary -->
 
-RMSE agrees with MSE on every ordering across the ladder, which is what the near-unit rank
-correlation between the pointwise controls reflects. Reporting both is redundant for
-ranking; the choice between them is a choice of units.
+RMSE agrees with MSE on every ordering across every degradation, which is what the
+near-unit rank correlation between the cell-by-cell baselines reflects. Reporting both is
+redundant for ranking; the choice between them is a choice of units.
 
 ## References
 

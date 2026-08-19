@@ -22,6 +22,7 @@ import pandas as pd
 from fmeval import analysis as an
 
 from .exemplars import load_cards_config, write_block
+from .prose import FAMILY_HEADINGS
 
 #: Which generated block each degradation family's results go into.
 FAMILY_BLOCKS = {
@@ -131,12 +132,16 @@ def performance_block(run: Run, metric: str) -> str:
     if axes.empty:
         return NOT_MEASURED
 
-    lines = ["| test | field | axes | rank correlation | weakest separation | first detected |",
+    lines = ["| test family | field | degradations | rank correlation | weakest gap "
+             "between neighbouring strengths | first strength detected |",
              "|---|---|---|---|---|---|"]
     for family, group in axes[~axes["is_probe"]].groupby("degradation_family"):
+        # The same readable name the matching '### ' subsection uses, so a reader moving
+        # between the summary and the detail is not asked to learn two vocabularies.
+        named = FAMILY_HEADINGS.get(family, family)
         for field, sub in group.groupby("field"):
             lines.append(
-                f"| {family} | {field} | {len(sub)} | "
+                f"| {named} | {field} | {len(sub)} | "
                 f"{_fmt(sub['rho'].min())} to {_fmt(sub['rho'].max())} | "
                 f"{_fmt(sub['separability_auc_min'].min())} | "
                 f"level {_fmt(sub['sensitivity_level'].min())} |"
@@ -144,33 +149,43 @@ def performance_block(run: Run, metric: str) -> str:
     probes = run.probes[run.probes["metric"] == metric]
     for _, row in probes.iterrows():
         lines.append(
-            f"| canary: phase-randomised impostor | {row['field']} | 1 | — | — | "
+            f"| trap test: fake prediction, right spectrum | {row['field']} | 1 | — | — | "
             f"damage {_fmt(_cell(row, 'gaussian_impostor_damage'))} |"
         )
     lines += [
         "",
-        "Rank correlation is the per-frame Spearman correlation of the metric with "
-        "severity, reported as the range over the axes in that family; 1 means every "
-        "severity ordered correctly in every frame. Weakest separation is the smallest "
-        "Mann-Whitney overlap between neighbouring severities. First detected is the "
-        "lowest severity level at which the metric departs from clean by a tenth of the "
-        "distance to an unrelated field. Damage is on that same scale: 0 is the reference "
-        "and 1 is an unrelated field.",
+        "One row per family of degradation and physical field. **Rank correlation** asks "
+        "whether the metric put the strengths of one degradation in the right order: it "
+        "is the Spearman correlation between the metric and the applied strength, "
+        "computed inside a single frame, and the column gives the range over the "
+        "degradations in that family. A value of 1 means every strength was ordered "
+        "correctly in every frame. **Weakest gap between neighbouring strengths** asks "
+        "whether the metric can tell one strength from the next: it is the smallest "
+        "Mann-Whitney overlap between any two neighbouring strengths, where 1 means the "
+        "two never overlap and 0.5 means the metric cannot separate them at all. "
+        "**First strength detected** is the mildest strength at which the metric has "
+        "moved a tenth of the way from the undegraded reference toward a field with no "
+        "relation to the truth; a dash means the metric never reached that tenth. "
+        "**Damage** is that same 0-to-1 scale read as a number: 0 is the undegraded "
+        "reference and 1 is an unrelated field.",
         "",
-        "This table reports what was measured and grades none of it. What the numbers mean "
-        "for this metric is in the subsections below, beside the test that produced each.",
+        "This table reports what was measured and grades none of the measurements. What "
+        "the numbers mean for this metric is written in the subsections below, beside the "
+        "test that produced each number.",
     ]
     return "\n".join(lines)
 
 
 def family_block(run: Run, metric: str, family: str) -> str:
-    """One family's per-axis numbers, for every field."""
+    """One family's numbers, one row per degradation and physical field."""
     axes = run.axes[(run.axes["metric"] == metric)
                     & (run.axes["degradation_family"] == family)
                     & (~run.axes["is_probe"])]
     if axes.empty:
         return NOT_MEASURED
-    lines = ["| axis | field | levels | rank correlation | monotone frames | weakest separation |",
+    lines = ["| degradation | field | strengths | rank correlation | "
+             "fraction of frames in the right order | weakest gap between neighbouring "
+             "strengths |",
              "|---|---|---|---|---|---|"]
     for _, row in axes.sort_values(["degradation", "field"]).iterrows():
         lines.append(
@@ -182,11 +197,12 @@ def family_block(run: Run, metric: str, family: str) -> str:
 
 
 def canaries_block(run: Run, metric: str) -> str:
-    """What the metric assigns to the impostor and to an unrelated field."""
+    """What the metric assigns to the fake prediction and to an unrelated field."""
     probes = run.probes[run.probes["metric"] == metric]
     if probes.empty:
         return NOT_MEASURED
-    lines = ["| field | impostor damage | nearest severity level | unrelated-field value |",
+    lines = ["| field | damage assigned to the fake prediction | closest real degradation "
+             "| value on an unrelated field |",
              "|---|---|---|---|"]
     for _, row in probes.sort_values("field").iterrows():
         nearest = _cell(row, "gaussian_impostor_nearest_level")
@@ -197,17 +213,18 @@ def canaries_block(run: Run, metric: str) -> str:
         )
     lines += [
         "",
-        "Damage of 1 is what an unrelated field scores, so the impostor column says how "
-        "close to useless this metric considers a field with the reference's spectrum and "
-        "random phases. The nearest severity level names the ordinary degradation whose "
-        "damage the impostor most resembles, which is the more legible statement of the "
-        "same thing.",
+        "The fake prediction here has exactly the reference field's amplitude spectrum "
+        "and completely scrambled structure. Damage of 1 is what a field with no relation "
+        "to the truth scores, so the damage column says how close to useless this metric "
+        "considers that fake prediction: a low number means the metric was fooled. The "
+        "third column translates the same number into an ordinary degradation whose "
+        "damage the fake prediction matches, which is easier to picture.",
     ]
     return "\n".join(lines)
 
 
 def summary_block(run: Run, metric: str) -> str:
-    """What holds across every axis: how this metric relates to the others.
+    """What holds across every degradation: how this metric relates to the others.
 
     ``cross_metric_correlation`` returns a square matrix indexed by metric, so the row
     for this metric is read and the self-correlation dropped.
@@ -217,16 +234,17 @@ def summary_block(run: Run, metric: str) -> str:
         return NOT_MEASURED
 
     row = matrix.loc[metric].drop(labels=[metric], errors="ignore").sort_values(ascending=False)
-    lines = ["| against | rank correlation across the ladder |", "|---|---|"]
+    lines = ["| compared with | rank correlation over every degradation |", "|---|---|"]
     for other, value in row.items():
         lines.append(f"| `{other}` | {_fmt(float(value))} |")
     lines += [
         "",
-        "Computed on the median value at each (axis, severity level), over every axis and "
-        "field in the run, with the reference excluded. Two metrics correlating near 1 "
-        "order the degradations alike; they may still weight them very differently, so "
-        "this says they are redundant for ranking models rather than interchangeable as "
-        "training losses.",
+        "Computed on the median value at each combination of degradation and strength, "
+        "over every degradation and physical field in the run, with the undegraded "
+        "reference excluded. Two metrics correlating near 1 put the degradations in the "
+        "same order, but the two may still weight those degradations very differently. "
+        "A correlation near 1 therefore means the two metrics are redundant for ranking "
+        "models, not that the two are interchangeable as training losses.",
     ]
     return "\n".join(lines)
 

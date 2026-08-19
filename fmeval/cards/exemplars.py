@@ -269,7 +269,8 @@ def _caption(name: str, card: Any, frame: CanonicalFrame, applied: dict,
     what they did. Both belong under the figure, and only one can be written in advance.
     """
     lines = [
-        f"![{name} exemplar panel](_generated/exemplars.png)",
+        f"![{name}: the same snapshot, undegraded and then degraded]"
+        "(_generated/exemplars.png)",
         "",
         f"**{name}** on {card.exemplars.field_name}, frame {frame.index} of "
         f"`{frame.dataset}`. {card.exemplars.rationale}",
@@ -277,7 +278,9 @@ def _caption(name: str, card: Any, frame: CanonicalFrame, applied: dict,
     ]
     columns = [c for c in statistics.get("field", {}) if c != "original"]
     if applied["mode"] == "severity" and applied.get("resolved"):
-        lines += ["| configured | applied | difference RMS | power retained |",
+        lines += ["| strength requested in the config | strength actually applied to "
+                  "this field | RMS size of the change | fraction of the field's power "
+                  "kept |",
                   "|---|---|---|---|"]
         difference = statistics.get("difference", {})
         spectrum = statistics.get("radial_spectrum", {})
@@ -290,6 +293,6 @@ def _caption(name: str, card: Any, frame: CanonicalFrame, applied: dict,
                         if column in spectrum else "--")
             lines.append(f"| {configured:g} | {resolved:.4g} | {rms} | {retained} |")
     else:
-        lines.append(f"{len(columns)} independent draws, seeded from the run seed so they "
-                     "reproduce exactly.")
+        lines.append(f"{len(columns)} independent random draws, seeded from the run seed "
+                     "so that every draw reproduces exactly.")
     return "\n".join(lines) + "\n"

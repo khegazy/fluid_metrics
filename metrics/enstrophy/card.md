@@ -53,8 +53,8 @@ everywhere and averaging. Squaring means the direction of the swirl does not mat
 that vigorous small eddies count for far more than gentle large ones, which is why
 enstrophy is usually read as a measure of small-scale activity.
 
-Because it needs only one field, it says nothing about accuracy on its own. It is
-evaluated on the true flow and on the prediction, and the useful quantity is the
+Because enstrophy needs only one field, the number says nothing about accuracy on its own.
+It is evaluated on the true flow and on the prediction, and the useful quantity is the
 difference: a prediction that has lost its small eddies to numerical smoothing will report
 noticeably less enstrophy than the flow it is imitating.
 
@@ -71,9 +71,9 @@ vorticity        enstrophy
 Four cells of unit magnitude out of sixteen, halved, gives 0.125. Moving those same four
 cells into a corner gives 0.125 as well, and so does reflecting the field.
 
-That last point is what this quantity ignores, and it is not a small omission: enormously
-many different flows share any given enstrophy. It can tell you that rotation has been
-lost, never that a prediction is right.
+That last point is what this quantity ignores, and the omission is not a small one:
+enormously many different flows share any given enstrophy. It can tell you that rotation
+has been lost, never that a prediction is right.
 
 ## Reading the output
 
@@ -100,7 +100,7 @@ One number summarising a whole field is degenerate on a scale that is easy to
 underestimate: a flow with its vorticity redistributed arbitrarily, reflected, rotated or
 translated has exactly the same enstrophy. A prediction can match the reference here while
 being wrong in every other respect, so a matching value is not evidence of anything. This
-is why it belongs in a panel as a tripwire and never alone.
+is why it belongs in a panel as a rough alarm and never alone.
 
 The resolution dependence is the trap most likely to catch a real user. Enstrophy lives at
 the smallest resolved scales, so it falls simply from evaluating on a coarser grid, and a
@@ -117,10 +117,10 @@ Every number in this section comes from that one run. Regenerate with `python -m
 
 <!-- END GENERATED run -->
 
-Each subsection links to the degradations it reports; what those degradations do, and what
-their severity numbers mean, is documented in their own bundles. A single-field diagnostic
-is evaluated on the reference and on every degraded variant alike, so what is read here is
-the drift away from the reference value rather than an error.
+Each subsection links to the degradations that subsection reports. What those degradations
+do, and what their strength numbers mean, is documented on their own pages. A single-field
+diagnostic is evaluated on the reference and on every degraded variant alike, so what is
+read here is the drift away from the reference value rather than an error.
 
 ### Smoothing
 
@@ -171,7 +171,7 @@ the drift away from the reference value rather than an error.
 <!-- END GENERATED results_geometric -->
 
 A translation moves the field without changing any of its values, so a quantity built from
-those values alone cannot see it at all. This axis is expected to be flat, and a
+those values alone cannot see it at all. This degradation is expected to be flat, and a
 measurement showing otherwise would indicate the translation is not conserving what it
 should — which is one of the things a reference-free diagnostic is useful for.
 
@@ -199,7 +199,7 @@ should — which is one of the things a reference-free diagnostic is useful for.
 
 <!-- END GENERATED results_stochastic -->
 
-### Canaries
+### Trap tests
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
@@ -214,7 +214,7 @@ Damage of 1 is what an unrelated field scores, so the impostor column says how c
 
 <!-- END GENERATED results_canaries -->
 
-### Across the ladder
+### Compared with the other metrics
 
 <!-- GENERATED results_summary: written by `python -m fmeval.cards evidence enstrophy --results results/comparison_1787115827`, do not edit -->
 

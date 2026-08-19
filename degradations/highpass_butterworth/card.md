@@ -35,10 +35,11 @@ the filter would ring against it.
 This stands in for the same failure as the ideal high-pass -- large-scale structure
 lost while fine detail survives -- with a gradual transition instead of a hard one.
 
-Its purpose in the ladder is the same as the Butterworth low-pass: resolving levels. The
-high-pass axis is the most badly squeezed in the suite, with only a handful of modes
-between doing nothing and destroying everything, and a smooth transfer function is what
-allows four requested fractions to produce four distinguishable fields rather than two.
+Its purpose in the default set is the same as the Butterworth low-pass: resolving levels.
+The high-pass degradation is the most badly squeezed in the suite, with only a handful of
+modes between doing nothing and destroying everything, and a smooth transfer function is
+what allows four requested fractions to produce four distinguishable fields rather than
+two.
 
 In a picture, the broad structure fades rather than vanishing, so a ghost of the
 large-scale organisation remains beneath the texture.
@@ -52,28 +53,28 @@ spatial mean    0.0625                 spatial mean    0.0625
 The mean is untouched and the peak is almost gone: the block was built almost entirely
 from the small scales the filter removed.
 
-What it leaves untouched is the spatial mean, which is preserved deliberately: the
-k = 0 mode is kept even though it lies below the cutoff.
+What this degradation leaves untouched is the spatial mean, which is preserved
+deliberately: the k = 0 mode is kept even though it lies below the cutoff.
 
 ## Severity scale
 
-The severity is the fraction of fluctuation energy removed from below the cutoff, and
-the ladder asks for 45%, 70%, 90% and 97%, matching the ideal variant. The order is a
-fixed option at 4 rather than part of the severity.
+The severity is the fraction of fluctuation energy removed from below the cutoff, and the
+configured strengths ask for 45%, 70%, 90% and 97%, matching the ideal variant. The order
+is a fixed option at 4 rather than part of the severity.
 
 ## Limitations
 
-The smooth roll-off removes some energy from every scale rather than only from below
-the cutoff, so this axis is less cleanly separated from the low-pass axes than its ideal
-counterpart is.
+The smooth roll-off removes some energy from every scale rather than only from below the
+cutoff, so this degradation is less cleanly separated from the low-pass degradations than
+its ideal counterpart is.
 
 It shares the fundamental squeeze of the high-pass direction: on a field whose energy is
-concentrated in a few low modes there is only so much room between a no-op and near-total
-removal, and a smoother filter widens that room without creating it.
+concentrated in a few low modes there is only so much room between doing nothing at all
+and near-total removal, and a smoother filter widens that room without creating it.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars highpass_butterworth`, do not edit -->
 
@@ -95,7 +96,8 @@ the smooth roll-off made visible.
 
 In the radial spectrum row the suppression at low wavenumber is gradual, with no edge to
 read a cutoff from. Check the weak column carefully: this is the variant that is supposed
-to produce a distinguishable weak level where the ideal filter produces a near-no-op.
+to produce a distinguishable weak level where the ideal filter barely changes the field at
+all.
 
 ## References
 

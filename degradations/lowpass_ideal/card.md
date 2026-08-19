@@ -36,7 +36,7 @@ smoothing kernels imitate, but committed outright rather than gradually. A blur 
 the small scales; an ideal low-pass deletes them and leaves everything else exactly as it
 was.
 
-Both belong in the ladder because they differ in a way a metric can be blind to. A
+Both belong in the default set because they differ in a way a metric can be blind to. A
 Gaussian removes a little energy from every scale; this removes all the energy above one
 wavenumber and none below it. A metric that reports the same damage for both at matched
 energy loss is measuring the quantity removed rather than the manner of its removal.
@@ -54,28 +54,29 @@ spatial mean    0.0625                 spatial mean    0.0625
 The mean is untouched and the peak is almost gone: the block was built almost entirely
 from the small scales the filter removed.
 
-What it leaves untouched is the spatial mean: the
-k = 0 mode is far below any cutoff this axis uses.
+What this degradation leaves untouched is the spatial mean: the
+k = 0 mode is far below any cutoff this degradation uses.
 
 ## Severity scale
 
 The severity is the **fraction of spectral energy removed**, not a wavenumber. The
-ladder asks for 5%, 15%, 30% and 45%, and the cutoff delivering each is resolved per field
-from a spectrum measured over five evenly spaced frames.
+configured strengths ask for 5%, 15%, 30% and 45%, and the cutoff delivering each is
+resolved per field from a spectrum measured over five evenly spaced frames.
 
-This indirection is what makes the axis comparable between fields whose spectra differ by
-orders of magnitude, and the realised removal now agrees with the request to within a few
-percent wherever the spectrum can resolve it.
+This indirection is what makes the degradation comparable between fields whose spectra
+differ by orders of magnitude, and the realised removal now agrees with the request to
+within a few percent wherever the spectrum can resolve it.
 
 ## Limitations
 
 A sharp filter cannot resolve four distinct levels on every field, and on density it
 cannot resolve them at all. 69% of that field's fluctuation energy sits in the four
-diagonal modes at $|k| = \sqrt{2}$ and only 3 parts in 100000 in the axis modes at
-$|k| = 1$, so the available cutoffs are few and far apart: a request for any fraction
-between those two lands on the same cutoff, and the intermediate levels collapse onto one
-another. Levels that collapse are detected and excluded rather than counted as agreement,
-but the axis carries fewer usable levels there than the configured four.
+diagonal modes at $|k| = \sqrt{2}$ and only 3 parts in 100000 in the modes lying on the
+coordinate axes at $|k| = 1$, so the available cutoffs are few and far apart: a request
+for any fraction between those two lands on the same cutoff, and the intermediate levels
+collapse onto one another. Levels that collapse are detected and excluded rather than
+counted as agreement, but the degradation carries fewer usable levels there than the
+configured four.
 
 The Butterworth variant exists precisely because it can resolve levels this one cannot.
 
@@ -83,9 +84,9 @@ The ringing is also a genuine artefact rather than a property of the failure bei
 imitated: no real surrogate produces Gibbs oscillations at every edge, so part of the
 damage measured here is damage from an artefact.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars lowpass_ideal`, do not edit -->
 

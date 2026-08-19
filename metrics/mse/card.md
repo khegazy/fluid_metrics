@@ -17,7 +17,7 @@ For a vector field the channels are pooled rather than reduced separately. The a
 grid is uniform, so cells carry equal weight; on a non-uniform grid Equation (1) would
 need cell volumes and would no longer be a plain mean.
 
-The pointwise map that this repository stores alongside the scalar is the summand,
+The per-cell map that this repository stores alongside the single number is the summand,
 
 $$
 m_i = \sum_{c=1}^{C} \bigl( f_{c,i} - g_{c,i} \bigr)^2 ,
@@ -99,11 +99,12 @@ reference        moved one cell    half brightness
 ```
 
 The candidate that preserved the feature and only moved it scores four times worse. This
-is the double penalty, and it is why a pointwise norm misjudges sharp features that are
-nearly in the right place.
+is the double penalty, and it is why a metric comparing fields cell by cell misjudges
+sharp features that are nearly in the right place.
 
-What it ignores is the arrangement of the errors: one error concentrated at a sharp front
-and the same total error scattered as noise across the domain are the same number.
+What this metric ignores is the arrangement of the errors: one error concentrated at a
+sharp front and the same total error scattered as noise across the domain are the same
+number.
 
 ## Reading the output
 
@@ -134,8 +135,8 @@ cells while keeping it centred, can receive similar mean squared errors even tho
 person looking at the two fields would not hesitate to prefer the first. Ranking such
 models by MSE therefore selects for smoothness. This is the mechanism behind the blurry
 outputs that regression losses are known to produce, and it is visible in the results
-here: the metric saturates slowly on displacement axes while responding immediately to
-blurring.
+here: the metric saturates slowly on displacement degradations while responding
+immediately to blurring.
 
 Two further cautions. The value is not comparable across grid resolutions, because it is
 a mean over cells, so a run whose analysis grid differs is not comparable at all. And
@@ -153,8 +154,8 @@ Every number in this section comes from that one run. Regenerate with `python -m
 
 <!-- END GENERATED run -->
 
-Each subsection links to the degradations it reports; what those degradations do, and what
-their severity numbers mean, is documented in their own bundles.
+Each subsection links to the degradations that subsection reports. What those degradations
+do, and what their strength numbers mean, is documented on their own pages.
 
 ### Smoothing
 
@@ -257,7 +258,7 @@ about moderate ones, and the double penalty has no single onset.
 
 <!-- END GENERATED results_stochastic -->
 
-### Canaries
+### Trap tests
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
@@ -274,13 +275,13 @@ Damage of 1 is what an unrelated field scores, so the impostor column says how c
 
 <!-- END GENERATED results_canaries -->
 
-MSE rejects the phase-randomised impostor firmly: 0.90 damage on vorticity, 0.66 on
-velocity, and 1.23 on density, where a damage above 1 means the impostor is scored worse
-than a field with no relation to the reference at all. The canary is aimed at metrics
-depending only on the amplitude spectrum, so it does not catch this family, and a panel in
-which every metric rejects it is not evidence of a well-guarded panel.
+MSE rejects the phase-scrambled fake prediction firmly: 0.90 damage on vorticity, 0.66 on
+velocity, and 1.23 on density, where a damage above 1 means the fake prediction is scored
+worse than a field with no relation to the reference at all. The trap test is aimed at
+metrics depending only on the amplitude spectrum, so it does not catch this family, and a
+panel in which every metric rejects it is not evidence of a well-guarded panel.
 
-### Across the ladder
+### Compared with the other metrics
 
 <!-- GENERATED results_summary: written by `python -m fmeval.cards evidence mse --results results/comparison_1787115827`, do not edit -->
 
