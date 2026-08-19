@@ -1,0 +1,39 @@
+schema_version: 1
+
+name: disk_blur
+kind: degradation
+category: smoothing
+
+summary: >-
+  Convolves the field with an isotropic disk kernel of a given radius, removing structure
+  below that scale.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate that has lost its small scales, with a kernel shape different from the
+  Gaussian so that a metric responding only to the amount of smoothing can be told from
+  one responding to its character.
+
+output:
+  description: >-
+    Kernel radius in analysis-grid cells, resolved per field from a severity given as a
+    fraction of that field's characteristic scale.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.06, 0.14, 0.25]
+  field_name: vorticity
+  diagnostics: [difference, radial_spectrum]
+  rationale: >-
+    Three radii spanning the range from barely visible to clearly resolution-losing. The
+    radial spectrum row is what separates this kernel from the Gaussian at matched width,
+    since the disk profile has a different roll-off and, unlike a Gaussian, does not
+    attenuate every wavenumber monotonically.
+
+references: []
+review: null

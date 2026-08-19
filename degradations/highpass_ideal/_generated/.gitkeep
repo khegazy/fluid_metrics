@@ -1,0 +1,2 @@
+Generated exemplar panels land here. Never edit anything in this directory by
+hand; it is rewritten by `python -m fmeval.cards exemplars <name>`.

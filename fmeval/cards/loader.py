@@ -230,7 +230,33 @@ def _validate_spec(spec: Any, kind: str) -> None:
         # Not in a bundle at all. Tests register throwaway metrics this way on purpose,
         # and so does anyone experimenting in a notebook, so this is not an error.
         return
-    load_card(bundle)
+    card = load_card(bundle)
+    _check_exemplar_order(card, spec, bundle)
+
+
+def _check_exemplar_order(card: Any, spec: Any, bundle: Any) -> None:
+    """Check the exemplar severities run weakest-first, per the operator's direction.
+
+    Not done in the schema because "weakest" is not a numeric fact. Most operators grow
+    more damaging as the severity rises, but ``band_attenuate`` states a *retained*
+    fraction, so its severity_direction is ``decreasing`` and its correct ordering runs
+    downward. Sorting numerically would call that wrong and would call a genuinely
+    inverted list right.
+    """
+    exemplars = getattr(card, "exemplars", None)
+    if exemplars is None or exemplars.mode != "severity" or not exemplars.levels:
+        return
+    descending = getattr(spec, "severity_direction", "increasing") == "decreasing"
+    expected = sorted(exemplars.levels, reverse=descending)
+    if list(exemplars.levels) != expected:
+        direction = "largest first" if descending else "smallest first"
+        raise CardError(
+            str(bundle.card_yaml),
+            f"exemplars.levels must run weakest to strongest. This operator declares "
+            f"severity_direction={'decreasing' if descending else 'increasing'}, so that "
+            f"means {direction}: {expected}.",
+            f"reorder the list, then run  python -m fmeval.cards check {card.name}",
+        )
 
 
 def install() -> None:

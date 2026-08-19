@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: subsample
+kind: degradation
+category: resolution
+
+summary: >-
+  Point-samples every Nth cell and expands the result back to the full grid, discarding
+  the rest without averaging.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate that has been downsampled without filtering first, so the small scales are
+  not merely lost but aliased into the large ones.
+
+output:
+  description: >-
+    Subsampling factor, a whole number of cells between retained samples. Absolute rather
+    than calibrated.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [2, 4, 16]
+  field_name: vorticity
+  diagnostics: [difference, radial_spectrum]
+  rationale: >-
+    The same factors as the coarsening axis, so the two panels can be read against each
+    other. The radial spectrum row is the one that shows aliasing: energy that should have
+    been removed appears at low wavenumber instead, which is exactly what block averaging
+    avoids.
+
+references: []
+review: null

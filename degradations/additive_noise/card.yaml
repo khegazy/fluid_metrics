@@ -1,0 +1,39 @@
+schema_version: 1
+
+name: additive_noise
+kind: degradation
+category: stochastic
+
+summary: >-
+  Adds independent Gaussian noise to every cell, with an amplitude set as a fraction of
+  the reference field's fluctuation.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate whose predictions carry random error uncorrelated between cells -- sampling
+  noise, an under-trained model, or a stochastic method with too few realisations.
+
+output:
+  description: >-
+    Noise standard deviation as a fraction of the reference field's fluctuation RMS, so
+    0.1 means noise a tenth the size of the field's own variation.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.001, 0.01, 0.5]
+  field_name: vorticity
+  diagnostics: [difference, pdf]
+  rationale: >-
+    A thousandth of the fluctuation is far below what any eye can see; a half is
+    comparable to the field's own variation. The pdf row is the row that shows the
+    mechanism, since noise broadens the distribution of values without moving anything,
+    and the difference row confirms the error is uncorrelated between neighbouring cells
+    rather than structured.
+
+references: []
+review: null

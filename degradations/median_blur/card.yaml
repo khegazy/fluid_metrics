@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: median_blur
+kind: degradation
+category: smoothing
+
+summary: >-
+  Replaces each cell with the median of a square neighbourhood, a nonlinear smoother that
+  removes small features while leaving sharp edges in place.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate that suppresses isolated small-scale structure -- shocklets, thin filaments
+  -- while keeping the large discontinuities it was trained to reproduce sharp.
+
+output:
+  description: >-
+    Window width in analysis-grid cells, rounded to an odd number, resolved per field from
+    a severity given as a fraction of that field's characteristic scale.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.06, 0.14, 0.22]
+  field_name: vorticity
+  diagnostics: [difference, radial_spectrum]
+  rationale: >-
+    Three widths spanning the range in which the median stops preserving features and
+    starts erasing them. The difference row is the important one: unlike the linear
+    kernels, the median changes some regions and leaves others untouched entirely, which
+    no spectrum can show.
+
+references: []
+review: null

@@ -418,10 +418,11 @@ def _parse_exemplars(data: Any, where: str, fix: str) -> Exemplars | None:
             "degradation's ladder actually uses.",
             fix,
         )
-    if mode == "severity" and list(levels) != sorted(levels):
-        raise CardError(
-            where, "exemplars.levels must be listed weakest first.", fix
-        )
+    # Deliberately not checked here: whether the levels are ordered weakest-first.
+    # "Weakest" depends on the operator's declared severity_direction, which lives in the
+    # registry -- band_attenuate is the one axis where a *smaller* number is a *stronger*
+    # degradation, so a numeric sort would call its correct ordering wrong. The check is
+    # made in fmeval.cards.loader, where the spec is in hand.
     rationale = str(data.get("rationale") or "").strip()
     if mode != "none" and len(rationale) < 20:
         raise CardError(

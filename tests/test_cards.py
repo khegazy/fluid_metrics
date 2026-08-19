@@ -146,9 +146,32 @@ def test_severity_exemplars_need_exactly_three_ordered_levels():
     with pytest.raises(CardError, match="three"):
         parse({**base, "exemplars": {"mode": "severity", "levels": [1.0, 4.0],
                                      "rationale": rationale}})
-    with pytest.raises(CardError, match="weakest first"):
-        parse({**base, "exemplars": {"mode": "severity", "levels": [16.0, 4.0, 1.0],
-                                     "rationale": rationale}})
+    # Ordering is checked against the operator's declared severity_direction, in
+    # fmeval.cards.loader, rather than here: for band_attenuate a smaller number is a
+    # stronger degradation, so a numeric sort would call its correct ordering wrong.
+    descending = parse({**base, "exemplars": {"mode": "severity", "levels": [16.0, 4.0, 1.0],
+                                              "rationale": rationale}})
+    assert descending.exemplars.levels == (16.0, 4.0, 1.0)
+
+
+def test_exemplar_order_is_checked_against_the_declared_direction():
+    """A decreasing-severity operator lists its exemplars largest first, and that is right.
+
+    band_attenuate states a *retained* fraction, so 0.8 is milder than 0.0. The check
+    lives where the registry spec is in hand, because "weakest" is not a numeric fact.
+    """
+    from degradations import registry as deg
+    from fmeval.cards import loader
+
+    deg.discover()
+    bundle = loader.find_bundle("band_attenuate")
+    card = loader.load_card(bundle)
+    assert card.exemplars.levels == (0.8, 0.5, 0.0)
+    loader._check_exemplar_order(card, deg.get("band_attenuate"), bundle)  # must not raise
+
+    inverted = deg.get("gaussian_blur")
+    with pytest.raises(CardError, match="weakest to strongest"):
+        loader._check_exemplar_order(card, inverted, bundle)
 
 
 def test_a_degradation_without_an_ordered_severity_uses_draws_instead():

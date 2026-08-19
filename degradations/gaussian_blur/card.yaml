@@ -1,0 +1,39 @@
+schema_version: 1
+
+name: gaussian_blur
+kind: degradation
+category: smoothing
+
+summary: >-
+  Convolves the field with an isotropic Gaussian kernel, removing structure below the
+  kernel width while leaving the large scales intact.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate that is too dissipative: one whose predictions are smooth where the truth is
+  sharp, having lost the small scales to numerical viscosity or to an over-regularised
+  model.
+
+output:
+  description: >-
+    Kernel standard deviation in analysis-grid cells, resolved per field from a severity
+    given as a fraction of that field's characteristic scale.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.02, 0.1, 0.2]
+  field_name: vorticity
+  diagnostics: [difference, radial_spectrum]
+  rationale: >-
+    Weak is near the grid limit and barely visible by eye; medium removes the dissipation
+    range; strong reaches into the energetic scales. The radial spectrum is the row that
+    makes the cut-off explicit, since a smooth roll-off in real space looks like very
+    little until the spectrum is drawn.
+
+references: []
+review: null

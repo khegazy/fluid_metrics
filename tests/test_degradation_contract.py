@@ -364,7 +364,7 @@ def test_lowpass_then_highpass_reconstructs():
     Both keep the cutoff band |k| == c, and the high-pass additionally keeps k = 0 on
     purpose (see highpass_ideal), so each is counted twice and subtracted once.
     """
-    from degradations.spectral import _apply_filter, _wavenumber_magnitude
+    from degradations._shared.filters import _apply_filter, _wavenumber_magnitude
 
     x = synthetic_field((32, 32), 1, seed=0, noise=0.3)
     lo = call_absolute(deg.get("lowpass_ideal"), x, 8)

@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: translate_subpixel
+kind: degradation
+category: geometric
+
+summary: >-
+  Shifts the field by a fractional number of cells using a Fourier phase ramp, resolving
+  displacements smaller than the grid spacing.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate whose features are very slightly misplaced -- the sub-cell end of the shock-
+  shift error, where the pointwise norms differ from one another most sharply.
+
+output:
+  description: >-
+    Displacement in analysis-grid cells, continuous rather than rounded, absolute rather
+    than calibrated.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.125, 0.5, 4.0]
+  field_name: vorticity
+  diagnostics: [difference, spectral_phase]
+  rationale: >-
+    An eighth of a cell is far below anything visible and is where the L^p family
+    separates most sharply; four cells is well past the point where the shift is obvious.
+    The spectral phase row is the only one that shows the mechanism, since a translation
+    leaves the amplitude spectrum unchanged by construction.
+
+references: []
+review: null

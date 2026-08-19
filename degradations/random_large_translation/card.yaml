@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: random_large_translation
+kind: degradation
+category: geometric
+
+summary: >-
+  Shifts the field by a large random displacement, producing a field that is statistically
+  identical to the reference but positionally unrelated to it.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  Not a model failure at all: this is the anchor that defines what maximal damage means,
+  by supplying a field with the right statistics and no correspondence.
+
+output:
+  description: >-
+    A draw index, not a severity. Each level is an independent random offset drawn from
+    the same distribution; the levels are not ordered and carry no increasing damage.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: draws
+  n_draws: 3
+  field_name: vorticity
+  diagnostics: [difference, pdf]
+  rationale: >-
+    Three independent draws beside the original, because there is no weak-to-strong
+    ordering to show. The pdf row is the point: every draw has exactly the reference's
+    distribution of values, which is what makes it a fair anchor rather than merely a bad
+    field.
+
+references: []
+review: null

@@ -1,0 +1,37 @@
+schema_version: 1
+
+name: gain
+kind: degradation
+category: pointwise
+
+summary: >-
+  Multiplies the field's fluctuation about its spatial mean by a constant factor, leaving
+  the mean itself unchanged.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate whose predictions have systematically the wrong amplitude -- too energetic
+  or too damped everywhere at once -- while the spatial pattern is exactly right.
+
+output:
+  description: >-
+    Relative gain error: 0.1 means the fluctuation is scaled by 1.1, so every departure
+    from the mean is a tenth too large.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.01, 0.05, 0.5]
+  field_name: vorticity
+  diagnostics: [difference, pdf]
+  rationale: >-
+    One percent is far below visibility; a half is a gross amplitude error. The pdf row is
+    the direct view of the mechanism, since a gain change rescales the distribution of
+    values about its centre without moving anything in space.
+
+references: []
+review: null
