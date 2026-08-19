@@ -256,3 +256,89 @@ def test_agents_states_the_card_prohibitions():
                  "never edit `_generated/`",
                  "never sign a card"):
         assert rule.lower() in text.lower(), f"AGENTS.md does not say: {rule}"
+
+
+# --------------------------------------------------------------------------------------
+# The recipes: canonical instructions, each pinned by its own check
+# --------------------------------------------------------------------------------------
+#
+# The recipes in docs/recipes/ are the canonical instructions for extending the
+# repository; AGENTS.md summarises and points at them. They are separate files, each
+# asserted here by name, precisely so that no single careless edit can destroy the
+# instructions: an agent that overwrites AGENTS.md loses a summary, and an edit that guts
+# a recipe fails CI naming that recipe. Destroying the instructions would require
+# deliberately editing several named files and this test together.
+
+RECIPES = {
+    "index.md": (
+        "Never invent a number",
+        "Never invent a citation",
+        "Never state expected behaviour",
+        "never sign a card",
+        "report it rather than writing around it",
+    ),
+    "add-a-metric.md": (
+        "python -m fmeval.cards new <name>",
+        "python -m fmeval.cards check",
+        "test_metric.py",
+        "### Boundary handling",
+        "python -m fmeval.cards evidence",
+        "python -m fmeval.cards catalog",
+        "equation number",
+        "worked example",
+    ),
+    "add-a-degradation.md": (
+        "--kind degradation",
+        "severity_direction",
+        "configs/degradation/default.yaml",
+        "FAMILY_BLOCKS",
+        "FAMILY_HEADINGS",
+        "exemplars",
+        "python -m fmeval.cards exemplars <name>",
+        "mode: draws",
+    ),
+    "add-a-dataset.md": (
+        "configs/dataset/",
+        "fmeval/data/base.py",
+        "Never slice the time axis".lower(),
+        "calibration.csv",
+        "severity_degenerate",
+        "evidence_datasets",
+        "configs/cards/default.yaml",
+        "developed",
+    ),
+    "add-a-diagnostic.md": (
+        "fmeval/cards/diagnostics.py",
+        "@diagnostic",
+        "ctx.limits",
+        "show_field",
+        "numbers behind the picture",
+        "fmeval/cards/schema.py",
+    ),
+    "refresh-the-evidence.md": (
+        "evidence --all",
+        "python -m fmeval.cards catalog",
+        "typed into sentences do\nnot",
+        "issues/032",
+        "does **not** invalidate a signature",
+    ),
+}
+
+
+@pytest.mark.parametrize("recipe", sorted(RECIPES))
+def test_each_recipe_still_carries_its_instructions(recipe):
+    path = REPO / "docs" / "recipes" / recipe
+    assert path.is_file(), f"docs/recipes/{recipe} is missing"
+    text = path.read_text()
+    for required in RECIPES[recipe]:
+        assert required.lower() in text.lower(), (
+            f"docs/recipes/{recipe} no longer says {required!r}. These files are the "
+            "canonical instructions; if this changed deliberately, update this test in "
+            "the same commit and say why in its message."
+        )
+
+
+def test_agents_points_at_the_recipes():
+    """AGENTS.md is the summary; an agent reading only it must be sent to the recipes."""
+    text = (REPO / "AGENTS.md").read_text()
+    assert "docs/recipes/" in text, "AGENTS.md never mentions the recipes directory"

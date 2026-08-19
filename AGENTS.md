@@ -8,6 +8,12 @@ The repository evaluates candidate metrics for judging fluid simulations. Its ou
 evidence for a research decision, so a plausible-looking wrong number is worse than an
 obvious failure. Most of the rules below exist because something specific went wrong.
 
+> **The canonical instructions for extending the repository live in
+> [`docs/recipes/`](docs/recipes/index.md)** — adding a metric, a degradation, a dataset,
+> a diagnostic, and refreshing the recorded evidence. The sections below summarise; where
+> this file and a recipe disagree, the recipe wins. The recipes are separate files, each
+> pinned by its own test, so a careless edit to this file cannot destroy them.
+
 ## Contents
 
 1. [Ground rules](#1-ground-rules)
@@ -733,6 +739,7 @@ GIT_SSH_COMMAND="ssh -x -o BatchMode=yes" git push origin <branch>
 | `docs/catalog.json` | **Read this for anything structural** — what metrics exist, what they return, what properties they have, how they behaved. Do not parse prose for it |
 | `docs/working-with-the-repo.md` | What every file in a bundle is for, and where you are expected to make changes |
 | `fmeval/cards/schema.py` | Every `card.yaml` field, with the reasoning for it |
+| `docs/recipes/` | **The canonical step-by-step instructions** for adding a metric, degradation, dataset or diagnostic, and for refreshing the evidence |
 
 ## Reading the repository
 

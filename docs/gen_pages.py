@@ -213,6 +213,13 @@ def _write_nav(metrics: list, degradations: list) -> None:
         print("- [Reading a card](reading-guide.md)", file=f)
         print("- [Choosing a metric](choosing-a-metric.md)", file=f)
         print("- [Working in the repository](working-with-the-repo.md)", file=f)
+        print("- Recipes", file=f)
+        print("    - [Overview](recipes/index.md)", file=f)
+        print("    - [Add a metric](recipes/add-a-metric.md)", file=f)
+        print("    - [Add a degradation](recipes/add-a-degradation.md)", file=f)
+        print("    - [Add a dataset](recipes/add-a-dataset.md)", file=f)
+        print("    - [Add a diagnostic](recipes/add-a-diagnostic.md)", file=f)
+        print("    - [Refresh the evidence](recipes/refresh-the-evidence.md)", file=f)
         print("- [Catalogue](catalogue.md)", file=f)
         print("- Metrics", file=f)
         for status in ("validated", "candidate", "control", "deprecated"):
