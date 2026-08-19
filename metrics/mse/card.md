@@ -3,19 +3,15 @@ name: mse
 kind: metric
 ---
 
-## Claim
-
-Mean squared error is the control, not a candidate. It is here to be beaten. It compares
-two fields cell by cell, which makes it exact about amplitude and blind to position, so a
-predicted shock that has the right shape and the right strength but sits one cell to the
-left is punished twice: once for being absent where it should be, once for being present
-where it should not. Every position-tolerant metric in this repository exists because of
-that failure. Measuring it here, on the same data and the same degradations, is what lets
-a candidate's improvement be stated as a number rather than asserted.
-
 ## Intuition
 
-Mean squared error compares two fields one cell at a time: subtract, square, average.
+Mean squared error is the control, not a candidate: it is here to be beaten. It is exact
+about amplitude and blind to position, and every position-tolerant metric in this
+repository exists because of that blindness. Measuring it on the same data and the same
+degradations is what lets a candidate's improvement be stated as a number rather than
+asserted.
+
+It compares two fields one cell at a time: subtract, square, average.
 Squaring keeps errors of opposite sign from cancelling and makes the largest local errors
 dominate the total. Nothing in the calculation ever looks at more than one cell, so the
 metric carries no notion of shape or position — it sees a bag of per-cell differences,

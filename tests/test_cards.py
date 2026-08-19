@@ -218,10 +218,12 @@ def test_a_missing_section_is_named():
 
 def test_sections_must_be_in_the_fixed_order():
     text = build_prose()
-    claim = text.index("## Claim")
     intuition = text.index("## Intuition")
     reading = text.index("## Reading the output")
-    swapped = text[:claim] + text[intuition:reading] + text[claim:intuition] + text[reading:]
+    definition = text.index("## Definition")
+    swapped = (
+        text[:intuition] + text[reading:definition] + text[intuition:reading] + text[definition:]
+    )
     assert any("out of order" in p.message for p in problems_for(swapped))
 
 
@@ -253,7 +255,7 @@ def test_a_hand_written_evidence_section_is_refused():
 
 @pytest.mark.parametrize("sentinel", prose.SENTINELS)
 def test_template_sentinels_block_completion(sentinel):
-    text = build_prose(Claim=f"{sentinel} say what this detects.")
+    text = build_prose(Limitations=f"{sentinel} say where this misleads.")
     assert any(sentinel in p.message for p in problems_for(text))
 
 
@@ -321,24 +323,24 @@ def test_front_matter_must_agree_with_the_bundle_name():
 def test_signing_is_insensitive_to_line_endings_and_trailing_space(tmp_path):
     """A colleague opening the file on another platform must not appear to have edited it."""
     bundle = loader.Bundle(name="example", kind="metric", path=tmp_path)
-    (tmp_path / "card.md").write_text("## Claim\n\nSomething.\n")
+    (tmp_path / "card.md").write_text("## Intuition\n\nSomething.\n")
     first = review.prose_digest(bundle)
-    (tmp_path / "card.md").write_text("## Claim\r\n\r\nSomething.   \r\n")
+    (tmp_path / "card.md").write_text("## Intuition\r\n\r\nSomething.   \r\n")
     assert review.prose_digest(bundle) == first
 
 
 def test_editing_prose_makes_a_signature_stale(tmp_path):
     bundle = loader.Bundle(name="example", kind="metric", path=tmp_path)
-    (tmp_path / "card.md").write_text("## Claim\n\nOriginal.\n")
+    (tmp_path / "card.md").write_text("## Intuition\n\nOriginal.\n")
     signature = review.sign(bundle, "khegazy")
     assert review.review_state(bundle, signature["prose_sha256"]) == "current"
-    (tmp_path / "card.md").write_text("## Claim\n\nRewritten by something.\n")
+    (tmp_path / "card.md").write_text("## Intuition\n\nRewritten by something.\n")
     assert review.review_state(bundle, signature["prose_sha256"]) == "stale"
 
 
 def test_an_unsigned_card_reports_unsigned(tmp_path):
     bundle = loader.Bundle(name="example", kind="metric", path=tmp_path)
-    (tmp_path / "card.md").write_text("## Claim\n\nSomething.\n")
+    (tmp_path / "card.md").write_text("## Intuition\n\nSomething.\n")
     assert review.review_state(bundle, None) == "unsigned"
 
 

@@ -3,13 +3,6 @@ name: template_metric
 kind: metric
 ---
 
-## Claim
-
-TODO(fill) In 40 to 150 words: which failure is this metric meant to catch? Name the
-thing a model could get wrong that this number would reveal, and say why an existing
-metric does not already reveal it. This is the argument for the metric existing, so write
-it as an argument rather than a description.
-
 ## Intuition
 
 TODO(fill) Written for an early graduate student in any STEM field — someone comfortable
@@ -20,12 +13,17 @@ idea in words and keep the equations for the Definition section below.
 
 Be direct and be brief. State what the metric computes and what that implies; do not
 build up to it through an extended analogy, and do not explain what the reader already
-knows. Three things must be here:
+knows. Four things must be here:
 
-First, the idea itself, in words, including the mechanism behind its characteristic
+First, which failure this metric is meant to catch — the thing a model could get wrong
+that this number would reveal, and why an existing metric does not already reveal it.
+This is the argument for the metric existing, so write it as an argument rather than a
+description. One or two sentences.
+
+Second, the idea itself, in words, including the mechanism behind its characteristic
 behaviour.
 
-Second, a compact worked example with real numbers — two small fields, four by four is
+Third, a compact worked example with real numbers — two small fields, four by four is
 ideal, the value this metric returns, and one sentence on why. The numbers must come from
 actually running the metric — put the same example in `test_metric.py` so it cannot
 drift.
@@ -38,7 +36,7 @@ reference        candidate        result
 0 0 0 0          0 0 0 0
 ```
 
-Third, one sentence naming what this metric ignores. Every metric is blind to something,
+Fourth, one sentence naming what this metric ignores. Every metric is blind to something,
 and saying so here rather than only in Limitations is what makes this section honest.
 
 ## Reading the output

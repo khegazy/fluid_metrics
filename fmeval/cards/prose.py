@@ -31,7 +31,6 @@ import re
 from dataclasses import dataclass
 
 METRIC_SECTIONS: tuple[str, ...] = (
-    "Claim",
     "Intuition",
     "Reading the output",
     "Definition",
@@ -49,7 +48,6 @@ question they are asking.
 """
 
 DEGRADATION_SECTIONS: tuple[str, ...] = (
-    "Claim",
     "Intuition",
     "Definition",
     "Severity scale",
@@ -69,8 +67,7 @@ GENERATED_SECTIONS = frozenset({"Evidence", "Exemplars"})
 """Sections whose body is written by a generator and must not be typed by hand."""
 
 WORD_FLOORS: dict[str, int] = {
-    "Claim": 40,
-    "Intuition": 70,
+    "Intuition": 90,
     "Reading the output": 80,
     "Assessment": 60,
     "Limitations": 80,

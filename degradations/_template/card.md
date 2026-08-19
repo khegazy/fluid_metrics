@@ -3,19 +3,15 @@ name: template_degradation
 kind: degradation
 ---
 
-## Claim
-
-TODO(fill) In 40 to 150 words: which way of being wrong does this degradation stand in
-for? A surrogate that over-smooths, one that shifts a shock by a cell, one that gets the
-energy spectrum right and the phases wrong — say which of those this imitates, and why
-that failure is worth being able to detect.
-
 ## Intuition
 
-TODO(fill) For a reader from any field, with no mathematical notation at all — the
-checker rejects dollar signs and LaTeX delimiters. Describe in plain words what happens
-to a picture of the field when this is applied at a weak setting and at a strong one, and
-what a person would notice first. Include a small worked example, four by four is ideal,
+TODO(fill) For an early graduate student in any STEM field, with no mathematical notation
+at all — the checker rejects dollar signs and LaTeX delimiters. Open with which way of
+being wrong this degradation stands in for: a surrogate that over-smooths, one that shifts
+a shock by a cell, one that gets the energy spectrum right and the phases wrong — say
+which of those this imitates and why that failure is worth detecting. Then describe in
+plain words what happens to a picture of the field at a weak setting and at a strong one,
+and what a person would notice first. Include a small worked example, four by four is ideal,
 showing the numbers before and after.
 
 ```
