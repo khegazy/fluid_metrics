@@ -220,6 +220,8 @@ def _write_nav(metrics: list, degradations: list) -> None:
         print("    - [Add a dataset](recipes/add-a-dataset.md)", file=f)
         print("    - [Add a diagnostic](recipes/add-a-diagnostic.md)", file=f)
         print("    - [Refresh the evidence](recipes/refresh-the-evidence.md)", file=f)
+        print("    - [Verify a refactor](recipes/verify-a-refactor.md)", file=f)
+        print("- [Deliberate absences](decisions.md)", file=f)
         print("- [Catalogue](catalogue.md)", file=f)
         print("- Metrics", file=f)
         for status in ("validated", "candidate", "control", "deprecated"):

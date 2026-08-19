@@ -12,6 +12,10 @@ read the rest of the repository first.
 | A dataset | [add-a-dataset.md](add-a-dataset.md) |
 | A diagnostic (a new panel row) | [add-a-diagnostic.md](add-a-diagnostic.md) |
 | The recorded evidence | [refresh-the-evidence.md](refresh-the-evidence.md) |
+| Nothing — verify a refactor changed no numbers | [verify-a-refactor.md](verify-a-refactor.md) |
+
+Before extending anything, also read [docs/decisions.md](../decisions.md): the list of
+things this repository is missing on purpose, so you do not add one of them back.
 
 These files, not `AGENTS.md`, are the canonical instructions. `AGENTS.md` summarises and
 points here. They are deliberately separate files, each pinned by its own test in

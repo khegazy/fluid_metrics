@@ -315,10 +315,18 @@ RECIPES = {
         "numbers behind the picture",
         "fmeval/cards/schema.py",
     ),
+    "verify-a-refactor.md": (
+        "any numerical difference is a bug you introduced",
+        "variant_label",
+        "_IMPORT_ERRORS",
+        "dataset=kinet_re5e4_dev",
+        "Rows are missing",
+        "Values differ",
+    ),
     "refresh-the-evidence.md": (
         "evidence --all",
         "python -m fmeval.cards catalog",
-        "typed into sentences do\nnot",
+        "typed into sentences do not",
         "issues/032",
         "does **not** invalidate a signature",
     ),
@@ -329,12 +337,35 @@ RECIPES = {
 def test_each_recipe_still_carries_its_instructions(recipe):
     path = REPO / "docs" / "recipes" / recipe
     assert path.is_file(), f"docs/recipes/{recipe} is missing"
-    text = path.read_text()
+    # Prose wraps at the margin, so a pinned phrase may be split across lines.
+    # Comparing with whitespace collapsed keeps the pins about content, not layout.
+    text = " ".join(path.read_text().split())
     for required in RECIPES[recipe]:
-        assert required.lower() in text.lower(), (
+        assert " ".join(required.split()).lower() in text.lower(), (
             f"docs/recipes/{recipe} no longer says {required!r}. These files are the "
             "canonical instructions; if this changed deliberately, update this test in "
             "the same commit and say why in its message."
+        )
+
+
+def test_the_decisions_ledger_still_lists_the_deliberate_absences():
+    """docs/decisions.md stops an agent from "fixing" a deliberate absence.
+
+    Each entry corresponds to an enforced decision; if one is removed here it will be
+    rediscovered as a mysterious test failure by whoever trips over it next.
+    """
+    text = (REPO / "docs" / "decisions.md").read_text()
+    for absence in ("no predictions",
+                    "no pass or fail",
+                    "no word counts",
+                    "no metric IDs",
+                    "GENERATED",
+                    "never sign",
+                    "at `get()`, not at import",
+                    "stops the run",
+                    "docs/recipes/"):
+        assert absence.lower() in text.lower(), (
+            f"docs/decisions.md no longer covers: {absence!r}"
         )
 
 
