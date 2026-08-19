@@ -62,7 +62,9 @@ def cmd_new(args: argparse.Namespace) -> int:
     print("                      into the card, so a 4x4 field is ideal.")
     print("  3. card.yaml        the typed record. Every field is documented in")
     print("                      fmeval/cards/schema.py.")
-    print("  4. card.md          the prose. Leave '## Evidence' as the include line.")
+    print("  4. card.md          the prose. Leave '## Performance' and every include")
+    print("                      line alone: those are generated, never written.")
+    print("                      Write the '## Results' explanations once you have a run.")
     print(f"\nThen run:  python -m fmeval.cards check {name}")
     return 0
 
