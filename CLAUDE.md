@@ -55,22 +55,29 @@ extra and nothing currently needs it. Weights & Biases is not wired in yet.
 | `issues/` | Open items, one file per item with its evidence. `issues/README.md` is the index |
 | `README.md` | Setup and the NERSC specifics |
 
-## Source of truth: the metrics tracker
+## Source of truth: the cards in this repository
 
-The project's metrics tracker is the working document for the whole effort. It is maintained
-outside this repository — ask the user where it currently lives and to paste or attach the
-relevant part rather than guessing at its contents, and do not assume a copy exists in the
-repo. It holds:
+Each implemented metric and degradation documents itself in a **card** beside its
+implementation, and `docs/catalog.json` is the machine-readable index of all of them. That
+is the source of truth for anything implemented: what it computes, what properties it has,
+and what it did on a recorded run. Read the catalog rather than parsing prose, and see
+`AGENTS.md` §3 for how to add one.
 
-- A **master table** of ~40 candidate metrics, each with a stable ID (e.g. OT-1, NM-2, TD-1).
-  Use these IDs in code, commits, issues, and discussion, and report results back so the
-  `Status` column reflects what has been measured.
-- Per-item sections with the definition, literature precedent, keywords, known pitfalls, and a
-  promise rating (High/Medium/Low) with justification.
-- A full bibliography. Every implemented metric should cite its source paper (and equation
-  number where applicable) in a code comment.
+The external **metrics tracker** remains the planning document for metrics that do not
+exist yet — candidate ideas, literature precedent, promise ratings, the bibliography. It is
+maintained outside this repository; ask the user where it currently lives and to paste the
+relevant part rather than guessing, and do not assume a copy exists here. `Table_of_Ideas.tex`
+in the repository root is a historical snapshot of it and is not maintained.
 
-ID prefixes: OT (optimal transport), SH (shock geometry), NM (function-space norms), CG (curvature/differential geometry), PH (physics invariants), PD (pattern/feature detection), TD (topological data analysis), BD (basis decompositions), PS (probabilistic/distributional), IN (infrastructure and protocol).
+The two-letter ID prefixes (OT-, NM-, TD-, …) are **retired**. They were invented before the
+cards existed, they meant nothing to a reader who had not been told the scheme, and a bundle's
+directory name — which is what users type in `metrics=[...]` — is now its only identity. A
+card's `category` field carries what the prefix used to gesture at, from a controlled
+vocabulary in `fmeval/cards/schema.py`. Cards may differ from the tracker; where they do, the
+measured card wins.
+
+Every implemented metric should still cite its source paper, with the equation number, in
+its `## Definition` section and in `refs.bib`.
 
 ## Core problem framing
 

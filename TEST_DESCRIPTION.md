@@ -1,5 +1,11 @@
 # What the suite measures
 
+> This file documents the **quantities the evaluation reports** and the protocol behind
+> them. What each individual metric measures, and what it did on a recorded run, is in that
+> metric's own card — see [metrics/mse/card.md](metrics/mse/card.md) for the worked example,
+> or `docs/catalog.json` for all of them at once. This file is served as the protocol page
+> of the documentation site and a copy is placed in every run folder.
+
 A reference for every quantity the evaluation reports, written for someone who has not read
 the code. Open this when a table column says `separability_auc_min = 0.62` and you need to
 know what that means and whether to care.

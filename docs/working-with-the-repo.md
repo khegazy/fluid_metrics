@@ -170,10 +170,22 @@ with what those particular numbers show:
 [translate_x](../../degradations/translate/card.md) ·
 [translate_subpixel](../../degradations/translate_subpixel/card.md)
 
-{{ include _generated/results_geometric.md }}
+<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence mse`, do not edit -->
+
+| axis | field | levels | rank correlation | monotone frames | weakest separation |
+| `translate_x` | vorticity | 5 | 1 | 1 | 0.754 |
+
+<!-- END GENERATED results_geometric -->
 
 The response is quadratic in the displacement: the damage ratios per doubling ...
 ```
+
+The block between the markers is written by the generator and rewritten every time you run
+it. It lives in `card.md` rather than in a separate file pulled in at build time because
+GitHub does not resolve includes: a figure or table that appears on the site and shows as a
+literal include line in the repository fails the colleague who never leaves the repository.
+The review ledger strips those blocks before hashing, so regenerating evidence never
+invalidates a signature while editing your prose always does.
 
 Say only what the metric did. What the run was — dataset, Reynolds number, resolution,
 frame count — goes in the run summary at the top of Results, once, and is generated. What
@@ -228,15 +240,14 @@ writing what you expect rather than what was measured, that sentence does not be
 spectral-energy metric that a phase-randomised impostor fools is still the right tool for
 asking about the energy cascade.
 
-`## Evidence` and `## Exemplars` are generated. Write only the include line. If you type
-prose there it will be rejected, because prose about measurements that nothing checks is
-exactly what this system exists to prevent.
+`## Performance` is generated in its entirety and holds no prose at all: a number typed
+there is a claim nothing checks, and the reading of the numbers belongs in `## Results`
+beside the test that produced it. In `## Results` you write the explanations and nothing
+else — the tables between the markers are the generator's.
 
-Word counts are checked, but as warnings while a bundle is in progress. They are honest
-guesses, not calibrated numbers, and they exist because an unenforced request for
-documentation gets ignored. **If your section says what it needs to say in fewer words,
-leave it short, let the warning stand, and say so** — that is evidence the floor is wrong,
-and the floor should move rather than your prose being padded.
+There are no word counts anywhere in the contract. Say what a section needs to say and
+stop; a short complete section beats a padded one, and a reader is the judge rather than a
+counter.
 
 ### `refs.bib` — your citations
 
@@ -334,3 +345,37 @@ looking at the evidence.
 When you report what you did, say which `TODO(cite)` markers you left and why, and flag any
 place where a word floor pushed you toward padding. Both are things someone needs to know
 and neither is visible from the diff.
+
+
+## The commands, in the order you will use them
+
+```bash
+python -m fmeval.cards new <name>                       # scaffold a bundle
+python -m fmeval.cards new <name> --kind degradation
+python evaluate.py metrics=[<name>] dataset=kinet_re5e4_dev degradation=quick   # smoke test
+python -m fmeval.cards check <name>                     # what is missing, and the fix
+python -m fmeval.cards exemplars <name>                 # a degradation's panel
+python -m fmeval.cards evidence <name> --results results/<run>   # a metric's measurements
+python -m fmeval.cards catalog                          # refresh docs/catalog.json
+python -m fmeval.cards list                             # every bundle, with status
+python -m fmeval.cards sign <name> --by <who>           # a human records having read it
+```
+
+`evidence` and `exemplars` need the real dataset, so they are run where the data lives and
+their output is committed. Everything else works on any machine, which is why the site
+builds in CI without a CFS mount.
+
+## Where the numbers in a card come from
+
+Two places, and the difference matters.
+
+**Generated blocks** are written from one named evaluation run. The marker says which
+command produced them, `_generated/fingerprint.json` records which run, and regenerating
+rewrites them. They cannot silently describe a different experiment from the one the card
+claims.
+
+**Numbers you type into a sentence** are not maintained by anything. They are worth writing
+— only a sentence can say that two metrics ordering damage alike while weighting it forty
+times differently makes them duplicates for ranking and not for training — but they can go
+stale when the canonical run is replaced, and this has already happened once. See
+[issues/032](https://github.com/khegazy/pde_metrics/blob/main/issues/032-prose-numbers-can-go-stale.md) for the proposed check.

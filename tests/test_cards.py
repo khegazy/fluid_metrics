@@ -825,9 +825,14 @@ def test_the_site_builds_without_the_dataset(tmp_path):
     import subprocess
 
     pytest.importorskip("mkdocs", reason="the docs toolchain is not installed")
+    import os
+
     result = subprocess.run(
         [sys.executable, "-m", "mkdocs", "build", "--strict", "--site-dir", str(tmp_path)],
         cwd=REPO, capture_output=True, text=True,
+        # Material's advisory about a future MkDocs 2 release is not about this site and
+        # would otherwise fail --strict.
+        env={**os.environ, "DISABLE_MKDOCS_2_WARNING": "true"},
     )
     assert result.returncode == 0, result.stderr[-3000:]
     assert (tmp_path / "catalog.json").is_file(), "the machine surface is missing"

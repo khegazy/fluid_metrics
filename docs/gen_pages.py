@@ -36,6 +36,9 @@ from fmeval.cards.loader import iter_bundles, load_card  # noqa: E402
 _CARD_LINK = re.compile(r"\]\(\.\./\.\./(metrics|degradations)/([a-z0-9_]+)/card\.md\)")
 #: Figures live beside the card in _generated/; the site serves them from the page's dir.
 _ASSET = re.compile(r"\]\(_generated/([^)]+)\)")
+#: A card link written from the repository root, as the protocol reference and the top-level
+#: markdown files use. Same rewrite as _CARD_LINK, one directory level shallower.
+_ROOT_CARD_LINK = re.compile(r"\]\((metrics|degradations)/([a-z0-9_]+)/card\.md\)")
 
 
 def _for_site(text: str, name: str) -> str:
@@ -191,9 +194,16 @@ def _write_gallery(catalog: dict) -> None:
 
 
 def _write_protocol() -> None:
-    """TEST_DESCRIPTION.md, served as the protocol reference rather than duplicated."""
+    """TEST_DESCRIPTION.md, served as the protocol reference rather than duplicated.
+
+    Its links to cards are written to resolve in the repository, where a card is
+    `metrics/<name>/card.md`. On the site the pages are flat, so they are rewritten here --
+    the same one-place fix the bundle pages need.
+    """
+    text = (REPO / "TEST_DESCRIPTION.md").read_text()
+    text = _ROOT_CARD_LINK.sub(lambda m: f"]({m.group(1)}/{m.group(2)}.md)", text)
     with mkdocs_gen_files.open("protocol.md", "w") as f:
-        print((REPO / "TEST_DESCRIPTION.md").read_text(), file=f)
+        print(text, file=f)
 
 
 def _write_nav(metrics: list, degradations: list) -> None:

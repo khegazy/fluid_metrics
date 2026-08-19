@@ -227,3 +227,32 @@ def test_the_file_guide_starts_with_a_summary_table():
     """A reader looking up one file should not have to read the whole document."""
     head = GUIDE.read_text().split("## The bundle files in detail")[0]
     assert "| File | What it is | Who edits it | When |" in head
+
+
+def test_agents_documents_the_card_workflow(doc_agents=None):
+    """AGENTS.md must describe the bundle workflow, not the one it replaced.
+
+    An agent follows this file. When cards became mandatory, a file that still said "a
+    metric goes in any module under metrics/" would have produced a metric that does not
+    import, and the agent would have had no way to know why from here.
+    """
+    text = (REPO / "AGENTS.md").read_text()
+    for required in ("python -m fmeval.cards new",
+                     "python -m fmeval.cards check",
+                     "python -m fmeval.cards evidence",
+                     "python -m fmeval.cards exemplars",
+                     "card.yaml",
+                     "card.md",
+                     "docs/catalog.json",
+                     "GENERATED"):
+        assert required in text, f"AGENTS.md never mentions {required!r}"
+
+
+def test_agents_states_the_card_prohibitions():
+    """The rules that exist because breaking them produces plausible, wrong documentation."""
+    text = (REPO / "AGENTS.md").read_text()
+    for rule in ("Never invent a number",
+                 "Never state expected behaviour",
+                 "never edit `_generated/`",
+                 "never sign a card"):
+        assert rule.lower() in text.lower(), f"AGENTS.md does not say: {rule}"

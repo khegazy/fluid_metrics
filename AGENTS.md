@@ -99,8 +99,77 @@ frame) and `analysis_grid.resolution` (the common analysis grid).
 
 ## 3. Adding a metric
 
-A metric goes in any module or subpackage under `metrics/`. Discovery walks the package, so
-there is no import list to edit and no registration call to add.
+A metric is a **bundle**: a directory under `metrics/` named exactly what users type in
+`metrics=[...]`, holding the implementation, its tests, and the card that documents it.
+Scaffold it, never create the files by hand:
+
+```bash
+python -m fmeval.cards new <name>            # metrics/<name>/, from the template
+python -m fmeval.cards check <name>          # says exactly what is missing and how to fix it
+```
+
+`<name>` is lowercase with underscores and is a valid Python identifier, because discovery
+imports the package. It is the metric's only identity: there are no separate IDs.
+
+**The card is not optional.** `registry.get()` validates it, so a metric whose card is
+missing or malformed fails when the harness asks for it, not later. Fill the bundle in this
+order — the first two are yours, the rest an agent can complete from the contract:
+
+1. **`metric.py`** — one `@metric`-decorated function returning one float per (field,
+   frame, severity level). The decorator's fields are read by the harness and appear in the
+   catalog; nothing in `card.yaml` repeats them.
+2. **`test_metric.py`** — at least one test whose expected value you worked out by hand, on
+   a small field. It is also the source of the worked example in the card, so the prose
+   cannot drift from the code.
+3. **`card.yaml`** — the typed record. Every field is documented in `fmeval/cards/schema.py`.
+4. **`card.md`** — the prose, six sections in a fixed order. See §3.1.
+5. **`python -m fmeval.cards evidence <name> --results results/<run>`** — writes the
+   measured half from a recorded run. Never write those numbers yourself.
+
+Reusing another bundle's function is expected rather than discouraged: `rmse` imports
+`mse`, `nrmse` imports `rmse`. The decorator returns the function unwrapped and the import
+system registers each bundle once, so the shared maths cannot drift apart.
+
+### 3.1 What goes in `card.md`
+
+Six sections, fixed order, all required: `## Definition`, `## Performance`, `## Intuition`,
+`## Reading the output`, `## Limitations`, `## Results`, `## References`.
+
+- **`## Definition`** — numbered equations, the discretisation, and a required
+  `### Boundary handling` subsection. `None.` plus a clause is a fine answer for a
+  pointwise metric. Write maths as `$ ... $` inline and `$$ ... $$` with `\tag{1}` for
+  display, and nothing else: `\begin{equation}`, `\label` and `\eqref` typeset on the
+  site and show as raw source on GitHub, so the checker refuses them.
+- **`## Intuition`** — no notation at all, for an early graduate student in any field. What
+  the metric measures, the mechanism, a worked example whose numbers come from
+  `test_metric.py`, and one sentence naming what it ignores. Write about the metric, not
+  about its standing in this project.
+- **`## Reading the output`** — range, units, direction, what makes a value good, and which
+  comparisons are valid.
+- **`## Limitations`** — at least one concrete situation where it misleads.
+- **`## Performance` and `## Results`** — generated. Leave the marked blocks alone; write
+  only the explanation below each Results block, saying what that test found about this
+  metric. Link each subsection to the degradations it reports rather than describing them.
+
+There are no word counts. Say what the section needs to say and stop.
+
+### 3.2 Rules that are not negotiable
+
+- **Never invent a number or a citation.** If there is no run, the card says so. An
+  unverifiable reference stays `TODO(cite)`, which fails validation on purpose.
+- **Never state expected behaviour anywhere.** Every claim about how a metric behaves is
+  either a measurement from a named run or a citation. Cards carry no predictions, and the
+  schema refuses an `expectations` key.
+- **Never write inside a `<!-- GENERATED ... -->` block**, and never edit `_generated/`.
+- **Never set `status: validated`, and never sign a card.** Both are human acts; `sign`
+  refuses anyway until measurements exist.
+- **Never edit another bundle** while adding yours. If a change elsewhere seems necessary,
+  stop and say why.
+
+### 3.3 The decorator
+
+Discovery walks the package, so there is no import list to edit and no registration call to
+add.
 
 ```python
 from metrics.registry import metric, pointwise_map
@@ -202,9 +271,33 @@ touch your metric.
 
 ## 4. Adding a degradation
 
-Degradations live under `degradations/` and are discovered the same way. Which failure modes
-you probe determines what the acceptance measurements *mean*, so this is as consequential as
-adding a metric.
+A degradation is a bundle too, under `degradations/`, scaffolded the same way:
+
+```bash
+python -m fmeval.cards new <name> --kind degradation
+```
+
+Which failure modes you probe determines what the acceptance measurements *mean*, so this
+is as consequential as adding a metric.
+
+Its card has the same shape with two differences. `card.yaml` needs an **`exemplars`**
+block naming the three severities to illustrate and the diagnostic rows that expose the
+mechanism — a blur is legible in `radial_spectrum`, a translation is not, because it moves
+spectral phase rather than amplitude, so use `spectral_phase` or `difference` there; noise
+shows up in `pdf`. For an operator with no ordered severity, use `mode: draws`. And
+`card.md` replaces Reading the output with **`## Severity scale`**, which must say whether
+the severity is absolute or calibrated per field, and Results with **`## Exemplars`**,
+whose generated block holds the panel and whose prose says what to look at in it.
+
+Then generate the panel, from the one canonical frame every figure in the repository
+shares:
+
+```bash
+python -m fmeval.cards exemplars <name>
+```
+
+Never draw those figures yourself and never edit them. If a metric card links to your axis,
+regenerate that metric's evidence after yours.
 
 ```python
 from degradations.registry import degradation
@@ -637,3 +730,27 @@ GIT_SSH_COMMAND="ssh -x -o BatchMode=yes" git push origin <branch>
 | `issues/README.md` | Open items with their evidence |
 | `README.md` | Setup, and the NERSC specifics |
 | `.github/workflows/tests.yml` | CI. Runs the default suite on every push to a PR; cannot run `-m data` or `-m slow` |
+| `docs/catalog.json` | **Read this for anything structural** — what metrics exist, what they return, what properties they have, how they behaved. Do not parse prose for it |
+| `docs/working-with-the-repo.md` | What every file in a bundle is for, and where you are expected to make changes |
+| `fmeval/cards/schema.py` | Every `card.yaml` field, with the reasoning for it |
+
+## Reading the repository
+
+For anything structural, read `docs/catalog.json`. It merges what the code declares, what
+each card states and what the recorded run measured, so it answers "which metrics are
+differentiable, cheap, and measured?" without opening a card.
+
+`python -m fmeval.cards list` and `python -m metrics` are the quick interactive
+equivalents.
+
+## Before you finish
+
+```bash
+python -m fmeval.cards check --all
+pytest
+python -m fmeval.cards catalog          # if you added or changed a bundle
+mkdocs build --strict                   # if you touched docs/ or mkdocs.yml
+```
+
+Report what you added, any `TODO(cite)` you left and why, and anything the checker flagged
+that you could not resolve.
