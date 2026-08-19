@@ -1,0 +1,28 @@
+schema_version: 1
+
+name: nrmse
+kind: metric
+category: pointwise_norms
+
+summary: >-
+  Root mean squared error divided by the root-mean-square fluctuation of the reference,
+  giving a dimensionless error that can be read across fields.
+
+status: control
+owners: [khegazy]
+
+output:
+  description: >-
+    Dimensionless ratio of the root mean squared error to the reference field's
+    fluctuation RMS. NaN where the reference is spatially uniform.
+  bounds:
+    lower: 0.0
+    upper: null
+
+math:
+  triangle_inequality: true    # a positive rescaling of the L2 distance preserves it
+  scale_dependent: false       # scaling both fields by c leaves the ratio unchanged
+  resolution_dependent: true   # both numerator and denominator are means over cells
+  complexity: "O(N)"
+references: []
+review: null

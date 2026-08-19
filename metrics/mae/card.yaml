@@ -1,0 +1,30 @@
+schema_version: 1
+
+name: mae
+kind: metric
+category: pointwise_norms
+
+summary: >-
+  Mean of the absolute difference between the candidate and reference fields, taken cell by
+  cell on a common analysis grid.
+
+# A control, not a candidate: the pointwise baseline that position-tolerant metrics are
+# read against, rather than a metric competing for a panel slot of its own.
+status: control
+owners: [khegazy]
+
+output:
+  description: >-
+    Mean over all channels and grid cells of the absolute field difference, in the field's
+    own units.
+  bounds:
+    lower: 0.0
+    upper: null
+
+math:
+  triangle_inequality: true    # the L1 distance is a metric in the mathematical sense
+  scale_dependent: true        # scaling both fields by c scales the value by c
+  resolution_dependent: true   # a mean over cells, so refining the grid reweights the sum
+  complexity: "O(N)"
+references: []
+review: null
