@@ -15,10 +15,10 @@ Be direct and be brief. State what the metric computes and what that implies; do
 build up to it through an extended analogy, and do not explain what the reader already
 knows. Four things must be here:
 
-First, which failure this metric is meant to catch — the thing a model could get wrong
-that this number would reveal, and why an existing metric does not already reveal it.
-This is the argument for the metric existing, so write it as an argument rather than a
-description. One or two sentences.
+First, what this metric measures and which way of being wrong it reveals — stated as a
+property of the metric, in a sentence or two. Write about the metric, not about its place
+in this repository: whether it is a baseline or a candidate is recorded in `card.yaml`,
+and how it compares to other metrics belongs in Assessment, where measurements back it.
 
 Second, the idea itself, in words, including the mechanism behind its characteristic
 behaviour.

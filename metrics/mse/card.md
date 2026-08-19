@@ -5,13 +5,7 @@ kind: metric
 
 ## Intuition
 
-Mean squared error is the control, not a candidate: it is here to be beaten. It is exact
-about amplitude and blind to position, and every position-tolerant metric in this
-repository exists because of that blindness. Measuring it on the same data and the same
-degradations is what lets a candidate's improvement be stated as a number rather than
-asserted.
-
-It compares two fields one cell at a time: subtract, square, average.
+Mean squared error compares two fields one cell at a time: subtract, square, average.
 Squaring keeps errors of opposite sign from cancelling and makes the largest local errors
 dominate the total. Nothing in the calculation ever looks at more than one cell, so the
 metric carries no notion of shape or position — it sees a bag of per-cell differences,

@@ -140,10 +140,11 @@ from any STEM field, a domain expert, and a coding agent.
 
 The two sections people most often get wrong:
 
-**`## Intuition`** carries both the argument for the metric and the explanation of it.
-Open with which failure it is meant to catch and why an existing metric does not already
-catch it, then say how it works. It is written for someone who has never opened a fluid
-simulation — assume an early graduate student: skip the jargon, keep the rigor, and get
+**`## Intuition`** explains the metric. Open with what it measures and which way of being
+wrong it reveals, then say how it works. Write about the metric itself — not about its
+standing in this project, which `card.yaml` records, and not about how it compares to
+others, which belongs in Assessment where measurements support it. It is written for
+someone who has never opened a fluid simulation — assume an early graduate student: skip the jargon, keep the rigor, and get
 to the point without belabored analogies. No mathematical notation at all — the checker
 rejects dollar signs and LaTeX delimiters. It
 needs a physical picture, a worked example with real numbers from your test file, and one
