@@ -196,6 +196,7 @@ def build_prose(name="example", **bodies):
         "Body for Definition. " * 20
         + "\n\n### Boundary handling\n\nNone. The operation is local to each cell."
     )
+    defaults["Performance"] = "{{ include _generated/performance.md }}"
     defaults["Results"] = (
         "### Smoothing\n\n"
         "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
@@ -245,6 +246,7 @@ def test_the_declared_order_is_the_one_the_cards_use():
     """
     assert prose.METRIC_SECTIONS == (
         "Definition",
+        "Performance",
         "Intuition",
         "Reading the output",
         "Limitations",
@@ -300,6 +302,22 @@ def test_none_is_an_acceptable_boundary_answer():
         )
     )
     assert not any("Boundary handling" in p.message for p in problems_for(text))
+
+
+def test_the_performance_summary_may_not_be_hand_written():
+    """A number typed into the summary is a claim about a measurement nothing checks.
+
+    The section sits near the top so it can be read at a glance and compared across
+    metrics, which is exactly why it must come from the generator rather than from
+    whoever last edited the card.
+    """
+    text = build_prose(Performance="Excellent on smoothing, weak on displacement.")
+    assert any("hand-written" in p.message for p in problems_for(text))
+
+
+def test_the_performance_summary_accepts_its_include():
+    text = build_prose(Performance="{{ include _generated/performance.md }}")
+    assert not any(p.section == "Performance" for p in problems_for(text))
 
 
 def test_results_must_be_broken_into_subsections():

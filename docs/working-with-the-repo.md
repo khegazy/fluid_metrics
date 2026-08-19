@@ -134,18 +134,24 @@ what to type to fix it.
 
 ### `card.md` — your argument, in prose
 
-Six sections each for a metric and a degradation, in a fixed order, all required. They
+Seven sections for a metric and six for a degradation, in a fixed order, all
+required. They
 exist so that three different readers each get what they need: an early graduate student
 from any STEM field, a domain expert, and a coding agent.
 
 The order runs from what the metric *is* to what it *did here*:
 
 ```
-Definition -> Intuition -> Reading the output -> Limitations -> Results
+Definition -> Performance -> Intuition -> Reading the output -> Limitations -> Results
 ```
 
 Definition opens because the equation is the thing being documented and everything after
-it is commentary on that equation. Intuition restates it in words, then Reading the output
+it is commentary on that equation. Performance follows immediately: one generated table
+summarising how the metric behaved on every test, so a reader deciding whether to keep
+reading — or comparing several cards — gets the measurements at a glance without opening
+Results. You never write it, and it holds no prose at all; a number typed there is a claim
+nothing checks, and the reading of those numbers belongs in Results beside the test that
+produced each one. Intuition restates the definition in words, then Reading the output
 and Limitations finish the account of the metric itself — how to interpret a value, and
 where a value misleads. Only then does the card turn to this repository's
 measurements. That break matters if you are adopting a metric elsewhere — the first four

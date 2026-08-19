@@ -43,6 +43,10 @@ $$
 None. The operation is local to each cell, so no neighbourhood is ever consulted and no
 boundary condition can enter.
 
+## Performance
+
+{{ include _generated/performance.md }}
+
 ## Intuition
 
 Mean squared error compares two fields one cell at a time: subtract, square, average.

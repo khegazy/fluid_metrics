@@ -32,6 +32,7 @@ from dataclasses import dataclass
 
 METRIC_SECTIONS: tuple[str, ...] = (
     "Definition",
+    "Performance",
     "Intuition",
     "Reading the output",
     "Limitations",
@@ -84,6 +85,20 @@ unless it is written down.
 "None" is a perfectly good answer and the common one for pointwise metrics -- but it has
 to be said, with the reason, rather than left to be inferred from silence. An empty
 statement and an absent one look identical to a reader; only one of them is a claim.
+"""
+
+GENERATED_ONLY_SECTIONS = frozenset({"Performance"})
+"""Sections that are nothing but a generated include.
+
+``Performance`` is the summary of how the metric behaved on every test, near the top of
+the card so it can be read at a glance and compared across metrics without opening
+``## Results``. It is a table of measurements -- rank correlation, separability, damage
+range, canary response, per field -- and it carries no prose at all.
+
+No prose because there is nothing here a person could add that would not be either a
+number they typed by hand, which nothing checks, or a judgement about whether those
+numbers are good, which this repository does not make. The reading of the numbers belongs
+in ``## Results``, beside the test that produced each one.
 """
 
 RESULT_SECTIONS = frozenset({"Results", "Exemplars"})
@@ -536,6 +551,20 @@ def check_prose(text: str, *, kind: str, name: str) -> list[Problem]:
 
     for section, body in sections.items():
         if section not in required:
+            continue
+        if section in GENERATED_ONLY_SECTIONS:
+            generator = f"python -m fmeval.cards evidence {name}"
+            if not _INCLUDE.search(body) or len(_LINK.sub("", body).split()) > 6:
+                problems.append(
+                    Problem(
+                        section,
+                        f"'## {section}' is generated, but contains hand-written text. A "
+                        "number typed here is a claim nothing checks, and a reading of "
+                        "the numbers belongs in '## Results' beside the test it came "
+                        "from.",
+                        f"replace the body with the include line and run  {generator}",
+                    )
+                )
             continue
         if section in RESULT_SECTIONS:
             problems.extend(_check_result_section(section, body, name))

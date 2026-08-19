@@ -39,6 +39,10 @@ domain: periodic wrap, reflection, zero padding, or edge cells dropped. Two
 implementations of the same formula that differ only here produce different numbers, and
 a reader has no way to tell which you used unless you write it down.
 
+## Performance
+
+{{ include _generated/performance.md }}
+
 ## Intuition
 
 TODO(fill) Written for an early graduate student in any STEM field — someone comfortable
