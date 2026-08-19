@@ -35,7 +35,11 @@ field, so no neighbourhood and no boundary condition enter.
 
 ## Performance
 
-{{ include _generated/performance.md }}
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED performance -->
 
 ## Intuition
 
@@ -106,7 +110,11 @@ sub-cell displacement.
 
 ## Results
 
-{{ include _generated/run.md }}
+<!-- GENERATED run: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED run -->
 
 Each subsection links to the degradations it reports; what those degradations do, and what
 their severity numbers mean, is documented in their own bundles.
@@ -117,7 +125,11 @@ their severity numbers mean, is documented in their own bundles.
 [box_blur](../../degradations/box_blur/card.md) ·
 [median_blur](../../degradations/median_blur/card.md)
 
-{{ include _generated/results_smoothing.md }}
+<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED results_smoothing -->
 
 ### Spectral filtering
 
@@ -126,38 +138,62 @@ their severity numbers mean, is documented in their own bundles.
 [highpass_ideal](../../degradations/highpass_ideal/card.md) ·
 [highpass_butterworth](../../degradations/highpass_butterworth/card.md)
 
-{{ include _generated/results_spectral.md }}
+<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED results_spectral -->
 
 ### Displacement
 
 [translate_x](../../degradations/translate/card.md) ·
 [translate_subpixel](../../degradations/translate_subpixel/card.md)
 
-{{ include _generated/results_geometric.md }}
+<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED results_geometric -->
 
 
 ### Resolution loss
 
 [coarsen](../../degradations/coarsen/card.md)
 
-{{ include _generated/results_resolution.md }}
+<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED results_resolution -->
 
 ### Noise
 
 [additive_noise](../../degradations/additive_noise/card.md)
 
-{{ include _generated/results_stochastic.md }}
+<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED results_stochastic -->
 
 ### Canaries
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
 
-{{ include _generated/results_canaries.md }}
+<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED results_canaries -->
 
 ### Across the ladder
 
-{{ include _generated/results_summary.md }}
+<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence nrmse`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence nrmse`.
+
+<!-- END GENERATED results_summary -->
 
 NRMSE correlates with MSE at 0.970 and with MAE at 0.968 across the full ladder, above the
 0.95 redundancy threshold. Its distinct contribution is not a different ordering but a

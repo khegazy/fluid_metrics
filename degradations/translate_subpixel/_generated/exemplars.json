@@ -1,0 +1,89 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      0.125,
+      0.5,
+      4.0
+    ],
+    "severities": [
+      0.125,
+      0.5,
+      4.0
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "translate_subpixel",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "distance = 0.125 cells": {
+        "max_abs": 0.0005715148651604602,
+        "mean": -1.122318655111948e-20,
+        "rms": 8.359593345724371e-05
+      },
+      "distance = 0.5 cells": {
+        "max_abs": 0.002249996965754849,
+        "mean": -9.317362419797304e-21,
+        "rms": 0.0003321252987544028
+      },
+      "distance = 4 cells": {
+        "max_abs": 0.00885757473880672,
+        "mean": -1.3552527156068805e-20,
+        "rms": 0.0018639755181825823
+      },
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      }
+    },
+    "field": {
+      "distance = 0.125 cells": {
+        "max": 0.016384391111462893,
+        "mean": 0.0,
+        "min": -0.016449651953471624,
+        "rms": 0.0025733478577632464
+      },
+      "distance = 0.5 cells": {
+        "max": 0.01647056262112046,
+        "mean": 0.0,
+        "min": -0.01646785642414967,
+        "rms": 0.0025733478577632325
+      },
+      "distance = 4 cells": {
+        "max": 0.01639868073218284,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    },
+    "spectral_phase": {
+      "distance = 0.125 cells": {
+        "energy_weighted_phase_shift": 0.018076683454921312,
+        "mean_abs_phase_shift": 0.1948155600662411
+      },
+      "distance = 0.5 cells": {
+        "energy_weighted_phase_shift": 0.07230673381970333,
+        "mean_abs_phase_shift": 0.7854524505512073
+      },
+      "distance = 4 cells": {
+        "energy_weighted_phase_shift": 0.5297946110115759,
+        "mean_abs_phase_shift": 1.5708442636976727
+      },
+      "original": {
+        "energy_weighted_phase_shift": 5.086934304870287e-18,
+        "mean_abs_phase_shift": 1.2830618693666264e-17
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

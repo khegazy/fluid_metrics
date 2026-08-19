@@ -75,7 +75,19 @@ physical error of a defined kind.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars bias`, do not edit -->
+
+![bias exemplar panel](_generated/exemplars.png)
+
+**bias** on vorticity, frame 5000 of `kinet_re5e4`. Three offsets spanning a small fraction of the field's variation to half of it. The pdf row shows the mechanism exactly -- the whole distribution slides without changing shape -- and the difference row shows a flat, featureless offset, which is unlike every other degradation in the gallery.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.05 | 0.05 | 0.0001287 | -- |
+| 0.2 | 0.2 | 0.0005147 | -- |
+| 0.5 | 0.5 | 0.001287 | -- |
+
+<!-- END GENERATED exemplars -->
 
 The field row is the least informative panel in the gallery, and deliberately so: at
 a shared colour scale the columns differ only in overall brightness, with no change in any

@@ -84,7 +84,19 @@ is discrimination between metrics, not realism.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars box_blur`, do not edit -->
+
+![box_blur exemplar panel](_generated/exemplars.png)
+
+**box_blur** on vorticity, frame 5000 of `kinet_re5e4`. Weak is the narrowest width that clears the odd-cell rounding on both fields; strong reaches well into the energetic scales. The radial spectrum row is the one that matters here: unlike a Gaussian, a box kernel does not attenuate every scale, and the sidelobes it leaves are visible only in the spectrum.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.06 | 1.511 | 0.0002845 | 0.9896 |
+| 0.14 | 3.526 | 0.0006248 | 0.9746 |
+| 0.4 | 10.07 | 0.00122 | 0.9264 |
+
+<!-- END GENERATED exemplars -->
 
 Compare the field row against the Gaussian panel: at matched severity the two remove
 similar amounts of structure, but the box leaves square, grid-aligned haloes where the

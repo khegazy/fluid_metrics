@@ -82,7 +82,19 @@ mean, so a request for 97% does not mean 97% of the total field energy.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars highpass_ideal`, do not edit -->
+
+![highpass_ideal exemplar panel](_generated/exemplars.png)
+
+**highpass_ideal** on vorticity, frame 5000 of `kinet_re5e4`. Three fractions spanning the usable range of this axis. The radial spectrum row is the one that shows the mechanism directly -- the cutoff is visible as the wavenumber where the curve departs from the reference -- and the difference row shows which structures in real space carried the removed energy.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.45 | 3.471 | 0.001667 | 0.1808 |
+| 0.9 | 28.01 | 0.002441 | 0.007669 |
+| 0.97 | 43.15 | 0.002534 | 0.001704 |
+
+<!-- END GENERATED exemplars -->
 
 The field row looks unlike anything else in the gallery: a flat background with only
 texture on it. Check that the background level matches the original's mean rather than

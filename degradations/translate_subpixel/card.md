@@ -80,7 +80,19 @@ error than a real surrogate makes.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars translate_subpixel`, do not edit -->
+
+![translate_subpixel exemplar panel](_generated/exemplars.png)
+
+**translate_subpixel** on vorticity, frame 5000 of `kinet_re5e4`. An eighth of a cell is far below anything visible and is where the L^p family separates most sharply; four cells is well past the point where the shift is obvious. The spectral phase row is the only one that shows the mechanism, since a translation leaves the amplitude spectrum unchanged by construction.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.125 | 0.125 | 8.36e-05 | -- |
+| 0.5 | 0.5 | 0.0003321 | -- |
+| 4 | 4 | 0.001864 | -- |
+
+<!-- END GENERATED exemplars -->
 
 At an eighth of a cell the field row is indistinguishable from the original by eye,
 and that is the single most important thing this panel shows: the damage a metric assigns

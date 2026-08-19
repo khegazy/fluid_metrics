@@ -12,7 +12,9 @@ card is unreviewed again until someone signs it. That is a warning for a bundle 
 being worked on, and a hard failure for one marked ``validated`` -- because ``validated``
 is precisely the claim that a human checked it.
 
-The hash is taken over the whole file after normalising line endings and trailing
+The hash is taken over the prose alone -- generated blocks are stripped first, so
+regenerating evidence never invalidates a signature while editing prose always does --
+after normalising line endings and trailing
 whitespace. The generated sections of ``card.md`` contain only an include directive, not
 the generated text itself, so regenerating evidence never invalidates a review.
 """
@@ -43,6 +45,9 @@ def normalise(text: str) -> str:
     """
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = _TRAILING_WS.sub("", text)
+    from .prose import strip_generated
+
+    text = strip_generated(text)
     return text.rstrip("\n") + "\n"
 
 

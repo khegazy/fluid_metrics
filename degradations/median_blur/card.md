@@ -82,7 +82,19 @@ operator returns a constant and the level is a no-op rather than a severity.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars median_blur`, do not edit -->
+
+![median_blur exemplar panel](_generated/exemplars.png)
+
+**median_blur** on vorticity, frame 5000 of `kinet_re5e4`. Three widths spanning the range in which the median stops preserving features and starts erasing them. The difference row is the important one: unlike the linear kernels, the median changes some regions and leaves others untouched entirely, which no spectrum can show.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.06 | 1.511 | 0.0001413 | 0.9843 |
+| 0.14 | 3.526 | 0.0004217 | 0.9166 |
+| 0.22 | 5.541 | 0.0007884 | 0.801 |
+
+<!-- END GENERATED exemplars -->
 
 Look at the difference row first, not the field row. For the linear kernels the
 difference is concentrated at feature edges and falls off smoothly; here it is patchy,

@@ -67,7 +67,11 @@ one or onto a no-op, say under what conditions.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards exemplars <name>`.
+
+<!-- END GENERATED exemplars -->
 
 TODO(fill) No mathematical notation. The figure does not explain
 itself. Say what changes between the weak and the strong columns, which diagnostic row

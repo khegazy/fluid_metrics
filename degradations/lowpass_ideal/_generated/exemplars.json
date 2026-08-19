@@ -1,0 +1,89 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      38.054407858911624,
+      22.428171743419142,
+      5.2903083036972784
+    ],
+    "severities": [
+      0.05,
+      0.15,
+      0.45
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "lowpass_ideal",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "energy removed = 22.4 fraction": {
+        "max_abs": 0.0044614482365485635,
+        "mean": 3.0704944337968387e-21,
+        "rms": 0.0010023075162992271
+      },
+      "energy removed = 38.1 fraction": {
+        "max_abs": 0.0028300900367009114,
+        "mean": 0.0,
+        "rms": 0.0005757401257182386
+      },
+      "energy removed = 5.29 fraction": {
+        "max_abs": 0.007596922233191729,
+        "mean": 0.0,
+        "rms": 0.00174450231069267
+      },
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      }
+    },
+    "field": {
+      "energy removed = 22.4 fraction": {
+        "max": 0.017307571816264265,
+        "mean": 0.0,
+        "min": -0.017227749261888473,
+        "rms": 0.00237012633414862
+      },
+      "energy removed = 38.1 fraction": {
+        "max": 0.016901302280515177,
+        "mean": 0.0,
+        "min": -0.01690736573339575,
+        "rms": 0.002508115329224844
+      },
+      "energy removed = 5.29 fraction": {
+        "max": 0.010308696837020664,
+        "mean": 0.0,
+        "min": -0.010313445608576706,
+        "rms": 0.0018917798193877206
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    },
+    "radial_spectrum": {
+      "energy removed = 22.4 fraction": {
+        "departure_wavenumber": 22.0,
+        "power_retained": 0.9861954807253847
+      },
+      "energy removed = 38.1 fraction": {
+        "departure_wavenumber": 38.0,
+        "power_retained": 0.9968464672324359
+      },
+      "energy removed = 5.29 fraction": {
+        "departure_wavenumber": 5.0,
+        "power_retained": 0.8908231322221464
+      },
+      "original": {
+        "departure_wavenumber": NaN,
+        "power_retained": 1.0
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

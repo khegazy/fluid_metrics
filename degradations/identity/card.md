@@ -61,7 +61,11 @@ degradations -- which is precisely the failure its existence prevents.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars identity`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards exemplars identity`.
+
+<!-- END GENERATED exemplars -->
 
 There is no panel for this operator, and the card's exemplars block says so with
 ``mode: none``. A figure showing a field beside three identical copies of itself would

@@ -75,7 +75,19 @@ is not how a real surrogate loses its small scales.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars epanechnikov_blur`, do not edit -->
+
+![epanechnikov_blur exemplar panel](_generated/exemplars.png)
+
+**epanechnikov_blur** on vorticity, frame 5000 of `kinet_re5e4`. Three radii spanning the range from barely visible to clearly resolution-losing. The radial spectrum row is what separates this kernel from the Gaussian at matched width, since the epanechnikov profile has a different roll-off and, unlike a Gaussian, does not attenuate every wavenumber monotonically.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.06 | 1.511 | 0.0001939 | 0.9929 |
+| 0.14 | 3.526 | 0.0006306 | 0.9738 |
+| 0.25 | 6.296 | 0.001057 | 0.943 |
+
+<!-- END GENERATED exemplars -->
 
 The field row shows round rather than square haloes, which is the visible
 difference from the box kernel. At the weakest radius the change is subtle; use the

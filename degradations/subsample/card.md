@@ -81,7 +81,19 @@ register a change that has nothing to do with the resolution question.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars subsample`, do not edit -->
+
+![subsample exemplar panel](_generated/exemplars.png)
+
+**subsample** on vorticity, frame 5000 of `kinet_re5e4`. The same factors as the coarsening axis, so the two panels can be read against each other. The radial spectrum row is the one that shows aliasing: energy that should have been removed appears at low wavenumber instead, which is exactly what block averaging avoids.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 2 | 2 | 0.0006884 | 0.9968 |
+| 4 | 4 | 0.001465 | 0.9928 |
+| 16 | 16 | 0.002495 | 0.7644 |
+
+<!-- END GENERATED exemplars -->
 
 Compare against the ``coarsen`` panel at matched factor -- these two are designed to
 be read together. The field rows look similar at a glance, both blocky, but the

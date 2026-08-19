@@ -87,7 +87,19 @@ damage measured here is damage from an artefact.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars lowpass_ideal`, do not edit -->
+
+![lowpass_ideal exemplar panel](_generated/exemplars.png)
+
+**lowpass_ideal** on vorticity, frame 5000 of `kinet_re5e4`. Three fractions spanning the usable range of this axis. The radial spectrum row is the one that shows the mechanism directly -- the cutoff is visible as the wavenumber where the curve departs from the reference -- and the difference row shows which structures in real space carried the removed energy.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.05 | 38.05 | 0.0005757 | 0.9968 |
+| 0.15 | 22.43 | 0.001002 | 0.9862 |
+| 0.45 | 5.29 | 0.001745 | 0.8908 |
+
+<!-- END GENERATED exemplars -->
 
 The radial spectrum row is the point of this panel. The cutoff appears as a cliff --
 the curve follows the grey reference exactly and then drops to nothing at $k_c$, with the

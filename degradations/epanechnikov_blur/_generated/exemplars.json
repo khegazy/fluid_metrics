@@ -1,0 +1,89 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      1.511099710449345,
+      3.5258993243818058,
+      6.296248793538938
+    ],
+    "severities": [
+      0.06,
+      0.14,
+      0.25
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "epanechnikov_blur",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      },
+      "radius = 1.51 cells": {
+        "max_abs": 0.0009879482478589172,
+        "mean": -1.6543612251060553e-22,
+        "rms": 0.00019388724616977568
+      },
+      "radius = 3.53 cells": {
+        "max_abs": 0.002979918074518616,
+        "mean": 4.764560328305439e-22,
+        "rms": 0.0006306243023028802
+      },
+      "radius = 6.3 cells": {
+        "max_abs": 0.004749369551715642,
+        "mean": 9.952637130238029e-21,
+        "rms": 0.0010570759475109605
+      }
+    },
+    "field": {
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      },
+      "radius = 1.51 cells": {
+        "max": 0.016227038823188718,
+        "mean": 0.0,
+        "min": -0.016206909649506617,
+        "rms": 0.002498393609397144
+      },
+      "radius = 3.53 cells": {
+        "max": 0.016023228204651598,
+        "mean": 0.0,
+        "min": -0.01602744196942466,
+        "rms": 0.00233601041937203
+      },
+      "radius = 6.3 cells": {
+        "max": 0.0157938947377908,
+        "mean": 0.0,
+        "min": -0.01579417029411962,
+        "rms": 0.0021600099590093373
+      }
+    },
+    "radial_spectrum": {
+      "original": {
+        "departure_wavenumber": NaN,
+        "power_retained": 1.0
+      },
+      "radius = 1.51 cells": {
+        "departure_wavenumber": 21.0,
+        "power_retained": 0.9929476081948465
+      },
+      "radius = 3.53 cells": {
+        "departure_wavenumber": 9.0,
+        "power_retained": 0.9737985035205137
+      },
+      "radius = 6.3 cells": {
+        "departure_wavenumber": 5.0,
+        "power_retained": 0.9429915766541312
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

@@ -78,7 +78,19 @@ Being stochastic, single draws carry sampling variation.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars multiplicative_noise`, do not edit -->
+
+![multiplicative_noise exemplar panel](_generated/exemplars.png)
+
+**multiplicative_noise** on vorticity, frame 5000 of `kinet_re5e4`. Three amplitudes spanning invisible to obvious. The difference row is the one that separates this from additive noise: the error is proportional to the local value, so it is large where the field is large and exactly zero where the field is zero.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.01 | 0.01 | 2.536e-05 | -- |
+| 0.1 | 0.1 | 0.000258 | -- |
+| 0.5 | 0.5 | 0.001278 | -- |
+
+<!-- END GENERATED exemplars -->
 
 The difference row is where to look first, and it should be read against the additive
 noise panel side by side. Here the difference traces the field itself -- bright where the

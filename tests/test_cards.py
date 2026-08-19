@@ -218,11 +218,11 @@ def build_prose(name="example", **bodies):
         "Body for Definition. " * 20
         + "\n\n### Boundary handling\n\nNone. The operation is local to each cell."
     )
-    defaults["Performance"] = "{{ include _generated/performance.md }}"
+    defaults["Performance"] = "<!-- GENERATED performance: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED performance -->"
     defaults["Results"] = (
         "### Smoothing\n\n"
         "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
-        "{{ include _generated/results_smoothing.md }}\n\n"
+        "<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED results_smoothing -->\n\n"
         + "What the smoothing axes found, stated in enough words to clear the floor. " * 4
     )
     defaults["References"] = "\\bibliography"
@@ -330,7 +330,7 @@ def test_the_performance_summary_may_not_be_hand_written():
 
 
 def test_the_performance_summary_accepts_its_include():
-    text = build_prose(Performance="{{ include _generated/performance.md }}")
+    text = build_prose(Performance="<!-- GENERATED performance: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED performance -->")
     assert not any(p.section == "Performance" for p in problems_for(text))
 
 
@@ -344,7 +344,7 @@ def test_a_result_subsection_needs_its_generated_numbers():
     text = build_prose(
         Results="### Smoothing\n\nMSE rose steeply with kernel width. " * 6
     )
-    assert any("generated includes" in p.message for p in problems_for(text))
+    assert any("generated block" in p.message for p in problems_for(text))
 
 
 def test_measurements_come_before_the_explanation():
@@ -352,7 +352,7 @@ def test_measurements_come_before_the_explanation():
     text = build_prose(
         Results=(
             "### Smoothing\n\nMSE rose steeply with kernel width, as the numbers below "
-            "show and as anyone would say. \n\n{{ include _generated/results_smoothing.md }}\n"
+            "show and as anyone would say. \n\n<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED results_smoothing -->\n"
         )
     )
     assert any("before its generated numbers" in p.message for p in problems_for(text))
@@ -364,7 +364,7 @@ def test_an_unexplained_result_subsection_warns_but_does_not_fail():
         Results=(
             "### Smoothing\n\n"
             "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
-            "{{ include _generated/results_smoothing.md }}\n"
+            "<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED results_smoothing -->\n"
         )
     )
     problems = problems_for(text)
@@ -396,9 +396,9 @@ def test_the_run_summary_may_precede_the_subsections():
     """
     text = build_prose(
         Results=(
-            "{{ include _generated/run.md }}\n\n### Smoothing\n\n"
+            "<!-- GENERATED run: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED run -->\n\n### Smoothing\n\n"
             "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
-            "{{ include _generated/results_smoothing.md }}\n\n"
+            "<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED results_smoothing -->\n\n"
             + "What the smoothing axes found, at length. " * 5
         )
     )
@@ -408,10 +408,10 @@ def test_the_run_summary_may_precede_the_subsections():
 def test_a_second_preamble_include_is_refused():
     text = build_prose(
         Results=(
-            "{{ include _generated/run.md }}\n\n"
-            "{{ include _generated/results_summary.md }}\n\n### Smoothing\n\n"
+            "<!-- GENERATED run: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED run -->\n\n"
+            "<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED results_summary -->\n\n### Smoothing\n\n"
             "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
-            "{{ include _generated/results_smoothing.md }}\n\n"
+            "<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED results_smoothing -->\n\n"
             + "What the smoothing axes found, at length. " * 5
         )
     )
@@ -422,7 +422,7 @@ def test_a_result_subsection_must_link_to_its_degradations():
     """The card sends the reader out for what the test is, rather than restating it."""
     text = build_prose(
         Results=(
-            "### Smoothing\n\n{{ include _generated/results_smoothing.md }}\n\n"
+            "### Smoothing\n\n<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence example`, do not edit -->\n\nplaceholder\n\n<!-- END GENERATED results_smoothing -->\n\n"
             + "What the smoothing axes found, at length. " * 5
         )
     )

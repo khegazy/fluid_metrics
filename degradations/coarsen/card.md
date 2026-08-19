@@ -91,7 +91,19 @@ and 25.9% at factors of 2, 4 and 8.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars coarsen`, do not edit -->
+
+![coarsen exemplar panel](_generated/exemplars.png)
+
+**coarsen** on vorticity, frame 5000 of `kinet_re5e4`. A factor of two is the mildest resolution loss expressible on a grid; sixteen removes almost everything but the largest structures. The radial spectrum row shows the hard cut-off the block average imposes, and the difference row shows the blockiness the nearest-neighbour expansion leaves behind.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 2 | 2 | 0.0004867 | 0.9928 |
+| 4 | 4 | 0.0009112 | 0.9741 |
+| 16 | 16 | 0.001672 | 0.8515 |
+
+<!-- END GENERATED exemplars -->
 
 The field row shows the plateaus growing as the factor rises, and it is the clearest
 of any panel in the gallery -- resolution loss is the one degradation the eye judges well.

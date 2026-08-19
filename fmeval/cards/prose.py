@@ -254,7 +254,34 @@ def check_math(text: str) -> list[Problem]:
 
 _HEADING = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
-_INCLUDE = re.compile(r"^\{\{\s*include\s+\S+\s*\}\}$", re.MULTILINE)
+# A generated block, written into card.md by fmeval.cards rather than included from a
+# separate file at build time. Two readers matter -- GitHub's web UI and the documentation
+# site -- and only one of them resolves includes; a card whose figures appear on the site
+# and show as a literal `{{ include ... }}` on GitHub fails the reader who never leaves
+# the repository. Markers keep the boundary explicit so the checker can tell generated
+# content from prose, and the review ledger can hash the prose alone.
+GENERATED_OPEN = "<!-- GENERATED {name}: written by `{command}`, do not edit -->"
+GENERATED_CLOSE = "<!-- END GENERATED {name} -->"
+_GENERATED_BLOCK = re.compile(
+    r"^<!-- GENERATED (?P<name>[a-z0-9_]+):.*?-->$.*?^<!-- END GENERATED (?P=name) -->$",
+    re.MULTILINE | re.DOTALL,
+)
+_GENERATED_OPEN_RE = re.compile(r"^<!-- GENERATED ([a-z0-9_]+):.*?-->$", re.MULTILINE)
+
+
+def generated_blocks(text: str) -> dict[str, str]:
+    """Every generated block in a card, by name."""
+    return {m.group("name"): m.group(0) for m in _GENERATED_BLOCK.finditer(text)}
+
+
+def strip_generated(text: str) -> str:
+    """The card with its generated blocks removed, for hashing the prose alone.
+
+    Regenerating evidence must not invalidate a human's signature on the prose, and
+    editing the prose must invalidate it. Hashing what is left after this call gives
+    both.
+    """
+    return _GENERATED_BLOCK.sub("", text)
 _SUBHEADING = re.compile(r"^### (.+?)\s*$", re.MULTILINE)
 _LINK = re.compile(r"\[[^\]]*\]\([^)]*\)")
 _DEGRADATION_LINK = re.compile(r"\]\(\.\./\.\./degradations/([a-z][a-z0-9_]*)/card\.md\)")
@@ -354,11 +381,12 @@ def _check_result_section(section: str, body: str, name: str) -> list[Problem]:
     # One include is allowed before the first subsection: the run summary, which says
     # which dataset, resolution and frames produced everything below it. Stated once
     # here rather than repeated in every subsection of every card.
-    if len(_INCLUDE.findall(preamble)) > 1:
+    if len(_GENERATED_OPEN_RE.findall(preamble)) > 1:
         problems.append(
             Problem(
                 section,
-                f"'## {section}' has more than one include before its first subsection. "
+                f"'## {section}' has more than one generated block before its first "
+                "subsection. "
                 "Only the run summary belongs there; every other set of numbers belongs "
                 "under the heading naming the test that produced it.",
                 f"move the rest under '### <test>' headings, then run  {regenerate}",
@@ -377,19 +405,31 @@ def _check_result_section(section: str, body: str, name: str) -> list[Problem]:
         )
 
     for heading, sub in subsections:
-        includes = _INCLUDE.findall(sub)
+        includes = _GENERATED_OPEN_RE.findall(sub)
         if len(includes) != 1:
             problems.append(
                 Problem(
                     section,
-                    f"'### {heading}' carries {len(includes)} generated includes; it "
-                    "needs exactly one, naming the measurements being explained.",
-                    f"give the subsection one include line, then run  {regenerate}",
+                    f"'### {heading}' carries {len(includes)} generated blocks; it needs "
+                    "exactly one, holding the measurements being explained.",
+                    f"give the subsection one generated block, then run  {regenerate}",
                 )
             )
             continue
 
-        before, after = sub.split(includes[0], 1)
+        block = generated_blocks(sub)
+        if not block:
+            problems.append(
+                Problem(
+                    section,
+                    f"'### {heading}' names a generated block but does not contain one; "
+                    "it may have been truncated.",
+                    f"run  {regenerate}",
+                )
+            )
+            continue
+        whole = next(iter(block.values()))
+        before, after = sub.split(whole, 1)
         # Links above the numbers are navigation, not explanation: they say which
         # degradations this subsection reports before the reader meets their results.
         # Anything left once the link markup and its separators are removed is prose,
@@ -523,7 +563,7 @@ def check_prose(text: str, *, kind: str, name: str) -> list[Problem]:
             continue
         if section in GENERATED_ONLY_SECTIONS:
             generator = f"python -m fmeval.cards evidence {name}"
-            if not _INCLUDE.search(body) or len(_LINK.sub("", body).split()) > 6:
+            if not generated_blocks(body) or len(_LINK.sub("", strip_generated(body)).split()) > 2:
                 problems.append(
                     Problem(
                         section,

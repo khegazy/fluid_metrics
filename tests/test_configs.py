@@ -74,6 +74,18 @@ def test_every_config_group_option_composes(group, option):
     assert OmegaConf.select(cfg, group) is not None
 
 
+#: Directories under `configs/` that Hydra never composes, so their files are not group
+#: options and cannot be checked by composing them.
+#:
+#: `dataset_family` holds shared fragments referenced by dataset configs rather than
+#: selected on the command line. `cards` holds the settings for generating documentation
+#: -- the canonical exemplar frame, which datasets a card may cite, figure DPI -- read
+#: directly with OmegaConf by `python -m fmeval.cards`. Generating documentation is not an
+#: experiment: it must not create a run folder or a `.hydra` directory, so it does not go
+#: through Hydra at all.
+NOT_HYDRA_GROUPS = {"dataset_family", "cards"}
+
+
 def test_every_group_option_on_disk_is_tested(group_files=None):
     """A new config file must be added to the parametrisation above."""
     tested = {("dataset", "kinet_re5e4_dev"), ("dataset", "kinet_re5e4"),
@@ -81,7 +93,7 @@ def test_every_group_option_on_disk_is_tested(group_files=None):
               ("degradation", "quick"), ("report", "default"), ("report", "none")}
     on_disk = {
         (d.name, f.stem)
-        for d in Path(CONFIGS).iterdir() if d.is_dir() and d.name != "dataset_family"
+        for d in Path(CONFIGS).iterdir() if d.is_dir() and d.name not in NOT_HYDRA_GROUPS
         for f in d.glob("*.yaml")
     }
     missing = sorted(on_disk - tested)
@@ -173,3 +185,29 @@ def test_default_metrics_are_registered():
 
     for name in build().metrics:
         met.get(name)  # raises KeyError with the available list if absent
+
+
+def test_the_card_settings_are_readable_without_hydra():
+    """`configs/cards/default.yaml` is read directly, so it must stand on its own.
+
+    It is excluded from the group-composition test above because it is not a Hydra group.
+    That exclusion would be a hiding place if nothing else read the file, so this checks
+    the keys the generators depend on are present and that no Hydra interpolation has
+    crept in -- one would resolve under `evaluate.py` and fail under `python -m
+    fmeval.cards`, which is the kind of difference that shows up only in the artifact.
+    """
+    from omegaconf import OmegaConf
+
+    raw = (Path(CONFIGS) / "cards" / "default.yaml").read_text()
+    assert "${" not in raw, "card settings must not interpolate; nothing resolves them"
+
+    cfg = OmegaConf.load(Path(CONFIGS) / "cards" / "default.yaml")
+    assert "kinet_re5e4_dev" not in list(cfg.evidence_datasets), (
+        "the dev dataset must never be a source of card evidence: it is the first 100 "
+        "solver steps, before the flow develops"
+    )
+    assert cfg.exemplar_frame.dataset in list(cfg.evidence_datasets)
+    assert int(cfg.exemplar_frame.index) >= int(cfg.evidence_window.start), (
+        "the exemplar frame must lie inside the developed-flow window"
+    )
+    assert int(cfg.figures.dpi) > 0

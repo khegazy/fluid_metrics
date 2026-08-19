@@ -93,7 +93,15 @@ needed.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars random_large_translation`, do not edit -->
+
+![random_large_translation exemplar panel](_generated/exemplars.png)
+
+**random_large_translation** on vorticity, frame 5000 of `kinet_re5e4`. Three independent draws beside the original, because there is no weak-to-strong ordering to show. The pdf row is the point: every draw has exactly the reference's distribution of values, which is what makes it a fair anchor rather than merely a bad field.
+
+3 independent draws, seeded from the run seed so they reproduce exactly.
+
+<!-- END GENERATED exemplars -->
 
 There is no weak-to-strong progression to look for. Compare the three draws against
 one another instead: they should look equally unrelated to the original and equally like

@@ -88,12 +88,29 @@ axes.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars additive_noise`, do not edit -->
 
-The field row tells the story at the strong end and almost nothing at the weak end,
-where the change is genuinely invisible. Use the pdf row for that: noise broadens the
-distribution of values symmetrically, and the broadening is visible well before the grain
-is.
+![additive_noise exemplar panel](_generated/exemplars.png)
+
+**additive_noise** on vorticity, frame 5000 of `kinet_re5e4`. A thousandth of the fluctuation is far below what any eye can see; a half is comparable to the field's own variation. The pdf row is the row that shows the mechanism, since noise broadens the distribution of values without moving anything, and the difference row confirms the error is uncorrelated between neighbouring cells rather than structured.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.001 | 0.001 | 2.565e-06 | -- |
+| 0.01 | 0.01 | 2.567e-05 | -- |
+| 0.5 | 0.5 | 0.001289 | -- |
+
+<!-- END GENERATED exemplars -->
+
+The field row tells the story at the strong end and nothing at the weak end, and the pdf
+row does not rescue it: at an amplitude of 0.001 the distribution's width moves from
+0.002573 to 0.002573, and at 0.01 to 0.002574. Noise adds in quadrature, so an amplitude
+of a hundredth changes the width by five parts in a hundred thousand. Only at 0.5 does it
+become visible, at 0.002873.
+
+That is worth knowing before reading a metric's response: the two weakest levels of this
+axis are invisible in every panel here, so a metric that separates them is not agreeing
+with the eye but exceeding it.
 
 In the difference row, look for the absence of structure. Every other degradation in this
 gallery produces a difference concentrated somewhere -- at edges, at particular scales, in

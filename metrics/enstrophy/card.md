@@ -29,7 +29,11 @@ construction — the domain is doubly periodic and the derivative wraps accordin
 
 ## Performance
 
-{{ include _generated/performance.md }}
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED performance -->
 
 ## Intuition
 
@@ -94,7 +98,11 @@ analysis grid before drawing any conclusion.
 
 ## Results
 
-{{ include _generated/run.md }}
+<!-- GENERATED run: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED run -->
 
 Each subsection links to the degradations it reports; what those degradations do, and what
 their severity numbers mean, is documented in their own bundles. A single-field diagnostic
@@ -107,7 +115,11 @@ the drift away from the reference value rather than an error.
 [box_blur](../../degradations/box_blur/card.md) ·
 [median_blur](../../degradations/median_blur/card.md)
 
-{{ include _generated/results_smoothing.md }}
+<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED results_smoothing -->
 
 ### Spectral filtering
 
@@ -116,14 +128,22 @@ the drift away from the reference value rather than an error.
 [highpass_ideal](../../degradations/highpass_ideal/card.md) ·
 [highpass_butterworth](../../degradations/highpass_butterworth/card.md)
 
-{{ include _generated/results_spectral.md }}
+<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED results_spectral -->
 
 ### Displacement
 
 [translate_x](../../degradations/translate/card.md) ·
 [translate_subpixel](../../degradations/translate_subpixel/card.md)
 
-{{ include _generated/results_geometric.md }}
+<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED results_geometric -->
 
 A translation moves the field without changing any of its values, so a quantity built from
 those values alone cannot see it at all. This axis is expected to be flat, and a
@@ -134,24 +154,40 @@ should — which is one of the things a reference-free diagnostic is useful for.
 
 [coarsen](../../degradations/coarsen/card.md)
 
-{{ include _generated/results_resolution.md }}
+<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED results_resolution -->
 
 ### Noise
 
 [additive_noise](../../degradations/additive_noise/card.md)
 
-{{ include _generated/results_stochastic.md }}
+<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED results_stochastic -->
 
 ### Canaries
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
 
-{{ include _generated/results_canaries.md }}
+<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED results_canaries -->
 
 ### Across the ladder
 
-{{ include _generated/results_summary.md }}
+<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence enstrophy`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence enstrophy`.
+
+<!-- END GENERATED results_summary -->
 
 ## References
 

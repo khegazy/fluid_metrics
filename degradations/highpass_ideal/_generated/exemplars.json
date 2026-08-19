@@ -1,0 +1,89 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      3.470762420119668,
+      28.005498318387612,
+      43.1513810304104
+    ],
+    "severities": [
+      0.45,
+      0.9,
+      0.97
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "highpass_ideal",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "energy removed = 28 fraction": {
+        "max_abs": 0.016723889747420062,
+        "mean": 0.0,
+        "rms": 0.0024410008033852668
+      },
+      "energy removed = 3.47 fraction": {
+        "max_abs": 0.006087889840758032,
+        "mean": 0.0,
+        "rms": 0.0016673949539195085
+      },
+      "energy removed = 43.2 fraction": {
+        "max_abs": 0.016800474250887217,
+        "mean": 0.0,
+        "rms": 0.0025343789610064757
+      },
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      }
+    },
+    "field": {
+      "energy removed = 28 fraction": {
+        "max": 0.003715094769406592,
+        "mean": 2.6469779601696886e-22,
+        "min": -0.0036625950364806968,
+        "rms": 0.000814637511367592
+      },
+      "energy removed = 3.47 fraction": {
+        "max": 0.010514696140847386,
+        "mean": -6.776263578034403e-21,
+        "min": -0.0105254063884005,
+        "rms": 0.001960079912834796
+      },
+      "energy removed = 43.2 fraction": {
+        "max": 0.001999390534622705,
+        "mean": -3.374896899216353e-22,
+        "min": -0.0019855228163255896,
+        "rms": 0.0004461417701386402
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    },
+    "radial_spectrum": {
+      "energy removed = 28 fraction": {
+        "departure_wavenumber": 1.0,
+        "power_retained": 0.007669201849609188
+      },
+      "energy removed = 3.47 fraction": {
+        "departure_wavenumber": 1.0,
+        "power_retained": 0.1808291197374619
+      },
+      "energy removed = 43.2 fraction": {
+        "departure_wavenumber": 1.0,
+        "power_retained": 0.0017042721556561262
+      },
+      "original": {
+        "departure_wavenumber": NaN,
+        "power_retained": 1.0
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

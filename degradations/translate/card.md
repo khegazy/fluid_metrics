@@ -87,7 +87,19 @@ indefinitely with displacement.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars translate`, do not edit -->
+
+![translate exemplar panel](_generated/exemplars.png)
+
+**translate** on vorticity, frame 5000 of `kinet_re5e4`. One cell is the smallest whole shift and is invisible by eye; sixteen is large enough that the field and its reference share little structure locally. The spectral phase row is the one that shows anything at all -- a translation leaves the amplitude spectrum exactly unchanged, so a radial spectrum panel would show two identical curves and teach the reader nothing.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 1 | 1 | 0.0006502 | -- |
+| 4 | 4 | 0.001864 | -- |
+| 16 | 16 | 0.002758 | -- |
+
+<!-- END GENERATED exemplars -->
 
 The field row will look almost unchanged at one cell and obviously shifted at
 sixteen; the eye is a poor judge here, which is the point. The difference row is more

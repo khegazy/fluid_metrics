@@ -75,7 +75,19 @@ removal, and a smoother filter widens that room without creating it.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars highpass_butterworth`, do not edit -->
+
+![highpass_butterworth exemplar panel](_generated/exemplars.png)
+
+**highpass_butterworth** on vorticity, frame 5000 of `kinet_re5e4`. Three fractions spanning the usable range of this axis. The radial spectrum row is the one that shows the mechanism directly -- the cutoff is visible as the wavenumber where the curve departs from the reference -- and the difference row shows which structures in real space carried the removed energy.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.45 | 3.471 | 0.001636 | 0.1541 |
+| 0.9 | 28.01 | 0.0024 | 0.006098 |
+| 0.97 | 43.15 | 0.002505 | 0.001279 |
+
+<!-- END GENERATED exemplars -->
 
 Compare against the ideal high-pass panel. The field row here retains a faint ghost of
 the large-scale structure where the ideal filter removed it completely, and that ghost is

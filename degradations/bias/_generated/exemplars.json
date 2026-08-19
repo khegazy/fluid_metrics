@@ -1,0 +1,93 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      0.05,
+      0.2,
+      0.5
+    ],
+    "severities": [
+      0.05,
+      0.2,
+      0.5
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "bias",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "offset = 0.05 fraction of fluctuation rms": {
+        "max_abs": 0.0001286673928881637,
+        "mean": 0.00012866739288816244,
+        "rms": 0.00012866739288816244
+      },
+      "offset = 0.2 fraction of fluctuation rms": {
+        "max_abs": 0.0005146695715526513,
+        "mean": 0.0005146695715526495,
+        "rms": 0.0005146695715526497
+      },
+      "offset = 0.5 fraction of fluctuation rms": {
+        "max_abs": 0.0012866739288816247,
+        "mean": 0.0012866739288816243,
+        "rms": 0.001286673928881624
+      },
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      }
+    },
+    "field": {
+      "offset = 0.05 fraction of fluctuation rms": {
+        "max": 0.016527348125071,
+        "mean": 0.00012866739288816239,
+        "min": -0.016294345347318513,
+        "rms": 0.002576562534666554
+      },
+      "offset = 0.2 fraction of fluctuation rms": {
+        "max": 0.01691335030373549,
+        "mean": 0.0005146695715526498,
+        "min": -0.015908343168654023,
+        "rms": 0.002624310188399399
+      },
+      "offset = 0.5 fraction of fluctuation rms": {
+        "max": 0.01768535466106446,
+        "mean": 0.0012866739288816243,
+        "min": -0.01513633881132505,
+        "rms": 0.0028770903698560417
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    },
+    "pdf": {
+      "offset = 0.05 fraction of fluctuation rms": {
+        "flatness": 17.057721889155673,
+        "mean": 0.00012866739288816239,
+        "std": 0.0025733478577632486
+      },
+      "offset = 0.2 fraction of fluctuation rms": {
+        "flatness": 17.057721889155673,
+        "mean": 0.0005146695715526498,
+        "std": 0.0025733478577632486
+      },
+      "offset = 0.5 fraction of fluctuation rms": {
+        "flatness": 17.057721889155673,
+        "mean": 0.0012866739288816243,
+        "std": 0.0025733478577632486
+      },
+      "original": {
+        "flatness": 17.057721889155673,
+        "mean": 0.0,
+        "std": 0.0025733478577632486
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

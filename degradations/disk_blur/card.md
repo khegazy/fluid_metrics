@@ -75,7 +75,19 @@ is not how a real surrogate loses its small scales.
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars disk_blur`, do not edit -->
+
+![disk_blur exemplar panel](_generated/exemplars.png)
+
+**disk_blur** on vorticity, frame 5000 of `kinet_re5e4`. Three radii spanning the range from barely visible to clearly resolution-losing. The radial spectrum row is what separates this kernel from the Gaussian at matched width, since the disk profile has a different roll-off and, unlike a Gaussian, does not attenuate every wavenumber monotonically.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.06 | 1.511 | 0.0002845 | 0.9896 |
+| 0.14 | 3.526 | 0.0007964 | 0.9664 |
+| 0.25 | 6.296 | 0.001236 | 0.9278 |
+
+<!-- END GENERATED exemplars -->
 
 The field row shows round rather than square haloes, which is the visible
 difference from the box kernel. At the weakest radius the change is subtle; use the

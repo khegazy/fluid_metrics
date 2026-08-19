@@ -77,7 +77,19 @@ space and with scale, and a single constant factor is the easiest possible versi
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars gain`, do not edit -->
+
+![gain exemplar panel](_generated/exemplars.png)
+
+**gain** on vorticity, frame 5000 of `kinet_re5e4`. One percent is far below visibility; a half is a gross amplitude error. The pdf row is the direct view of the mechanism, since a gain change rescales the distribution of values about its centre without moving anything in space.
+
+| configured | applied | difference RMS | power retained |
+|---|---|---|---|
+| 0.01 | 0.01 | 2.573e-05 | -- |
+| 0.05 | 0.05 | 0.0001287 | -- |
+| 0.5 | 0.5 | 0.001287 | -- |
+
+<!-- END GENERATED exemplars -->
 
 The field row will look like a contrast adjustment, because that is exactly what it
 is. Nothing moves between columns; only the range of values widens.

@@ -46,7 +46,11 @@ a reader has no way to tell which you used unless you write it down.
 
 ## Performance
 
-{{ include _generated/performance.md }}
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED performance -->
 
 ## Intuition
 
@@ -101,7 +105,11 @@ person sees when they look at the two fields.
 
 ## Results
 
-{{ include _generated/run.md }}
+<!-- GENERATED run: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED run -->
 
 One subsection per kind of test: the degradations it reports, then their generated
 numbers, then what those numbers show about this metric. Keep the evidence beside the
@@ -122,7 +130,11 @@ and `### Across the ladder` only if you have measurements for them.
 [gaussian_blur](../../degradations/gaussian_blur/card.md) ·
 [box_blur](../../degradations/box_blur/card.md)
 
-{{ include _generated/results_smoothing.md }}
+<!-- GENERATED results_smoothing: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED results_smoothing -->
 
 TODO(fill) What the smoothing axes found. Say what the numbers show, not what you
 expected them to show, and say it about this metric: what the run was is in the run
@@ -133,7 +145,11 @@ summary above, and what the degradation does is in its own bundle.
 [lowpass_ideal](../../degradations/lowpass_ideal/card.md) ·
 [highpass_ideal](../../degradations/highpass_ideal/card.md)
 
-{{ include _generated/results_spectral.md }}
+<!-- GENERATED results_spectral: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED results_spectral -->
 
 TODO(fill) What the spectral axes found.
 
@@ -142,7 +158,11 @@ TODO(fill) What the spectral axes found.
 [translate_x](../../degradations/translate/card.md) ·
 [translate_subpixel](../../degradations/translate_subpixel/card.md)
 
-{{ include _generated/results_geometric.md }}
+<!-- GENERATED results_geometric: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED results_geometric -->
 
 TODO(fill) What the displacement axes found. This is where a
 pointwise norm is usually at its worst, so say how yours compares.
@@ -151,7 +171,11 @@ pointwise norm is usually at its worst, so say how yours compares.
 
 [coarsen](../../degradations/coarsen/card.md)
 
-{{ include _generated/results_resolution.md }}
+<!-- GENERATED results_resolution: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED results_resolution -->
 
 TODO(fill) What coarsening found.
 
@@ -159,7 +183,11 @@ TODO(fill) What coarsening found.
 
 [additive_noise](../../degradations/additive_noise/card.md)
 
-{{ include _generated/results_stochastic.md }}
+<!-- GENERATED results_stochastic: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED results_stochastic -->
 
 TODO(fill) What the noise axis found.
 
@@ -168,7 +196,11 @@ TODO(fill) What the noise axis found.
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
 
-{{ include _generated/results_canaries.md }}
+<!-- GENERATED results_canaries: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED results_canaries -->
 
 TODO(fill) The phase-randomised impostor and the unrelated-field
 anchor. State plainly what your metric does with them, including a canary it fails —
@@ -176,7 +208,11 @@ that is information a reader needs, not a mark against the metric.
 
 ### Across the ladder
 
-{{ include _generated/results_summary.md }}
+<!-- GENERATED results_summary: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+
+Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+
+<!-- END GENERATED results_summary -->
 
 TODO(fill) What holds across every axis: how this metric correlates
 with the controls, where it merely tracks them, and the situations in which someone

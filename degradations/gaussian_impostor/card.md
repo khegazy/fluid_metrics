@@ -80,11 +80,28 @@ Matching the first two moments is a default rather than a necessity, and it make
 impostor harder to detect than the phase randomisation alone would. Turning it off makes
 the test weaker, not stronger.
 
+Only the first two moments are matched, and the panel shows what that leaves open. On the
+canonical vorticity frame the reference has a flatness of 17.1, the signature of an
+intermittent field whose extreme values are far more common than a Gaussian would predict;
+the three impostor draws have flatnesses of 3.05, 3.04 and 2.85, which is the Gaussian
+value of 3. So a metric built on a fourth moment separates them immediately, while the
+spectrum and the variance cannot. That is a limit on what this canary tests rather than a
+defect: it catches metrics that see only the amplitude spectrum, and a flatness statistic
+is not one of them.
+
 ## Exemplars
 
 ### The panel
 
-{{ include _generated/exemplars.md }}
+<!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars gaussian_impostor`, do not edit -->
+
+![gaussian_impostor exemplar panel](_generated/exemplars.png)
+
+**gaussian_impostor** on vorticity, frame 5000 of `kinet_re5e4`. Three independent draws beside the original, because there is no severity to vary. The radial spectrum row is the whole argument: every draw lies exactly on the reference curve, so any metric built on that curve cannot distinguish them from the truth. The pdf row shows the moments matching too.
+
+3 independent draws, seeded from the run seed so they reproduce exactly.
+
+<!-- END GENERATED exemplars -->
 
 Do not look at the field row expecting a difficulty: the impostor is obvious to any
 human eye, and that is precisely the argument. A field that a person identifies as wrong
