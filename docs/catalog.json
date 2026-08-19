@@ -84,7 +84,7 @@
       "reviewed_at": null,
       "reviewed_by": null,
       "status": "control",
-      "summary": "Removes the small scales from the field by multiplying its Fourier transform by a smooth Butterworth low-pass transfer function."
+      "summary": "Weakens one chosen band of scales and leaves every larger and smaller scale untouched, by scaling down the Fourier modes between two fixed wavenumbers."
     },
     {
       "card": "degradations/bias/card.md",
