@@ -230,6 +230,19 @@ def cmd_exemplars(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_catalog(args: argparse.Namespace) -> int:
+    """Write docs/catalog.json, the structured surface agents read instead of prose."""
+    from .catalog import build, write
+
+    path = write(Path(args.out))
+    counts = build()["counts"]
+    print(f"wrote {path}: {counts['metrics']} metrics, {counts['degradations']} "
+          f"degradations, {counts['with_measurements']} with measurements, "
+          f"{counts['reviewed']} reviewed")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m fmeval.cards",
@@ -269,6 +282,11 @@ def build_parser() -> argparse.ArgumentParser:
         "exemplars", help="render a degradation's exemplar panel from the canonical frame")
     exemplars.add_argument("name", help="the degradation bundle, or --all for every one")
     exemplars.set_defaults(func=cmd_exemplars)
+
+    catalog = sub.add_parser(
+        "catalog", help="write the machine-readable index of every bundle")
+    catalog.add_argument("--out", default="docs/catalog.json")
+    catalog.set_defaults(func=cmd_catalog)
 
     signer = sub.add_parser("sign", help="record that a human has read the prose")
     signer.add_argument("name")

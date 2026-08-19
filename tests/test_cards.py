@@ -734,3 +734,59 @@ def test_evidence_refuses_a_run_on_a_dataset_cards_may_not_cite(tmp_path):
 
     with pytest.raises(ValueError, match="cards may not cite"):
         evidence.load_run(folder)
+
+
+# --------------------------------------------------------------------------------------
+# The catalog: the surface agents read instead of prose
+# --------------------------------------------------------------------------------------
+
+
+def test_the_catalog_covers_every_bundle():
+    from fmeval.cards.catalog import build
+
+    catalog = build()
+    names = {e["name"] for e in catalog["entries"]}
+    assert names == {b.name for b in BUNDLES}
+    assert catalog["counts"]["metrics"] + catalog["counts"]["degradations"] == len(BUNDLES)
+
+
+def test_the_catalog_reports_the_code_not_the_card():
+    """Declared properties come from the registry, so a card cannot overstate them.
+
+    A catalog entry is a contract an agent acts on. If it took `differentiable` from the
+    prose half of a card, a metric could claim to be usable as a training loss because
+    someone wrote that it was.
+    """
+    from metrics import registry
+
+    from fmeval.cards.catalog import entry
+    from fmeval.cards.loader import find_bundle
+
+    e = entry(find_bundle("nrmse"))
+    spec = registry.get("nrmse")
+    assert e["declared"]["symmetric"] is spec.symmetric is False
+    assert e["declared"]["units"] == spec.units == "dimensionless"
+
+
+def test_an_unmeasured_bundle_says_so_rather_than_omitting_the_key():
+    """A consumer must tell "not measured" from "measured and unremarkable"."""
+    from fmeval.cards.catalog import entry
+    from fmeval.cards.loader import find_bundle
+
+    e = entry(find_bundle("gaussian_blur"))
+    assert e["evidence"]["measured"] is False
+    assert e["evidence"]["axes"] == []
+
+
+def test_the_catalog_supports_the_query_it_exists_for():
+    """"Which metrics are differentiable, cheap, and measured?" without reading prose."""
+    from fmeval.cards.catalog import build
+
+    answer = [
+        e["name"] for e in build()["entries"]
+        if e["kind"] == "metric"
+        and e["declared"]["differentiable"]
+        and e["declared"]["cost"] == "cheap"
+        and e["evidence"]["measured"]
+    ]
+    assert set(answer) == {"mae", "mse", "rmse", "nrmse", "enstrophy", "kinetic_energy"}

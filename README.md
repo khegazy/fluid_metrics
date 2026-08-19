@@ -1,8 +1,9 @@
-# fluid_metrics
+# pde_metrics
 
-Metrics that quantify the quality of fluid simulations — especially ML surrogates of
-compressible, shocked, turbulent flow — with the eventual goal of using validated metrics as
-evaluation panels and training losses for a scientific foundation model.
+Metrics for evaluating ML surrogates of PDEs — compressible and incompressible flow, MHD,
+probabilistic data and whatever comes next — with the eventual goal of using validated
+metrics as evaluation panels and training losses for a scientific foundation model.
+Compressible, shocked, turbulent flow is the first test case rather than the scope.
 
 **The suite measures; it does not decide.** It produces a *report card* per metric: a
 reproducible set of measurements against the criteria in
@@ -12,7 +13,7 @@ attention. Whether a metric joins the panel is the team's call.
 ## Quickstart
 
 ```bash
-git clone <repo> && cd fluid_metrics
+git clone git@github.com:khegazy/pde_metrics.git && cd pde_metrics
 ln -s /global/cfs/cdirs/m4790/Data datasets   # gitignored; or set paths.data in the config
 ```
 
@@ -28,7 +29,7 @@ uv sync --extra dev && source .venv/bin/activate
 python -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'
 
 # conda
-conda create -n fluid_metrics python=3.12 && conda activate fluid_metrics
+conda create -n pde_metrics python=3.12 && conda activate pde_metrics
 pip install -e '.[dev]'
 ```
 
