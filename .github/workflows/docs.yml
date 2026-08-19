@@ -1,0 +1,76 @@
+# Build the documentation site, and publish it from main.
+#
+# The build needs no data. Cards, figures and fingerprints are committed, and the page
+# generator reads those rather than running anything, so this works on a bare runner with
+# no CFS mount -- which is the only kind GitHub gives us. That property is worth keeping:
+# if the site ever needs the dataset to build, it stops being buildable by a contributor
+# without NERSC access.
+
+name: docs
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: mkdocs build --strict
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          cache-dependency-glob: uv.lock
+      - name: Install
+        run: uv sync --extra dev --extra docs --locked
+      - name: Put the venv on PATH
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      # --strict turns a broken link or a missing reference into a failure. Without it the
+      # site builds happily with pages nobody can reach.
+      - name: Build
+        # DISABLE_MKDOCS_2_WARNING: Material prints an advisory about a future MkDocs 2
+        # release that says nothing about this site's content, and --strict treats it as a
+        # failure. Suppressed rather than worked around by dropping --strict, which is what
+        # turns a broken link into a build failure.
+        env:
+          DISABLE_MKDOCS_2_WARNING: "true"
+        run: mkdocs build --strict
+      # The catalog is committed, and it is generated, so it can drift from the bundles it
+      # describes. Rebuilding it and diffing is how that gets noticed.
+      - name: Check the committed catalog is current
+        run: |
+          python -m fmeval.cards catalog --out docs/catalog.json
+          git diff --exit-code docs/catalog.json || {
+            echo "::error::docs/catalog.json is stale. Run: python -m fmeval.cards catalog"
+            exit 1
+          }
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: site
+
+  deploy:
+    name: publish to GitHub Pages
+    # Only from main, and only once the build has passed. This job fails until Pages is
+    # enabled for the repository in its settings, which is a one-time manual step.
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

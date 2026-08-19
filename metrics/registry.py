@@ -50,7 +50,6 @@ class MetricSpec:
 
     name: str
     fn: Callable[..., Any]
-    tracker_id: str | None
     arity: Arity
     fields: tuple[str, ...]
     returns: Returns
@@ -76,6 +75,17 @@ class MetricSpec:
 
 
 REGISTRY: dict[str, MetricSpec] = {}
+CARD_VALIDATOR: Callable[[Any], None] | None = None
+"""Optional check run when a metric is requested by name.
+
+:mod:`fmeval.cards` installs a validator here that reads the metric's card and refuses
+to hand back a spec whose documentation is missing or contradicts the code. It is a hook
+rather than a direct import for two reasons: this module would otherwise depend on the
+whole harness (and its pandas and matplotlib dependencies) when it needs only numpy, and
+validating at *lookup* rather than at *import* means a half-written card in one bundle
+cannot break an unrelated run. See ``fmeval/cards/loader.py``.
+"""
+
 _IMPORT_ERRORS: dict[str, Exception] = {}
 _DISCOVERED = False
 
@@ -83,7 +93,6 @@ _DISCOVERED = False
 def metric(
     *,
     name: str | None = None,
-    tracker_id: str | None = None,
     arity: Arity = "pairwise",
     fields: Sequence[str] = ("*",),
     returns: Returns = "scalar",
@@ -98,9 +107,9 @@ def metric(
     """Register a metric function under ``name`` (defaults to the function name).
 
     Args:
-        name: Registry key. Defaults to ``fn.__name__``.
-        tracker_id: Stable ID from the project's metrics tracker (e.g. ``"NM-2"``).
-            See CLAUDE.md for the identifier scheme and where the tracker lives.
+        name: Registry key, and the metric's identity everywhere: the directory name of
+            its bundle, the key in its card, and what users type in ``metrics=[...]``.
+            Defaults to ``fn.__name__``.
         arity: ``"pairwise"`` for ``fn(reference, candidate)``, ``"single"`` for ``fn(x)``.
         fields: Canonical field names this metric accepts; ``("*",)`` means any.
         returns: ``"scalar"`` for a float, ``"vector"`` for a 1-D array.
@@ -147,7 +156,6 @@ def metric(
         REGISTRY[key] = MetricSpec(
             name=key,
             fn=fn,
-            tracker_id=tracker_id,
             arity=arity,
             fields=tuple(fields),
             returns=returns,
@@ -214,8 +222,13 @@ def discover(force: bool = False) -> dict[str, Exception]:
     import metrics as _pkg
 
     for mod in pkgutil.walk_packages(_pkg.__path__, prefix=f"{_pkg.__name__}."):
-        leaf = mod.name.rsplit(".", 1)[-1]
-        if leaf.startswith("_") or leaf == "registry":
+        # Every component after the package name is checked, not just the last one:
+        # a bundle directory named `_template` must not be entered even though the
+        # module inside it is called `metric`. Leading underscores mark templates and
+        # shared helpers; `test_` marks the tests that live inside each bundle, which
+        # would otherwise drag pytest into every evaluation run.
+        parts = mod.name.split(".")[1:]
+        if any(p.startswith(("_", "test_")) for p in parts) or parts[-1] == "registry":
             continue
         try:
             importlib.import_module(mod.name)
@@ -242,7 +255,10 @@ def get(name: str) -> MetricSpec:
             raise KeyError(
                 f"unknown metric {name!r}; available: {sorted(REGISTRY)}{hint}"
             )
-    return REGISTRY[name]
+    spec = REGISTRY[name]
+    if CARD_VALIDATOR is not None:
+        CARD_VALIDATOR(spec)
+    return spec
 
 
 def available() -> list[str]:
@@ -260,7 +276,6 @@ def _main() -> None:
     rows = [
         (
             s.name,
-            s.tracker_id or "-",
             s.arity,
             ",".join(s.fields),
             s.units,
@@ -268,9 +283,9 @@ def _main() -> None:
             "yes" if s.has_pointwise else "-",
             "yes" if s.differentiable else "-",
         )
-        for s in sorted(REGISTRY.values(), key=lambda s: (s.tracker_id or "", s.name))
+        for s in sorted(REGISTRY.values(), key=lambda s: s.name)
     ]
-    head = ("metric", "id", "arity", "fields", "units", "cost", "pointwise", "diff'able")
+    head = ("metric", "arity", "fields", "units", "cost", "pointwise", "diff'able")
     widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(head)]
     line = "  ".join(h.ljust(w) for h, w in zip(head, widths))
     print(line)

@@ -5,7 +5,7 @@ Add a metric by writing one decorated function in any module or subpackage under
 
     from metrics.registry import metric
 
-    @metric(tracker_id="NM-2", arity="pairwise", fields=("vorticity",), units="field")
+    @metric(arity="pairwise", fields=("vorticity",), units="field")
     def h_minus_one(reference, candidate, *, ctx):
         '''Homogeneous negative Sobolev norm of the difference.'''
         ...

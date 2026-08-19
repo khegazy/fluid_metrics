@@ -1,0 +1,40 @@
+schema_version: 1
+
+name: translate
+kind: degradation
+category: geometric
+
+summary: >-
+  Shifts the whole field by a whole number of cells along one axis, wrapping at the
+  periodic boundary.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate whose features are correct in shape and amplitude but sit in the wrong place
+  -- the shock-shift error that pointwise norms doubly penalise, and the reason most of
+  this repository exists.
+
+output:
+  description: >-
+    Displacement in whole analysis-grid cells, absolute rather than calibrated: one cell
+    means one cell on every field.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [1, 4, 16]
+  field_name: vorticity
+  diagnostics: [difference, spectral_phase]
+  rationale: >-
+    One cell is the smallest whole shift and is invisible by eye; sixteen is large enough
+    that the field and its reference share little structure locally. The spectral phase
+    row is the one that shows anything at all -- a translation leaves the amplitude
+    spectrum exactly unchanged, so a radial spectrum panel would show two identical curves
+    and teach the reader nothing.
+
+references: []
+review: null

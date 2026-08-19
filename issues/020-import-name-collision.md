@@ -18,7 +18,7 @@ The folder layout was requested and is good; this is only about the import name.
 ## What is needed
 
 Either accept the risk, or rename the import package while keeping the requested folder
-structure, for example by moving the packages under a `src/fluid_metrics/` layout with
+structure, for example by moving the packages under a `src/pde_metrics/` layout with
 `metrics` as a subpackage. The second is a mechanical change to import lines.
 
 ## Acceptance criteria

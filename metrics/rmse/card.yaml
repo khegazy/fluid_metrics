@@ -1,0 +1,28 @@
+schema_version: 1
+
+name: rmse
+kind: metric
+category: pointwise_norms
+
+summary: >-
+  Square root of the mean squared difference between the candidate and reference fields,
+  carrying the error back into the field's own units.
+
+status: control
+owners: [khegazy]
+
+output:
+  description: >-
+    Square root of the mean over all channels and grid cells of the squared field
+    difference, in the field's own units.
+  bounds:
+    lower: 0.0
+    upper: null
+
+math:
+  triangle_inequality: true    # the L2 distance is a metric; its square, MSE, is not
+  scale_dependent: true        # scaling both fields by c scales the value by c
+  resolution_dependent: true   # a mean over cells, so refining the grid reweights the sum
+  complexity: "O(N)"
+references: []
+review: null

@@ -1,0 +1,71 @@
+# The documentation site. Almost every page is generated from the bundles by
+# docs/gen_pages.py; the handful of hand-written ones live in docs/.
+#
+# Cards are NOT copied into docs/. A card is the file in its bundle, and the site reads it
+# there, so a colleague browsing the repository and a reader on the site are looking at the
+# same bytes. Copying would create a second source of truth immediately.
+
+site_name: pde_metrics
+site_description: Metrics for evaluating machine-learning surrogates of PDEs.
+# No custom domain is configured, so this is the GitHub Pages project-site URL.
+site_url: https://khegazy.github.io/pde_metrics/
+repo_url: https://github.com/khegazy/pde_metrics
+edit_uri: edit/main/
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/brightness-7, name: Switch to dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/brightness-4, name: Switch to light mode}
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc: {permalink: true}
+  # Only the dollar-delimited forms, matching what GitHub renders. A card must read the
+  # same in both places, and allowing \begin{equation} here would let one through that
+  # GitHub shows as raw source with no error anywhere.
+  - pymdownx.arithmatex:
+      generic: true
+      block_syntax: [dollar]
+      inline_syntax: [dollar]
+  - pymdownx.details
+  - pymdownx.highlight: {anchor_linenums: true}
+  - pymdownx.superfences
+  - pymdownx.tabbed: {alternate_style: true}
+
+plugins:
+  - search
+  - gen-files: {scripts: [docs/gen_pages.py]}
+  - literate-nav: {nav_file: SUMMARY.md}
+  - section-index
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            docstring_style: numpy
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css

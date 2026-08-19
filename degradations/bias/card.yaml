@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: bias
+kind: degradation
+category: pointwise
+
+summary: >-
+  Adds a constant offset to every cell, shifting the whole field up or down without
+  changing any spatial structure.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate with a systematic offset -- a drifting mean, a miscalibrated boundary
+  condition, or an unconserved quantity slowly leaking.
+
+output:
+  description: >-
+    Offset as a fraction of the reference field's fluctuation RMS, so 0.5 shifts the field
+    by half its own variation.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.05, 0.2, 0.5]
+  field_name: vorticity
+  diagnostics: [difference, pdf]
+  rationale: >-
+    Three offsets spanning a small fraction of the field's variation to half of it. The
+    pdf row shows the mechanism exactly -- the whole distribution slides without changing
+    shape -- and the difference row shows a flat, featureless offset, which is unlike
+    every other degradation in the gallery.
+
+references: []
+review: null

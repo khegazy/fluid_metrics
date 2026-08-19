@@ -142,14 +142,14 @@ def main(cfg: DictConfig) -> None:
 
     specs = [metric_registry.get(name) for name in cfg.metrics]
     deg_registry.discover()
-    rungs = build_ladder(
+    severity_levels = build_ladder(
         OmegaConf.to_container(cfg.degradation.ladder, resolve=True),
         include_reference=cfg.degradation.get("include_reference", True),
         only=list(cfg.degradation.get("only") or []),
         skip=list(cfg.degradation.get("skip") or []),
     )
-    n_axes = len({r.label for r in rungs if not r.is_reference})
-    log.info("ladder: %d rungs over %d axes", len(rungs), n_axes)
+    n_axes = len({r.label for r in severity_levels if not r.is_reference})
+    log.info("ladder: %d severity levels over %d axes", len(severity_levels), n_axes)
 
     trajectory = open_trajectory(cfg)
     try:
@@ -179,7 +179,7 @@ def main(cfg: DictConfig) -> None:
         result = run(
             trajectory,
             specs,
-            rungs,
+            severity_levels,
             fields=fields,
             selection=selection,
             dataset=dataset_info(cfg),
@@ -229,8 +229,8 @@ def main(cfg: DictConfig) -> None:
             n_rows=int(len(subset)),
             fields=fields,
             analysis_grid=resolution or native_resolution,
-            ladder_axes=sorted({r.label for r in rungs if not r.is_reference}),
-            n_rungs=len(rungs),
+            ladder_axes=sorted({r.label for r in severity_levels if not r.is_reference}),
+            n_severity_levels=len(severity_levels),
             seed=int(cfg.seed),
             timings={
                 "total_s": elapsed,
@@ -263,8 +263,8 @@ def main(cfg: DictConfig) -> None:
             n_rows=int(len(result.rows)),
             fields=fields,
             analysis_grid=resolution or native_resolution,
-            ladder_axes=sorted({r.label for r in rungs if not r.is_reference}),
-            n_rungs=len(rungs),
+            ladder_axes=sorted({r.label for r in severity_levels if not r.is_reference}),
+            n_severity_levels=len(severity_levels),
             seed=int(cfg.seed),
             command=" ".join(sys.argv),
             comparison=True,

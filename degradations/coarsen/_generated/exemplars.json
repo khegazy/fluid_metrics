@@ -1,0 +1,89 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      2.0,
+      4.0,
+      16.0
+    ],
+    "severities": [
+      2.0,
+      4.0,
+      16.0
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "coarsen",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "factor = 16": {
+        "max_abs": 0.010360922209454795,
+        "mean": -6.829203137237796e-21,
+        "rms": 0.001671652895376002
+      },
+      "factor = 2": {
+        "max_abs": 0.003049837504647089,
+        "mean": 1.2374621963793294e-21,
+        "rms": 0.0004866918129517312
+      },
+      "factor = 4": {
+        "max_abs": 0.005939950000305959,
+        "mean": 3.919181742276245e-21,
+        "rms": 0.0009111756265647797
+      },
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      }
+    },
+    "field": {
+      "factor = 16": {
+        "max": 0.010872650344313903,
+        "mean": -5.421010862427522e-20,
+        "min": -0.01115705089863855,
+        "rms": 0.0019564497934871036
+      },
+      "factor = 2": {
+        "max": 0.016232911734975604,
+        "mean": 0.0,
+        "min": -0.01614699934198724,
+        "rms": 0.002526905276471688
+      },
+      "factor = 4": {
+        "max": 0.016067257636489595,
+        "mean": -5.421010862427522e-20,
+        "min": -0.016050966300583502,
+        "rms": 0.0024066321228241308
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    },
+    "radial_spectrum": {
+      "factor = 16": {
+        "departure_wavenumber": 3.0,
+        "power_retained": 0.8515311905075761
+      },
+      "factor = 2": {
+        "departure_wavenumber": 19.0,
+        "power_retained": 0.9928250606448252
+      },
+      "factor = 4": {
+        "departure_wavenumber": 9.0,
+        "power_retained": 0.9740852246287074
+      },
+      "original": {
+        "departure_wavenumber": null,
+        "power_retained": 1.0
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

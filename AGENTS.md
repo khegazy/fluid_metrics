@@ -8,6 +8,12 @@ The repository evaluates candidate metrics for judging fluid simulations. Its ou
 evidence for a research decision, so a plausible-looking wrong number is worse than an
 obvious failure. Most of the rules below exist because something specific went wrong.
 
+> **The canonical instructions for extending the repository live in
+> [`docs/recipes/`](docs/recipes/index.md)** — adding a metric, a degradation, a dataset,
+> a diagnostic, and refreshing the recorded evidence. The sections below summarise; where
+> this file and a recipe disagree, the recipe wins. The recipes are separate files, each
+> pinned by its own test, so a careless edit to this file cannot destroy them.
+
 ## Contents
 
 1. [Ground rules](#1-ground-rules)
@@ -99,16 +105,85 @@ frame) and `analysis_grid.resolution` (the common analysis grid).
 
 ## 3. Adding a metric
 
-A metric goes in any module or subpackage under `metrics/`. Discovery walks the package, so
-there is no import list to edit and no registration call to add.
+A metric is a **bundle**: a directory under `metrics/` named exactly what users type in
+`metrics=[...]`, holding the implementation, its tests, and the card that documents it.
+Scaffold it, never create the files by hand:
+
+```bash
+python -m fmeval.cards new <name>            # metrics/<name>/, from the template
+python -m fmeval.cards check <name>          # says exactly what is missing and how to fix it
+```
+
+`<name>` is lowercase with underscores and is a valid Python identifier, because discovery
+imports the package. It is the metric's only identity: there are no separate IDs.
+
+**The card is not optional.** `registry.get()` validates it, so a metric whose card is
+missing or malformed fails when the harness asks for it, not later. Fill the bundle in this
+order — the first two are yours, the rest an agent can complete from the contract:
+
+1. **`metric.py`** — one `@metric`-decorated function returning one float per (field,
+   frame, severity level). The decorator's fields are read by the harness and appear in the
+   catalog; nothing in `card.yaml` repeats them.
+2. **`test_metric.py`** — at least one test whose expected value you worked out by hand, on
+   a small field. It is also the source of the worked example in the card, so the prose
+   cannot drift from the code.
+3. **`card.yaml`** — the typed record. Every field is documented in `fmeval/cards/schema.py`.
+4. **`card.md`** — the prose, six sections in a fixed order. See §3.1.
+5. **`python -m fmeval.cards evidence <name> --results results/<run>`** — writes the
+   measured half from a recorded run. Never write those numbers yourself.
+
+Reusing another bundle's function is expected rather than discouraged: `rmse` imports
+`mse`, `nrmse` imports `rmse`. The decorator returns the function unwrapped and the import
+system registers each bundle once, so the shared maths cannot drift apart.
+
+### 3.1 What goes in `card.md`
+
+Six sections, fixed order, all required: `## Definition`, `## Performance`, `## Intuition`,
+`## Reading the output`, `## Limitations`, `## Results`, `## References`.
+
+- **`## Definition`** — numbered equations, the discretisation, and a required
+  `### Boundary handling` subsection. `None.` plus a clause is a fine answer for a
+  pointwise metric. Write maths as `$ ... $` inline and `$$ ... $$` with `\tag{1}` for
+  display, and nothing else: `\begin{equation}`, `\label` and `\eqref` typeset on the
+  site and show as raw source on GitHub, so the checker refuses them.
+- **`## Intuition`** — no notation at all, for an early graduate student in any field. What
+  the metric measures, the mechanism, a worked example whose numbers come from
+  `test_metric.py`, and one sentence naming what it ignores. Write about the metric, not
+  about its standing in this project.
+- **`## Reading the output`** — range, units, direction, what makes a value good, and which
+  comparisons are valid.
+- **`## Limitations`** — at least one concrete situation where it misleads.
+- **`## Performance` and `## Results`** — generated. Leave the marked blocks alone; write
+  only the explanation below each Results block, saying what that test found about this
+  metric. Link each subsection to the degradations it reports rather than describing them.
+
+There are no word counts. Say what the section needs to say and stop.
+
+### 3.2 Rules that are not negotiable
+
+- **Never invent a number or a citation.** If there is no run, the card says so. An
+  unverifiable reference stays `TODO(cite)`, which fails validation on purpose.
+- **Never state expected behaviour anywhere.** Every claim about how a metric behaves is
+  either a measurement from a named run or a citation. Cards carry no predictions, and the
+  schema refuses an `expectations` key.
+- **Never write inside a `<!-- GENERATED ... -->` block**, and never edit `_generated/`.
+- **Never set `status: validated`, and never sign a card.** Both are human acts; `sign`
+  refuses anyway until measurements exist.
+- **Never edit another bundle** while adding yours. If a change elsewhere seems necessary,
+  stop and say why.
+
+### 3.3 The decorator
+
+Discovery walks the package, so there is no import list to edit and no registration call to
+add.
 
 ```python
 from metrics.registry import metric, pointwise_map
 
 
 @metric(
-    name="h_minus_one",          # defaults to the function name
-    tracker_id="NM-2",           # the stable ID from the metrics tracker; see CLAUDE.md
+    name="h_minus_one",          # the metric's identity: bundle directory, card key,
+                                 # and what users type in metrics=[...]. Defaults to fn.__name__
     arity="pairwise",            # "pairwise" -> fn(reference, candidate); "single" -> fn(x)
     fields=("vorticity",),       # canonical fields it accepts; ("*",) for any
     returns="scalar",            # "scalar" -> float; "vector" -> 1-D array
@@ -141,7 +216,7 @@ because smoothing reduces such quantities rather than increasing them. If you fi
 
 On an axis the quantity is *invariant* to — a translation, for a quantity that does not depend on
 position — `rho` is reported as **NaN**, not as a number. It used to be a number: `np.roll` cannot
-change enstrophy but it does change the summation order inside `np.mean`, so the rungs differed in
+change enstrophy but it does change the summation order inside `np.mean`, so the severity levels differed in
 the last bits, in an arbitrary order, and ranking that produced a confident-looking 0.707 printed
 beside genuine correlations. Anything whose variation across an axis is below a relative
 `analysis.DEGENERATE_SPAN` is now withheld rather than reported. The same applies to the damage
@@ -202,9 +277,33 @@ touch your metric.
 
 ## 4. Adding a degradation
 
-Degradations live under `degradations/` and are discovered the same way. Which failure modes
-you probe determines what the acceptance measurements *mean*, so this is as consequential as
-adding a metric.
+A degradation is a bundle too, under `degradations/`, scaffolded the same way:
+
+```bash
+python -m fmeval.cards new <name> --kind degradation
+```
+
+Which failure modes you probe determines what the acceptance measurements *mean*, so this
+is as consequential as adding a metric.
+
+Its card has the same shape with two differences. `card.yaml` needs an **`exemplars`**
+block naming the three severities to illustrate and the diagnostic rows that expose the
+mechanism — a blur is legible in `radial_spectrum`, a translation is not, because it moves
+spectral phase rather than amplitude, so use `spectral_phase` or `difference` there; noise
+shows up in `pdf`. For an operator with no ordered severity, use `mode: draws`. And
+`card.md` replaces Reading the output with **`## Severity scale`**, which must say whether
+the severity is absolute or calibrated per field, and Results with **`## Exemplars`**,
+whose generated block holds the panel and whose prose says what to look at in it.
+
+Then generate the panel, from the one canonical frame every figure in the repository
+shares:
+
+```bash
+python -m fmeval.cards exemplars <name>
+```
+
+Never draw those figures yourself and never edit them. If a metric card links to your axis,
+regenerate that metric's evidence after yours.
 
 ```python
 from degradations.registry import degradation
@@ -232,18 +331,18 @@ deterministic operators stay consistent across fields and stochastic ones draw i
 If you genuinely need cross-field access, declare `whole_frame=True`.
 
 **`severity_direction` is not cosmetic.** The ladder builder sorts severities into
-increasing-damage order before numbering the rungs. Get this wrong and a low-pass cutoff list
+increasing-damage order before numbering the severity levels. Get this wrong and a low-pass cutoff list
 written `[64, 32, 16, 8]` produces a perfectly inverted ladder and a rank correlation of −1,
 with nothing else in the pipeline noticing. A test *verifies* your declaration by measuring
 that damage really rises with level.
 
 **`ordinal=False` for probes.** The Gaussian impostor and the unrelated-field anchor are not
-rungs on any monotone axis. Folding a probe into a family as "level 6" silently corrupts every
+severity levels on any monotone axis. Folding a probe into a family as "level 6" silently corrupts every
 rank correlation it touches.
 
 **Express relative severities against the fluctuation, never the raw value.** Density here is
 `1.0 ± 1.8e-4`. A noise amplitude expressed as a fraction of the raw RMS would make the mildest
-rung total destruction and the ladder flat-topped for every metric.
+severity level total destruction and the ladder flat-topped for every metric.
 
 **`calibration` is how you avoid a severity that means different things on different fields.**
 A wavenumber or a smoothing width in cells lands in a completely different place depending on
@@ -268,7 +367,7 @@ real number while many operators act on a quantised one — a sharp filter selec
 modes, a windowed kernel takes an odd number of cells — so two different nominal severities can
 resolve to the *same experiment*. The harness detects that by measurement rather than by
 declaration: identical operations produce a bitwise identical field and therefore an exactly equal
-`energy_changed`, so the repeat is flagged as `severity_degenerate` and excluded. A rung that
+`energy_changed`, so the repeat is flagged as `severity_degenerate` and excluded. A severity level that
 resolves to doing nothing at all is caught the same way, by measuring that the output moved by more
 than round-off relative to the field's own fluctuation.
 
@@ -359,7 +458,7 @@ resolve onto a wall on another.
 The run logs one line per field and writes `data/calibration.csv`. Read four things from it:
 
 1. **`characteristic_scale`**, in cells. This is the unit every smoothing width is a fraction of.
-   If it approaches the grid size, the harsher blur rungs are smoothing over the whole domain and
+   If it approaches the grid size, the harsher blur severity levels are smoothing over the whole domain and
    are no longer probing anything local.
 2. **`scale_spread`**, the fractional variation across the sampled frames. Above `DRIFT_WARN`
    (0.25) the run warns, and it means what it says: **a single calibration is not trustworthy for
@@ -370,10 +469,10 @@ The run logs one line per field and writes `data/calibration.csv`. Read four thi
 3. **`k_energy_50 / 90 / 99`**, the wavenumbers holding those fractions of the fluctuation energy.
    These tell you immediately how much room a filter ladder has. Density on this data reads
    1 / 2 / 5: with only about three usable shells, a *sharp* filter cannot produce four distinct
-   rungs on density no matter what the config says.
-4. **The degenerate-rung warnings.** The run names every `(field, axis, level)` that resolved onto
-   a milder rung's severity or onto a no-op, and excludes them. A handful is normal and is a fact
-   about the field. Whole axes collapsing to one rung means the severity list does not suit this
+   severity levels on density no matter what the config says.
+4. **The degenerate-severity level warnings.** The run names every `(field, axis, level)` that resolved onto
+   a milder severity level's severity or onto a no-op, and excludes them. A handful is normal and is a fact
+   about the field. Whole axes collapsing to one severity level means the severity list does not suit this
    data, and the fix is a wider or better-placed list of *fractions* — never a per-field number,
    which would make the metric gameable.
 
@@ -572,15 +671,20 @@ listed so nobody has to rediscover them.
 
 | Trap | What happens | Where the fix lives |
 |---|---|---|
-| **Pooling frames for rank correlation** | The flow evolves, so the worst rung early is numerically smaller than the mildest rung late. Every density axis was perfectly ordered *within* every frame while the pooled value read 0.10–0.91 | `analysis.py::_per_frame_rho` |
+| **Pooling frames for rank correlation** | The flow evolves, so the worst severity level early is numerically smaller than the mildest severity level late. Every density axis was perfectly ordered *within* every frame while the pooled value read 0.10–0.91 | `analysis.py::_per_frame_rho` |
 | **Averaging a derived field after a remap** | Block-averaged vorticity is not the curl of the velocity beside it: 5.6% / 18.3% / 25.9% at factors 2 / 4 / 8 | `fmeval/derived.py` |
 | **Mixing stored and recomputed derived fields** | The solver's lattice stencil and a spectral derivative differ by 8.1% rms, so grid-independence would measure the discretisation, not the grid | `fmeval/derived.py::recompute_frame` |
 | **Forgetting that spacing scales with the coarsening factor** | A spectral derivative at a coarse grid with fine spacing is inflated by exactly the factor | `GridSpec.coarsened` |
-| **Deleting k=0 in a high-pass filter** | On density that removes a component four orders of magnitude larger than the cutoff controls; every rung returned an identical damage of 2.7e7 | `degradations/spectral.py` |
+| **Deleting k=0 in a high-pass filter** | On density that removes a component four orders of magnitude larger than the cutoff controls; every severity level returned an identical damage of 2.7e7 | `degradations/spectral.py` |
 | **Drawing impostor phases directly** | Violates Hermitian symmetry at the self-conjugate modes, so `irfftn` discards the imaginary part and corrupts the spectrum. Gives flatness 47.9 instead of 3 | `degradations/stochastic.py` |
-| **Scavenging the unrelated-field anchor from a ladder rung** | A 16-cell translation reaches only ~0.6 of the true value, inflating every damage score by ~1.6x | `analysis.py::normalisation` |
+| **Scavenging the unrelated-field anchor from a ladder severity_level** | A 16-cell translation reaches only ~0.6 of the true value, inflating every damage score by ~1.6x | `analysis.py::normalisation` |
 | **Using a distant frame as a statistical twin** | The flow decays: 4000 steps away has 0.70 of the variance and a different flatness, and scores *closer* than a true twin | `degradations/geometric.py::random_large_translation` |
-| **Including the reference rung in cross-metric correlation** | Every pairwise metric is 0 there, adding a shared point that pulls every correlation toward +1 | `analysis.py::cross_metric_correlation` |
+| **Splitting a module without its private helpers** | Helpers defined above the first decorator are easy to drop; three operators once raised `NameError` and the run completed with 630 rows missing. A code defect in an operator now stops the run, but the trap when extracting code remains | `fmeval/pipeline.py::_runnable_levels`, and the row comparison in `docs/recipes/verify-a-refactor.md` |
+| **Writing maths or includes that render in only one reader** | `\begin{equation}` and include directives typeset on the site and appear as raw text on GitHub, with no error anywhere | the math checker in `fmeval/cards/prose.py`; generated blocks live in `card.md` between markers |
+| **Typing measured numbers into prose** | A sentence citing values from an earlier run looks exactly as authoritative as the generated table beside it; impostor damages 0.80/0.51 sat in a card while the pinned run measured 0.90/0.66/1.23 | `issues/032`, and step 3 of `docs/recipes/refresh-the-evidence.md` |
+| **Placing a `###` subsection mid-section** | Everything after it reads as belonging to it; a Boundary-handling subsection once swallowed the rest of the Definition | put required subsections at the end of their section |
+| **Expecting byte-identical PNGs across matplotlib versions** | They differ; only the JSON fingerprints are byte-stable, and a determinism test on pixels will flake in CI | `docs/decisions.md`, "Figures are committed" |
+| **Including the reference severity level in cross-metric correlation** | Every pairwise metric is 0 there, adding a shared point that pulls every correlation toward +1 | `analysis.py::cross_metric_correlation` |
 | **A raw `imshow` on a spatial field** | Data is `(X, Y)`, so it transposes every picture — and looks fine on square data | `fmeval/report/style.py::show_field` |
 | **Assuming `pressure == density / 3` bitwise** | The solver writes `density * float64(1/3)`; the two differ by one ulp | `fmeval/data/kinet_raw.py` |
 | **Reading `time_scale` as a clock** | `time_scale[0]` is NaN and the values are ~0.5 constant. It is a solver stability quantity; use `time` | `fmeval/data/kinet_raw.py` |
@@ -589,7 +693,7 @@ listed so nobody has to rediscover them.
 | **`import kinet`** | Pulls in `mpi4py`, which cannot load libmpi on a login node. The spectral diagnostics are vendored instead | `fmeval/external/kinet_spectral.py` |
 | **Two definitions of `\|k\|`** | The filters compared a continuous magnitude, the calibration binned into shells of `rint(\|k\|)`, so the diagonal modes fell on opposite sides of one cutoff. On density a low-pass asked to remove 30% removed 99.997% | `fmeval/wavenumbers.py` |
 | **Ranking values that differ only in the last bits** | `np.roll` cannot change a translation-invariant quantity but does change the summation order in `np.mean`. The reported `rho` was 0.707 over a relative 1.6e-16 | `analysis.py::_is_round_off` |
-| **A median as the scale in a degeneracy guard** | When most rungs are round-off the median collapses with them, so the guard compares noise against noise and passes — defeated in exactly the case it exists for. Use the largest value | `analysis.py::normalisation` |
+| **A median as the scale in a degeneracy guard** | When most severity levels are round-off the median collapses with them, so the guard compares noise against noise and passes — defeated in exactly the case it exists for. Use the largest value | `analysis.py::normalisation` |
 | **Assuming every metric rises with damage** | Three one-sided statistics scored a perfectly ordered similarity metric at `monotone_fraction = 0`, `AUC = 0`, `rho = -1`, flagging a correct metric on three criteria | `analysis.py::response_direction` |
 
 Two interpretive traps, which are not bugs but produce wrong conclusions:
@@ -632,8 +736,33 @@ GIT_SSH_COMMAND="ssh -x -o BatchMode=yes" git push origin <branch>
 
 | File | What it is |
 |---|---|
-| `CLAUDE.md` | Scientific context: the problem framing, the tracker IDs, the evaluation protocol |
+| `CLAUDE.md` | Scientific context: the problem framing and the evaluation protocol |
 | `TEST_DESCRIPTION.md` | Every quantity the suite reports, in plain language. **Update it when you add a reported quantity — a test enforces this** |
 | `issues/README.md` | Open items with their evidence |
 | `README.md` | Setup, and the NERSC specifics |
 | `.github/workflows/tests.yml` | CI. Runs the default suite on every push to a PR; cannot run `-m data` or `-m slow` |
+| `docs/catalog.json` | **Read this for anything structural** — what metrics exist, what they return, what properties they have, how they behaved. Do not parse prose for it |
+| `docs/working-with-the-repo.md` | What every file in a bundle is for, and where you are expected to make changes |
+| `fmeval/cards/schema.py` | Every `card.yaml` field, with the reasoning for it |
+| `docs/recipes/` | **The canonical step-by-step instructions** for adding a metric, degradation, dataset or diagnostic, and for refreshing the evidence |
+
+## Reading the repository
+
+For anything structural, read `docs/catalog.json`. It merges what the code declares, what
+each card states and what the recorded run measured, so it answers "which metrics are
+differentiable, cheap, and measured?" without opening a card.
+
+`python -m fmeval.cards list` and `python -m metrics` are the quick interactive
+equivalents.
+
+## Before you finish
+
+```bash
+python -m fmeval.cards check --all
+pytest
+python -m fmeval.cards catalog          # if you added or changed a bundle
+mkdocs build --strict                   # if you touched docs/ or mkdocs.yml
+```
+
+Report what you added, any `TODO(cite)` you left and why, and anything the checker flagged
+that you could not resolve.

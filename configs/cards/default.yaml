@@ -1,0 +1,39 @@
+# Settings shared by every generated card artifact: the evidence a card may cite, and the
+# one snapshot every figure in this repository is drawn from.
+#
+# Read directly with OmegaConf by `python -m fmeval.cards`, not through Hydra's run-dir
+# machinery: generating documentation is not an experiment and should not create a run
+# folder or a .hydra directory.
+
+# Which datasets a card's measurements may come from.
+#
+# The dev dataset is absent on purpose and a fingerprint citing it fails the tests. It is
+# the first 100 solver steps, before the flow develops, where a 16-cell translation costs
+# about 1e-4 of an unrelated field against 0.51 at t=5000 -- numbers that mean nothing
+# physically and would be indistinguishable, once written into a card, from ones that do.
+evidence_datasets:
+  - kinet_re5e4
+
+# The window within those datasets that counts as developed flow. Recorded in every
+# fingerprint so a reader can never mistake one run's numbers for another's.
+evidence_window:
+  start: 2000       # the flow is developed well before this
+  reduction: 50     # every 50th frame; ~160 frames, a run of about a minute
+
+# The single frame every exemplar panel in the repository is drawn from.
+#
+# One frame for the whole repository, not one per degradation. Two degradations
+# illustrated on different snapshots cannot be compared, which would defeat the gallery
+# that puts all of them on one page. Fixed here so that choice is made once, visibly,
+# rather than implicitly by whoever generates a panel first.
+exemplar_frame:
+  dataset: kinet_re5e4
+  index: 5000       # mid-window: developed, and far from either end of the trajectory
+  fields: [vorticity, density]
+
+# Figure rendering. Fixed so that regenerating an unchanged panel produces an unchanged
+# file rather than a diff nobody can review.
+figures:
+  dpi: 100          # ~280 KB per panel; the cap is roughly 300 KB, and 21 panels
+                    # plus the metric figures must stay reasonable in a 2.5 MB repo
+  theme: notebook   # matches fmeval/report/style.py, so the site and the LaTeX report agree

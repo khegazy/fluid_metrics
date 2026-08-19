@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: multiplicative_noise
+kind: degradation
+category: stochastic
+
+summary: >-
+  Scales every cell by an independent random factor about one, so the perturbation is
+  proportional to the local field value.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate whose relative error is roughly constant -- accurate where the field is
+  small and proportionally wrong where it is large, which is what a model trained on a
+  relative loss tends to produce.
+
+output:
+  description: >-
+    Standard deviation of the multiplicative factor, relative: 0.1 means each cell is
+    scaled by roughly one plus or minus a tenth.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.01, 0.1, 0.5]
+  field_name: vorticity
+  diagnostics: [difference, pdf]
+  rationale: >-
+    Three amplitudes spanning invisible to obvious. The difference row is the one that
+    separates this from additive noise: the error is proportional to the local value, so
+    it is large where the field is large and exactly zero where the field is zero.
+
+references: []
+review: null

@@ -9,8 +9,7 @@ says it will?
 Every metric here is registered for the duration of one test and removed again. They are
 deliberately *not* contributions to ``metrics/``: the point is to exercise the extension
 surface as an outside contributor meets it, not to grow the panel. A metric that graduates
-belongs in ``metrics/`` with its own tracker ID, its tracker entry, and a row in
-``TEST_DESCRIPTION.md``.
+belongs in ``metrics/`` as its own bundle, with the card that bundle requires.
 
 Two of these tests are the interesting ones scientifically:
 
@@ -123,12 +122,12 @@ def test_a_ctx_using_pairwise_metric_needs_no_harness_change(temporary_metric):
     ``ctx`` -- it must read the grid spacing to build wavenumbers, so it cannot be written
     as the two-line ``mae(a, b)`` the simplest path covers.
     """
-    temporary_metric(name="_h_minus_one", tracker_id="NM-2", arity="pairwise",
+    temporary_metric(name="_h_minus_one", arity="pairwise",
                      fields=("*",), units="field", symmetric=True)(h_minus_one)
     spec = metric_registry.get("_h_minus_one")
 
     assert spec.takes_ctx, "ctx was not detected from the signature"
-    assert spec.tracker_id == "NM-2"
+    assert spec.units == "field"
 
     ladder = build_ladder({"gaussian_blur": {"severities": [1.0, 2.0]}})
     result = run(SyntheticTrajectory(), [spec], ladder, fields=["density"],
@@ -137,7 +136,7 @@ def test_a_ctx_using_pairwise_metric_needs_no_harness_change(temporary_metric):
     assert len(result.rows) > 0
     reference_rows = result.rows[result.rows["level"] == 0]
     assert np.allclose(reference_rows["value"], 0.0), (
-        "a pairwise metric must return exactly 0 on the reference rung"
+        "a pairwise metric must return exactly 0 on the reference severity level"
     )
 
 
@@ -154,7 +153,7 @@ def test_a_vector_returning_metric_expands_into_one_row_per_component(temporary_
     """
     n_shells = [0]
 
-    @temporary_metric(name="_spectrum_profile", tracker_id="BD-1", arity="pairwise",
+    @temporary_metric(name="_spectrum_profile", arity="pairwise",
                       fields=("*",), returns="vector", units="dimensionless")
     def _spectrum_profile(reference, candidate):
         """Per-shell energy difference: one number per wavenumber shell."""
@@ -198,12 +197,12 @@ def test_a_new_degradation_inherits_the_whole_contract(temporary_degradation_loc
         step = 2.0 * scale / severity
         return mean + np.round(fluctuation / step) * step
 
-    rungs = build_ladder({"quantise": {"op": "_probe_quantise",
+    severity_levels = build_ladder({"quantise": {"op": "_probe_quantise",
                                        "severities": [4, 16, 64]}},
                          include_reference=False)
 
-    # `decreasing` means a smaller value is worse, so the mildest rung must be the largest.
-    assert [r.severity for r in rungs] == [64.0, 16.0, 4.0], (
+    # `decreasing` means a smaller value is worse, so the mildest severity level must be the largest.
+    assert [r.severity for r in severity_levels] == [64.0, 16.0, 4.0], (
         "sort_severities did not order a decreasing-direction ladder by increasing damage"
     )
 
@@ -211,10 +210,10 @@ def test_a_new_degradation_inherits_the_whole_contract(temporary_degradation_loc
     spec = deg_registry.get("_probe_quantise")
     damage = [
         float(np.mean((field - spec.fn(field, r.severity, ctx=ctx_for(field))) ** 2))
-        for r in rungs
+        for r in severity_levels
     ]
     assert damage == sorted(damage), (
-        f"damage {damage} is not increasing across rungs {[r.severity for r in rungs]}; "
+        f"damage {damage} is not increasing across severity_levels {[r.severity for r in severity_levels]}; "
         "severity_direction='decreasing' would be wrong"
     )
 
@@ -345,7 +344,7 @@ def test_h_minus_one_is_more_displacement_tolerant_than_the_l2_baseline(temporar
     if not path.exists():
         pytest.skip(f"production trajectory not readable at {path}")
 
-    temporary_metric(name="_h_minus_one", tracker_id="NM-2", arity="pairwise",
+    temporary_metric(name="_h_minus_one", arity="pairwise",
                      fields=("*",), units="field", symmetric=True)(h_minus_one)
     metric_registry.discover()
     deg_registry.discover()
@@ -366,7 +365,7 @@ def test_h_minus_one_is_more_displacement_tolerant_than_the_l2_baseline(temporar
             return recompute_frame(self._inner.frame(t, fields))
 
     specs = [metric_registry.get("mse"), metric_registry.get("_h_minus_one")]
-    rungs = build_ladder({
+    severity_levels = build_ladder({
         "translate_x": {"op": "translate", "severities": [1, 2, 4],
                         "options": {"axis": "x"}},
         "uncorrelated": {"op": "random_large_translation", "severities": [0, 1, 2]},
@@ -374,7 +373,7 @@ def test_h_minus_one_is_more_displacement_tolerant_than_the_l2_baseline(temporar
     trajectory = _Recomputing(KinetRawTrajectory(path))
     try:
         result = run(
-            trajectory, specs, rungs, fields=["velocity", "vorticity"],
+            trajectory, specs, severity_levels, fields=["velocity", "vorticity"],
             # Developed flow: the dev trajectory is the first 100 solver steps and is
             # explicitly not physically representative.
             selection=TimeSelection(start=5000, stop=6001, reduction=250),
@@ -424,13 +423,13 @@ def test_two_metrics_can_rank_identically_and_still_differ_in_magnitude(temporar
     metric_registry.discover()
     deg_registry.discover()
     specs = [metric_registry.get("mae"), metric_registry.get("mse")]
-    rungs = build_ladder({
+    severity_levels = build_ladder({
         "gaussian_blur": {"severities": [0.5, 1.0, 2.0, 4.0]},
         "translate_x": {"op": "translate", "severities": [1, 2, 4],
                         "options": {"axis": "x"}},
         "uncorrelated": {"op": "random_large_translation", "severities": [0, 1, 2]},
     })
-    result = run(SyntheticTrajectory(SHAPE), specs, rungs, fields=["density"],
+    result = run(SyntheticTrajectory(SHAPE), specs, severity_levels, fields=["density"],
                  dataset=DatasetInfo(name="synthetic"), seed=0)
 
     correlation = an.cross_metric_correlation(result.rows, field="density")

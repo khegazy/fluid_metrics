@@ -1,0 +1,89 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      0.8,
+      0.5,
+      0.0
+    ],
+    "severities": [
+      0.8,
+      0.5,
+      0.0
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "band_attenuate",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      },
+      "retained fraction = 0": {
+        "max_abs": 0.005513876045616609,
+        "mean": -3.282252670610414e-21,
+        "rms": 0.0012397887390152163
+      },
+      "retained fraction = 0.5": {
+        "max_abs": 0.0027569380228083043,
+        "mean": -8.364450354136216e-21,
+        "rms": 0.0006198943695076082
+      },
+      "retained fraction = 0.8": {
+        "max_abs": 0.0011027752091233214,
+        "mean": -5.082197683525802e-21,
+        "rms": 0.00024795774780304316
+      }
+    },
+    "field": {
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      },
+      "retained fraction = 0": {
+        "max": 0.01748011796775388,
+        "mean": 0.0,
+        "min": -0.017518199552954646,
+        "rms": 0.002255004008791506
+      },
+      "retained fraction = 0.5": {
+        "max": 0.016812619538821884,
+        "mean": 0.0,
+        "min": -0.01685235670318646,
+        "rms": 0.0023386560476078982
+      },
+      "retained fraction = 0.8": {
+        "max": 0.016508195307740378,
+        "mean": 0.0,
+        "min": -0.01656207906332545,
+        "rms": 0.0024634877297836665
+      }
+    },
+    "radial_spectrum": {
+      "original": {
+        "departure_wavenumber": null,
+        "power_retained": 1.0
+      },
+      "retained fraction = 0": {
+        "departure_wavenumber": 16.0,
+        "power_retained": 0.973432022890767
+      },
+      "retained fraction = 0.5": {
+        "departure_wavenumber": 16.0,
+        "power_retained": 0.9800740171680753
+      },
+      "retained fraction = 0.8": {
+        "departure_wavenumber": 16.0,
+        "power_retained": 0.9904355282406762
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

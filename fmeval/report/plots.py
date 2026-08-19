@@ -7,7 +7,7 @@ mislead rather than merely disappoint:
 * **Field images share colour limits** across a whole figure. Autoscaling each panel makes
   a heavily smoothed field look identical to the reference.
 * **No axes carries twenty series.** Where a ladder has many axes the figure facets by
-  axis, with hue for the axis and lightness for the rung within it.
+  axis, with hue for the axis and lightness for the severity level within it.
 """
 
 from __future__ import annotations
@@ -46,10 +46,10 @@ def _median_by_level(df: pd.DataFrame, column: str = "value") -> pd.DataFrame:
     defaults={"logy": "auto", "band": True},
 )
 def ladder_curves(ctx, df, opts) -> PlotResult:
-    """Metric value against rung, one line per ladder axis, with an interquartile band.
+    """Metric value against severity level, one line per ladder axis, with an interquartile band.
 
     The curve the rank correlation summarises. A flat line means the metric does not see
-    that failure mode at all; a curve that jumps to its maximum at rung 1 has no resolving
+    that failure mode at all; a curve that jumps to its maximum at severity level 1 has no resolving
     power in the regime that matters.
     """
     metric, field = str(df["metric"].iloc[0]), str(df["field"].iloc[0])
@@ -79,7 +79,7 @@ def ladder_curves(ctx, df, opts) -> PlotResult:
                 transform=ax.get_yaxis_transform(), va="bottom", ha="right",
                 fontsize="x-small", color="0.4")
 
-    ax.set_xlabel("rung (0 = reference)")
+    ax.set_xlabel("severity level (0 = reference)")
     ax.set_ylabel(f"{metric} [{_units(ctx, metric)}]")
     ax.set_title(f"{metric} on {field}")
     if _use_log(df["value"], opts.get("logy")):
@@ -88,7 +88,7 @@ def ladder_curves(ctx, df, opts) -> PlotResult:
 
     return PlotResult(
         [FigureItem(fig, {"metric": metric, "field": field},
-                    caption=f"{metric} against rung for each ladder axis, on {field}. "
+                    caption=f"{metric} against severity_level for each ladder axis, on {field}. "
                             "Line is the median over frames, band the interquartile "
                             "range. The dotted line marks the value two statistically "
                             "identical but positionally unrelated fields receive.",
@@ -150,7 +150,7 @@ def monotonicity_heatmap(ctx, df, opts) -> PlotResult:
 
     return PlotResult(
         [FigureItem(fig, {"field": field},
-                    caption=f"Spearman correlation between rung and metric value on "
+                    caption=f"Spearman correlation between severity_level and metric value on "
                             f"{field}, computed within each ladder axis. Hatched cells "
                             f"fall below the reference value of {limit:g}.",
                     data=grid_df.reset_index())]
@@ -162,13 +162,13 @@ def monotonicity_heatmap(ctx, df, opts) -> PlotResult:
 
 @plot(
     section=5, order=10, scope="per_metric_field",
-    title="Distribution of each rung over time",
+    title="Distribution of each severity level over time",
     requires_columns=("degradation", "level", "value"), min_frames=4,
 )
-def rung_separation(ctx, df, opts) -> PlotResult:
-    """Spread of each rung's values across frames, as violins grouped by axis.
+def severity_level_separation(ctx, df, opts) -> PlotResult:
+    """Spread of each severity level's values across frames, as violins grouped by axis.
 
-    Where adjacent violins overlap, the metric cannot distinguish two models one rung
+    Where adjacent violins overlap, the metric cannot distinguish two models one severity level
     apart however clean its median curve looks.
     """
     metric, field = str(df["metric"].iloc[0]), str(df["field"].iloc[0])
@@ -205,19 +205,19 @@ def rung_separation(ctx, df, opts) -> PlotResult:
                          fontsize="x-small")
         else:
             ax.set_title(ctx.label(name), fontsize="x-small")
-        ax.set_xlabel("rung")
+        ax.set_xlabel("severity level")
         for lv, values in zip(levels, data):
             tidy.append({"degradation": name, "level": lv,
                          "median": float(np.median(values)), "n": len(values)})
     for r in range(nrows):
         grid[r, 0].set_ylabel(metric)
-    fig.suptitle(f"{metric} on {field}: rung distributions over frames", fontsize="small")
+    fig.suptitle(f"{metric} on {field}: severity_level distributions over frames", fontsize="small")
 
     return PlotResult(
         [FigureItem(fig, {"metric": metric, "field": field},
-                    caption="Distribution of each rung's values across frames. Adjacent "
+                    caption="Distribution of each severity level's values across frames. Adjacent "
                             "violins that overlap cannot be told apart by this metric; "
-                            "the annotated AUC is the smallest adjacent-rung separation.",
+                            "the annotated AUC is the smallest adjacent-severity level separation.",
                     data=pd.DataFrame(tidy))]
     )
 
@@ -340,9 +340,9 @@ def deception_panel(ctx, df, opts) -> PlotResult:
     ax = grid[0, 0]
     tidy = []
     for row, metric in enumerate(metrics):
-        rungs = ladder[ladder["metric"] == metric]["damage"].dropna()
-        if len(rungs):
-            ax.plot(rungs, [row] * len(rungs), "o", mfc="none", mec="0.65", ms=4, zorder=2)
+        severity_levels = ladder[ladder["metric"] == metric]["damage"].dropna()
+        if len(severity_levels):
+            ax.plot(severity_levels, [row] * len(severity_levels), "o", mfc="none", mec="0.65", ms=4, zorder=2)
         impostor = df[(df["metric"] == metric)
                       & (df["degradation"] == "gaussian_impostor")]["damage"].median()
         ax.hlines(row, 0, impostor, color="0.85", lw=1, zorder=1)
@@ -364,7 +364,7 @@ def deception_panel(ctx, df, opts) -> PlotResult:
     return PlotResult(
         [FigureItem(fig, {"field": field},
                     caption="Damage assigned to the spectrum-matched Gaussian field "
-                            "(star) against the ordinary ladder rungs (open circles). "
+                            "(star) against the ordinary ladder severity levels (open circles). "
                             "A metric that places the star near zero is responding only "
                             "to second-order statistics.",
                     data=pd.DataFrame(tidy))],
@@ -502,13 +502,13 @@ def energy_spectrum(ctx, df, opts) -> PlotResult:
 
     This is the figure that explains the resolution of every filter ladder in the report. A
     severity on a spectral axis is a fraction of energy to remove, and the harness converts it to
-    a cutoff using exactly this curve -- so where the curve is steep, neighbouring rungs land on
+    a cutoff using exactly this curve -- so where the curve is steep, neighbouring severity levels land on
     the same wavenumber shell and cannot be separated, and where it is shallow they spread out.
 
     Read the steepness first. Measured on this data the density curve is almost a step: 3e-5 of its
     fluctuation energy lies at or below |k| = 1 and 69% at |k| = sqrt(2), so two consecutive
     available cutoffs differ by most of the field and a sharp filter has only a couple of usable
-    rungs there however the ladder is configured. Vorticity rises gradually -- 50% by |k| = 3.2,
+    severity levels there however the ladder is configured. Vorticity rises gradually -- 50% by |k| = 3.2,
     90% by 23, 99% by 51 -- and its cutoffs spread over more than a factor of ten as a result.
     """
     ctx.require(not ctx.spectrum.empty,
@@ -531,7 +531,7 @@ def energy_spectrum(ctx, df, opts) -> PlotResult:
     ax.set_xlabel("wavenumber $k$")
     ax.set_ylabel("fraction of fluctuation energy below $k$")
 
-    # The applied cutoffs, so a reader can see which rungs share a shell.
+    # The applied cutoffs, so a reader can see which severity levels share a shell.
     rows = []
     for axis, g in cuts.groupby("degradation", observed=True):
         colour = ctx.style.axis_colour(str(axis))
@@ -550,13 +550,13 @@ def energy_spectrum(ctx, df, opts) -> PlotResult:
 
     note = (
         "Dashed lines are the cutoffs the configured severities resolved to; dotted lines are "
-        "rungs excluded because they landed on the same shell as a milder rung or on a no-op."
+        "severity levels excluded because they landed on the same shell as a milder severity level or on a no-op."
     )
     return PlotResult(
         figures=[FigureItem(
             fig=fig, keys={"field": field},
             caption=f"Cumulative fluctuation energy for {field}, with the applied spectral "
-                    "cutoffs. The steeper the curve, the fewer distinct rungs a sharp filter "
+                    "cutoffs. The steeper the curve, the fewer distinct severity levels a sharp filter "
                     "can produce.",
             data=pd.concat([curve.assign(kind="spectrum"),
                             pd.DataFrame(rows).assign(kind="cutoff")], ignore_index=True),

@@ -26,7 +26,7 @@ import pytest
 from degradations import registry as deg_registry
 from fmeval import analysis as an
 from fmeval.data.base import GridSpec, Trajectory
-from fmeval.ladder import Rung, apply_rung, build_ladder
+from fmeval.ladder import SeverityLevel, apply_severity_level, build_ladder
 from fmeval.pipeline import DatasetInfo, MapRequest, run
 from metrics import registry as metric_registry
 from tests.conftest import synthetic_field
@@ -127,12 +127,12 @@ def _frame_with_anchor(anchor_values: list[float], **kwargs) -> pd.DataFrame:
 # develop: spectra (BD-1), two-point correlations (BD-2), increment PDFs (OT-5, PS-4).
 
 
-def test_degeneracy_guard_fires_when_most_rungs_are_round_off():
+def test_degeneracy_guard_fires_when_most_levels_are_round_off():
     """A metric whose anchor is round-off must be reported as having no dynamic range.
 
     ``normalisation`` guards against a vanishing span with
     ``abs(span) < 1e-12 * median(|value|)``. The median is taken over *every* row of the
-    group, so when most rungs are round-off the scale collapses to round-off too and the
+    group, so when most severity levels are round-off the scale collapses to round-off too and the
     guard compares noise against noise. It is defeated in exactly the case it exists for.
 
     """
@@ -201,7 +201,7 @@ def test_rank_correlation_is_withheld_when_the_variation_is_round_off():
 
     Reproduced end to end: ``evaluate.py metrics=[enstrophy]`` with a translation-only
     ladder on the dev trajectory. ``np.roll`` cannot change enstrophy, but it does change
-    the pairwise-summation order inside ``np.mean``, so the five rungs differ by a relative
+    the pairwise-summation order inside ``np.mean``, so the five severity levels differ by a relative
     1.6e-16. The run folder then reports ``rho_min = 0.707`` on ``worst_axis =
     translate_x`` -- a number that is entirely round-off, printed in the monotonicity
     heatmap next to genuine correlations and indistinguishable from them.
@@ -290,8 +290,8 @@ def test_a_similarity_metric_is_scored_in_its_own_direction():
 
         rho                    -1.0   (perfectly ordered, reported as anti-correlated)
         monotone_fraction       0.0   (it is monotone on every frame)
-        separability_auc_min    0.0   (adjacent rungs are perfectly separable)
-        saturation_level        1.0   (fires at rung 1, meaninglessly)
+        separability_auc_min    0.0   (adjacent severity levels are perfectly separable)
+        saturation_level        1.0   (fires at severity level 1, meaninglessly)
 
     Every one of those then trips a configured threshold, so a correct metric arrives in
     the report card flagged on three criteria at once.
@@ -329,7 +329,7 @@ def test_a_similarity_metric_is_scored_in_its_own_direction():
     )
     assert blur["separability_auc_min"] >= 0.9, (
         f"separability_auc_min={blur['separability_auc_min']} for perfectly separated "
-        "rungs, because the Mann-Whitney alternative is hardcoded to 'greater'"
+        "severity levels, because the Mann-Whitney alternative is hardcoded to 'greater'"
     )
 
 
@@ -341,7 +341,7 @@ def test_whole_frame_degradation_receives_the_field_dict(temporary_degradation):
 
     Both ``degradations/registry.py`` and AGENTS.md section 4 say an operator needing
     cross-field access declares ``whole_frame=True`` and then receives the whole
-    ``dict[str, ndarray]``. ``fmeval/ladder.py::apply_rung`` does not mention
+    ``dict[str, ndarray]``. ``fmeval/ladder.py::apply_severity_level`` does not mention
     ``whole_frame`` anywhere: it always calls ``spec.fn(source, severity, ...)`` with a
     single array.
 
@@ -363,18 +363,18 @@ def test_whole_frame_degradation_receives_the_field_dict(temporary_degradation):
         return dict(fields)
 
     frame = SyntheticTrajectory().frame(1, ["density"])
-    # Built through build_ladder rather than the Rung constructor, so this test keeps
+    # Built through build_ladder rather than the SeverityLevel constructor, so this test keeps
     # testing whole_frame rather than turning into a signature check whenever a field is
-    # added to Rung.
-    rung = build_ladder(
+    # added to SeverityLevel.
+    severity_level = build_ladder(
         {"probe": {"op": "_probe_whole_frame", "severities": [1.0]}},
         include_reference=False,
     )[0]
 
-    applied = apply_rung(rung, frame, ["density"], seed=0)
+    applied = apply_severity_level(severity_level, frame, ["density"], seed=0)
     assert set(applied.fields) == {"density"}
     # The operator returned its input unchanged, so the harness must see that and say so
-    # rather than counting the rung as an experiment.
+    # rather than counting the severity level as an experiment.
     assert "density" in applied.unchanged
 
 
@@ -428,13 +428,13 @@ def test_the_default_ladder_runs_at_every_analysis_resolution(resolution):
     assert len(result.rows) > 0
 
 
-def test_a_no_op_rung_is_flagged_and_excluded_on_an_absolute_severity_axis():
-    """The degenerate-rung detector must cover uncalibrated operators too.
+def test_a_no_op_level_is_flagged_and_excluded_on_an_absolute_severity_axis():
+    """The degenerate-severity level detector must cover uncalibrated operators too.
 
-    Issue 030's calibration work added ``severity_degenerate``: a rung that resolves to a
-    severity at which the operator does nothing, or that repeats a milder rung's
+    Issue 030's calibration work added ``severity_degenerate``: a severity level that resolves to a
+    severity at which the operator does nothing, or that repeats a milder severity level's
     experiment, is flagged in the result frame and dropped by ``summarise_axes`` before any
-    acceptance statistic is computed. Scoring such a rung would read as agreement in the
+    acceptance statistic is computed. Scoring such a severity level would read as agreement in the
     rank correlation and would compare a distribution against itself in the separability.
 
     That work was driven by the *calibrated* spectral and smoothing axes. This checks the
@@ -467,21 +467,21 @@ def test_a_no_op_rung_is_flagged_and_excluded_on_an_absolute_severity_axis():
 
     no_ops = by_level.index[by_level["value"] == 0.0].tolist()
     assert no_ops == [5], (
-        f"expected only the 16-cell rung to be a no-op on a 16-cell axis, got {no_ops}"
+        f"expected only the 16-cell severity_level to be a no-op on a 16-cell axis, got {no_ops}"
     )
     assert bool(by_level.loc[5, "flagged"]), (
-        "the 16-cell rung reproduces the reference bit for bit but was not flagged "
+        "the 16-cell severity level reproduces the reference bit for bit but was not flagged "
         "severity_degenerate, so its exact tie with level 0 would be scored as agreement"
     )
     assert not by_level.loc[[1, 2, 3, 4], "flagged"].any(), (
-        "a rung that does real damage was flagged degenerate"
+        "a severity level that does real damage was flagged degenerate"
     )
 
     # And the exclusion actually reaches the acceptance statistics.
     axes = an.summarise_axes(result.rows, n_bootstrap=0)
     measured = int(axes.loc[axes["degradation"] == "translate_x", "n_levels"].iloc[0])
     assert measured == 4, (
-        f"summarise_axes reports n_levels={measured}; the flagged rung was not dropped"
+        f"summarise_axes reports n_levels={measured}; the flagged severity_level was not dropped"
     )
 
 
@@ -550,7 +550,7 @@ def test_the_displacement_figure_declines_rather_than_crashes_without_damage():
         digest = write_config(folder, {"metrics": ["enstrophy"], "seed": 1}, [])
         write_run_meta(folder, run_id=1, config_hash=digest, metric="enstrophy",
                        dataset="synthetic", n_frames=8, fields=["vorticity"],
-                       analysis_grid=16, ladder_axes=["translate_x"], n_rungs=6, seed=1,
+                       analysis_grid=16, ladder_axes=["translate_x"], n_severity_levels=6, seed=1,
                        command="evaluate.py metrics=[enstrophy]")
         ctx = build_context(folder, thresholds={}, bootstrap=0)
         rendered = render(folder, ctx, formats=("png",))
@@ -560,3 +560,78 @@ def test_the_displacement_figure_declines_rather_than_crashes_without_damage():
         f"renderer(s) raised on a metric with no dynamic range: {errored}. "
         "AGENTS.md section 6 requires unavailability to be declared with ctx.require."
     )
+
+
+# --------------------------------------------------------------------------------------
+# A broken operator must stop the run, not quietly shrink the ladder
+# --------------------------------------------------------------------------------------
+
+
+def test_a_broken_operator_stops_the_run_rather_than_dropping_its_axis():
+    """A defect in an operator is not the same as a severity this grid cannot support.
+
+    Dropping an unsupported severity is right: it is one missing experiment and the rest
+    are still worth having. Dropping a *broken* operator is wrong, because the run then
+    completes, reports fewer rows, and gives a reader no reason to suspect an axis is
+    missing rather than merely quiet.
+
+    This is not hypothetical. Splitting the degradation modules into bundles dropped two
+    private helpers that three operators needed, and the NameError was reported as
+    "cannot run on the 16-cell analysis grid; raise analysis_grid.resolution" -- pointing
+    at a knob with nothing to do with it. The run finished with 630 rows missing.
+    """
+    import numpy as np
+
+    from degradations import registry as deg
+    from fmeval import ladder, pipeline
+    from fmeval.calibration import calibrate
+    from fmeval.data.base import Frame, GridSpec
+
+    deg.discover()
+
+    @deg.degradation(name="_broken_for_test", family="smoothing",
+                     severity_name="width", severity_units="cells")
+    def _broken_for_test(x, severity, *, ctx):
+        return _missing_helper(x, severity)   # noqa: F821
+
+    try:
+        grid = GridSpec(shape=(16, 16), spacing=(1.0, 1.0), periodic=(True, True))
+        data = np.random.default_rng(0).normal(size=(1, 16, 16))
+        frame = Frame(index=0, time=0.0, grid=grid, fields={"vorticity": data})
+        calibration = calibrate({"vorticity": [data]}, grid, ["vorticity"])
+        levels = ladder.build_ladder({"_broken_for_test": {"severities": [1.0]}})
+
+        with pytest.raises(RuntimeError, match="operator is broken"):
+            pipeline._runnable_levels(levels, frame, ["vorticity"], seed=1,
+                                      calibration=calibration, analysis_grid=16)
+    finally:
+        deg.REGISTRY.pop("_broken_for_test", None)
+
+
+def test_a_severity_the_grid_cannot_support_is_still_dropped_with_a_warning(caplog):
+    """The legitimate case still behaves as before: warn, drop, and carry on.
+
+    Coarsening by a factor that does not divide the grid is a limit of this run's
+    configuration, not a defect, so the other severities are still worth measuring.
+    """
+    import logging
+
+    import numpy as np
+
+    from fmeval import ladder, pipeline
+    from fmeval.calibration import calibrate
+    from fmeval.data.base import Frame, GridSpec
+
+    grid = GridSpec(shape=(8, 8), spacing=(1.0, 1.0), periodic=(True, True))
+    data = np.random.default_rng(0).normal(size=(1, 8, 8))
+    frame = Frame(index=0, time=0.0, grid=grid, fields={"vorticity": data})
+    calibration = calibrate({"vorticity": [data]}, grid, ["vorticity"])
+    levels = ladder.build_ladder({"coarsen": {"severities": [2.0, 16.0]}})
+
+    with caplog.at_level(logging.WARNING):
+        kept = pipeline._runnable_levels(levels, frame, ["vorticity"], seed=1,
+                                         calibration=calibration, analysis_grid=8)
+
+    assert [level.severity for level in kept if level.label == "coarsen"] == [2.0]
+    assert any("cannot run on the 8-cell analysis grid" in r.message for r in caplog.records)
+    assert any("will not appear in the results" in r.message for r in caplog.records)

@@ -97,3 +97,42 @@ jobs:
       # (issues/README.md), so those reasons are the part of the log worth reading.
       - name: Run the test suite
         run: pytest -ra
+
+  cards:
+    name: an implementation change carries its card
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # A metric's behaviour and its documentation are one artifact. Changing what a metric
+    # computes without touching what its card claims leaves the card quietly wrong, and
+    # nothing else notices: the card still validates, because it is well-formed, and the
+    # tests still pass, because they test the code.
+    #
+    # Put `[docs-unchanged]` in the pull request body for a genuine no-op -- a rename, a
+    # comment, a move -- where the claims really are untouched.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Every changed implementation has a changed card
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if printf '%s' "$BODY" | grep -qF '[docs-unchanged]'; then
+            echo "[docs-unchanged] in the pull request body; skipping."
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BASE" "$HEAD")
+          status=0
+          for impl in $(printf '%s\n' "$changed" | grep -E '^(metrics|degradations)/[a-z0-9_]+/(metric|degradation)\.py$' || true); do
+            bundle=$(dirname "$impl")
+            if ! printf '%s\n' "$changed" | grep -qE "^$bundle/card\.(md|yaml)$"; then
+              echo "::error file=$impl::$impl changed but $bundle/card.md and card.yaml did not."
+              echo "  If the change alters what this computes, say so in the card."
+              echo "  If it genuinely does not, add [docs-unchanged] to the pull request body."
+              status=1
+            fi
+          done
+          exit $status

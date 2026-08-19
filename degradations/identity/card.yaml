@@ -1,0 +1,35 @@
+schema_version: 1
+
+name: identity
+kind: degradation
+category: identity
+
+summary: >-
+  Returns the field unchanged. The level-zero reference against which every degradation is
+  measured.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  None: this is not a degradation. It is the control that must return exactly the
+  reference, and a pairwise error metric must score it exactly zero.
+
+output:
+  description: >-
+    None. There is one level and it applies no change.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: none
+  field_name: vorticity
+  diagnostics: [difference]
+  rationale: >-
+    No panel. An exemplar figure shows what a degradation does to a field, and this one
+    does nothing; four identical columns would teach a reader nothing and would take a
+    place in the gallery that means something elsewhere.
+
+references: []
+review: null

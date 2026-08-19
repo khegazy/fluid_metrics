@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: coarsen
+kind: degradation
+category: resolution
+
+summary: >-
+  Block-averages the field onto a coarser grid and expands it back, discarding everything
+  below the block size.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate run at lower resolution than the reference, or one whose effective
+  resolution is coarser than its output grid.
+
+output:
+  description: >-
+    Coarsening factor, a whole number of cells per block. Absolute rather than calibrated:
+    a factor of four means four on every field.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [2, 4, 16]
+  field_name: vorticity
+  diagnostics: [difference, radial_spectrum]
+  rationale: >-
+    A factor of two is the mildest resolution loss expressible on a grid; sixteen removes
+    almost everything but the largest structures. The radial spectrum row shows the hard
+    cut-off the block average imposes, and the difference row shows the blockiness the
+    nearest-neighbour expansion leaves behind.
+
+references: []
+review: null

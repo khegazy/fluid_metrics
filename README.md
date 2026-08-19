@@ -1,8 +1,9 @@
-# fluid_metrics
+# pde_metrics
 
-Metrics that quantify the quality of fluid simulations — especially ML surrogates of
-compressible, shocked, turbulent flow — with the eventual goal of using validated metrics as
-evaluation panels and training losses for a scientific foundation model.
+Metrics for evaluating ML surrogates of PDEs — compressible and incompressible flow, MHD,
+probabilistic data and whatever comes next — with the eventual goal of using validated
+metrics as evaluation panels and training losses for a scientific foundation model.
+Compressible, shocked, turbulent flow is the first test case rather than the scope.
 
 **The suite measures; it does not decide.** It produces a *report card* per metric: a
 reproducible set of measurements against the criteria in
@@ -12,7 +13,7 @@ attention. Whether a metric joins the panel is the team's call.
 ## Quickstart
 
 ```bash
-git clone <repo> && cd fluid_metrics
+git clone git@github.com:khegazy/pde_metrics.git && cd pde_metrics
 ln -s /global/cfs/cdirs/m4790/Data datasets   # gitignored; or set paths.data in the config
 ```
 
@@ -28,7 +29,7 @@ uv sync --extra dev && source .venv/bin/activate
 python -m venv .venv && source .venv/bin/activate && pip install -e '.[dev]'
 
 # conda
-conda create -n fluid_metrics python=3.12 && conda activate fluid_metrics
+conda create -n pde_metrics python=3.12 && conda activate pde_metrics
 pip install -e '.[dev]'
 ```
 
@@ -135,7 +136,7 @@ here works.
 | `degradation.only=[translate_x]` | Run only these ladder entries |
 | `degradation.skip=[median_blur]` | Drop these ladder entries |
 | `degradation.ladder.<entry>.enabled=false` | Disable one entry |
-| `degradation.ladder.<entry>.severities=[1,2,4]` | Change one entry's rungs |
+| `degradation.ladder.<entry>.severities=[1,2,4]` | Change one entry's severity levels |
 | `report=none` | Skip figures and tables; render later with `make_report.py` |
 | `report.style.theme=paper` | Vector PDF, Type-42 fonts, journal column widths |
 | `seed=1` | Change the run seed |
@@ -194,30 +195,41 @@ Hydra writes its own bookkeeping — the resolved config and the job log — to
 | File | What it is |
 |---|---|
 | [AGENTS.md](AGENTS.md) | **How to work in this repository** — adding metrics, degradations, data sources and figures; testing; the generated LaTeX; known traps. Read by coding agents, and worth reading yourself |
-| [CLAUDE.md](CLAUDE.md) | Project conventions, the metric IDs, and the evaluation protocol |
+| [CLAUDE.md](CLAUDE.md) | Scientific context: the problem framing and the evaluation protocol |
 | [TEST_DESCRIPTION.md](TEST_DESCRIPTION.md) | Plain-language reference for every quantity the suite reports |
+| [docs/working-with-the-repo.md](docs/working-with-the-repo.md) | What every file in a bundle is for, who edits it, and when |
+| [docs/catalog.json](docs/catalog.json) | The machine-readable index of every metric and degradation. What an agent should read instead of parsing prose |
 | [issues/](issues/) | Open items and future work, one file each |
 | [.github/workflows/tests.yml](.github/workflows/tests.yml) | CI: runs the default test suite on every push to a pull request. It has no CFS and no TeX Live, so `pytest -m data` and `pytest -m slow` stay a local responsibility |
 
-The project's **metrics tracker** is the source of truth for the candidate metrics and their
-stable IDs (OT-1, NM-2, TD-1, …). Use those IDs in code, commits, and discussion; see
-[CLAUDE.md](CLAUDE.md) for the identifier scheme and where the tracker lives.
+Every metric and degradation documents itself, in a **card** beside its implementation. A
+card holds the definition, the plain-language explanation, how to read the output, where it
+misleads, and the measurements from a recorded evaluation run — the last of those generated,
+never typed. [metrics/mse/card.md](metrics/mse/card.md) is the worked example, and
+[docs/](docs/) is published as a site.
 
 ## Adding things
 
-Three plugin registries, all discovered by name from the config — a contribution is one
-decorated function in one file, with no import list to update:
-
-| To add a… | Put it in | Decorate with |
-|---|---|---|
-| metric | `metrics/` (any module or subpackage) | `@metric(...)` |
-| degradation | `degradations/` | `@degradation(...)` |
-| plot or table | `fmeval/report/` | `@plot(...)` / `@table(...)` |
-
-Datasets are added as a YAML file under `configs/dataset/`, and new file formats as a reader
-in `fmeval/data/`.
+A metric or a degradation is a **bundle**: one directory holding the implementation, its
+tests, and the card documenting it. Scaffold it rather than creating files by hand, and the
+card cannot be forgotten because it is already there:
 
 ```bash
-python -m metrics.registry        # what metrics exist
-python -m degradations.registry   # what degradations exist, with severity units
+python -m fmeval.cards new <name>                    # a metric bundle
+python -m fmeval.cards new <name> --kind degradation
+python -m fmeval.cards check <name>                  # says what is missing and how to fix it
 ```
+
+Plots and tables for the LaTeX report are still one decorated function in `fmeval/report/`.
+Datasets are a YAML file under `configs/dataset/`, and new file formats a reader in
+`fmeval/data/`.
+
+```bash
+python -m metrics                 # what metrics exist
+python -m degradations            # what degradations exist, with severity units
+python -m fmeval.cards list       # bundles, with status and category
+```
+
+[AGENTS.md](AGENTS.md) has the full recipe, and
+[docs/working-with-the-repo.md](docs/working-with-the-repo.md) explains what each file in a
+bundle is for.

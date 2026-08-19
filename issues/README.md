@@ -39,13 +39,15 @@ Designed, hooks in place, not built.
 
 | ID | Title | Priority |
 |---|---|---|
-| [031](031-saturation-never-reached.md) | No ladder rung reaches the unrelated-field level | medium |
+| [031](031-saturation-never-reached.md) | No ladder severity level reaches the unrelated-field level | medium |
 
 ## Technical debt
 
 | ID | Title | Priority |
 |---|---|---|
 | [020](020-import-name-collision.md) | `metrics` is a very generic top-level import name | low |
+| [032](032-prose-numbers-can-go-stale.md) | Numbers written into card prose can go stale unnoticed | medium |
+| [033](033-link-rewriting-is-only-checked-for-deadness.md) | Site link rewriting is checked for dead links, not correct destinations | medium |
 | [022](022-sim-config-parsing.md) | Solver configs carry executable YAML tags | low |
 | [023](023-vendored-kinet-drift.md) | Vendored kinet code is pinned and may drift | low |
 

@@ -97,12 +97,23 @@ class DegradationSpec:
         """Order a severity list by increasing damage.
 
         A ``decreasing`` operator (low-pass cutoff, say) is sorted descending, so index 0
-        is always the mildest rung whatever order the config author wrote.
+        is always the mildest severity level whatever order the config author wrote.
         """
         return sorted(severities, reverse=self.severity_direction == "decreasing")
 
 
 REGISTRY: dict[str, DegradationSpec] = {}
+CARD_VALIDATOR: Callable[[Any], None] | None = None
+"""Optional check run when a degradation is requested by name.
+
+:mod:`fmeval.cards` installs a validator here that reads the degradation's card and refuses
+to hand back a spec whose documentation is missing or contradicts the code. It is a hook
+rather than a direct import for two reasons: this module would otherwise depend on the
+whole harness (and its pandas and matplotlib dependencies) when it needs only numpy, and
+validating at *lookup* rather than at *import* means a half-written card in one bundle
+cannot break an unrelated run. See ``fmeval/cards/loader.py``.
+"""
+
 _IMPORT_ERRORS: dict[str, Exception] = {}
 _DISCOVERED = False
 
@@ -205,8 +216,13 @@ def discover(force: bool = False) -> dict[str, Exception]:
     import degradations as _pkg
 
     for mod in pkgutil.walk_packages(_pkg.__path__, prefix=f"{_pkg.__name__}."):
-        leaf = mod.name.rsplit(".", 1)[-1]
-        if leaf.startswith("_") or leaf == "registry":
+        # Every component after the package name is checked, not just the last one:
+        # a bundle directory named `_template` must not be entered even though the
+        # module inside it is called `metric`. Leading underscores mark templates and
+        # shared helpers; `test_` marks the tests that live inside each bundle, which
+        # would otherwise drag pytest into every evaluation run.
+        parts = mod.name.split(".")[1:]
+        if any(p.startswith(("_", "test_")) for p in parts) or parts[-1] == "registry":
             continue
         try:
             importlib.import_module(mod.name)
@@ -228,7 +244,10 @@ def get(name: str) -> DegradationSpec:
             raise KeyError(
                 f"unknown degradation {name!r}; available: {sorted(REGISTRY)}{hint}"
             )
-    return REGISTRY[name]
+    spec = REGISTRY[name]
+    if CARD_VALIDATOR is not None:
+        CARD_VALIDATOR(spec)
+    return spec
 
 
 def available() -> list[str]:

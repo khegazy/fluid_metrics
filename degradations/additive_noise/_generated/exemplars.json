@@ -1,0 +1,93 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      0.001,
+      0.01,
+      0.5
+    ],
+    "severities": [
+      0.001,
+      0.01,
+      0.5
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "additive_noise",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "amplitude = 0.001 fraction of fluctuation rms": {
+        "max_abs": 1.1241941307937002e-05,
+        "mean": 4.475699345005134e-09,
+        "rms": 2.565189669769796e-06
+      },
+      "amplitude = 0.01 fraction of fluctuation rms": {
+        "max_abs": 0.0001211031131075819,
+        "mean": 8.814310006482824e-08,
+        "rms": 2.5667450664026886e-05
+      },
+      "amplitude = 0.5 fraction of fluctuation rms": {
+        "max_abs": 0.005807365677685575,
+        "mean": -4.145960421747074e-06,
+        "rms": 0.001289053331631492
+      },
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      }
+    },
+    "field": {
+      "amplitude = 0.001 fraction of fluctuation rms": {
+        "max": 0.016401554703404816,
+        "mean": 4.475699344995421e-09,
+        "min": -0.016423981710434236,
+        "rms": 0.002573352995747798
+      },
+      "amplitude = 0.01 fraction of fluctuation rms": {
+        "max": 0.016379076818240995,
+        "mean": 8.814310006476003e-08,
+        "min": -0.016442412756430717,
+        "rms": 0.0025735543989321933
+      },
+      "amplitude = 0.5 fraction of fluctuation rms": {
+        "max": 0.020372368267559626,
+        "mean": -4.145960421747118e-06,
+        "min": -0.019246519593327596,
+        "rms": 0.0028725765165346913
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    },
+    "pdf": {
+      "amplitude = 0.001 fraction of fluctuation rms": {
+        "flatness": 17.05772431023025,
+        "mean": 4.475699344995421e-09,
+        "std": 0.002573352995743906
+      },
+      "amplitude = 0.01 fraction of fluctuation rms": {
+        "flatness": 17.057837054615117,
+        "mean": 8.814310006476003e-08,
+        "std": 0.0025735543974227623
+      },
+      "amplitude = 0.5 fraction of fluctuation rms": {
+        "flatness": 11.940385663738345,
+        "mean": -4.145960421747118e-06,
+        "std": 0.0028725735246219134
+      },
+      "original": {
+        "flatness": 17.057721889155673,
+        "mean": 0.0,
+        "std": 0.0025733478577632486
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

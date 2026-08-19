@@ -1,0 +1,37 @@
+schema_version: 1
+
+name: gaussian_impostor
+kind: degradation
+category: stochastic
+
+summary: >-
+  Replaces the field with a Gaussian random field that has the same amplitude spectrum and
+  the same low-order moments, but random phases.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  Not a model failure: this is the canary that catches a metric which sees only the
+  amplitude spectrum and is blind to where anything is.
+
+output:
+  description: >-
+    None. The severity is ignored entirely; there is one experiment, not a ladder.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: draws
+  n_draws: 3
+  field_name: vorticity
+  diagnostics: [radial_spectrum, pdf]
+  rationale: >-
+    Three independent draws beside the original, because there is no severity to vary. The
+    radial spectrum row is the whole argument: every draw lies exactly on the reference
+    curve, so any metric built on that curve cannot distinguish them from the truth. The
+    pdf row shows the moments matching too.
+
+references: []
+review: null

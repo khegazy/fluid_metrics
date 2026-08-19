@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: lowpass_butterworth
+kind: degradation
+category: spectral
+
+summary: >-
+  Removes the small scales from the field by multiplying its Fourier transform by a smooth
+  Butterworth low-pass transfer function.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate that has lost its fine structure, imitated by deleting it outright rather
+  than smoothing it away.
+
+output:
+  description: >-
+    Fraction of the field's spectral energy above the cutoff that the filter removes,
+    resolved per field to a cutoff wavenumber against a measured spectrum.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.05, 0.15, 0.45]
+  field_name: vorticity
+  diagnostics: [difference, radial_spectrum]
+  rationale: >-
+    Three fractions spanning the usable range of this axis. The radial spectrum row is the
+    one that shows the mechanism directly -- the cutoff is visible as the wavenumber where
+    the curve departs from the reference -- and the difference row shows which structures
+    in real space carried the removed energy.
+
+references: []
+review: null

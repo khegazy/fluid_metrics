@@ -1,0 +1,89 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      1.511099710449345,
+      3.5258993243818058,
+      10.073998069662302
+    ],
+    "severities": [
+      0.06,
+      0.14,
+      0.4
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "box_blur",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      },
+      "width = 1.51 cells": {
+        "max_abs": 0.0014406201564881888,
+        "mean": -7.15544317082871e-20,
+        "rms": 0.0002845192365507677
+      },
+      "width = 10.1 cells": {
+        "max_abs": 0.005585906477773985,
+        "mean": -7.199780051661553e-21,
+        "rms": 0.001219753228016184
+      },
+      "width = 3.53 cells": {
+        "max_abs": 0.002975818322187196,
+        "mean": 2.747563122656137e-20,
+        "rms": 0.0006247588672436654
+      }
+    },
+    "field": {
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      },
+      "width = 1.51 cells": {
+        "max": 0.016181930739967106,
+        "mean": -5.421010862427522e-20,
+        "min": -0.01618707274052606,
+        "rms": 0.0024652633402057495
+      },
+      "width = 10.1 cells": {
+        "max": 0.01569922384522322,
+        "mean": 0.0,
+        "min": -0.015703482855233417,
+        "rms": 0.0020907324156622105
+      },
+      "width = 3.53 cells": {
+        "max": 0.016042765437201567,
+        "mean": 0.0,
+        "min": -0.01603684752700898,
+        "rms": 0.002340906706113415
+      }
+    },
+    "radial_spectrum": {
+      "original": {
+        "departure_wavenumber": null,
+        "power_retained": 1.0
+      },
+      "width = 1.51 cells": {
+        "departure_wavenumber": 17.0,
+        "power_retained": 0.9895728682005367
+      },
+      "width = 10.1 cells": {
+        "departure_wavenumber": 5.0,
+        "power_retained": 0.9263855199392075
+      },
+      "width = 3.53 cells": {
+        "departure_wavenumber": 10.0,
+        "power_retained": 0.974555739196497
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

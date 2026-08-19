@@ -1,0 +1,30 @@
+schema_version: 1
+
+name: kinetic_energy
+kind: metric
+category: physics_invariants
+
+summary: >-
+  Mean specific kinetic energy of a single velocity field, a reference-free diagnostic of
+  how much energy the flow carries.
+
+# A tripwire rather than a candidate: one scalar cannot distinguish a good prediction from
+# a bad one, but a large drift from the reference is worth noticing.
+status: control
+owners: [khegazy]
+
+output:
+  description: >-
+    Half the mean squared velocity magnitude, summed over components, in the square of the
+    velocity units. Reported per variant; the drift from the reference is what is read.
+  bounds:
+    lower: 0.0
+    upper: null
+
+math:
+  triangle_inequality: false   # not a distance at all: it takes one field, not two
+  scale_dependent: true        # scaling the field by c scales the value by c squared
+  resolution_dependent: true   # energy sits at large scales, so it survives coarsening better
+  complexity: "O(N)"
+references: []
+review: null

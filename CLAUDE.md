@@ -55,22 +55,29 @@ extra and nothing currently needs it. Weights & Biases is not wired in yet.
 | `issues/` | Open items, one file per item with its evidence. `issues/README.md` is the index |
 | `README.md` | Setup and the NERSC specifics |
 
-## Source of truth: the metrics tracker
+## Source of truth: the cards in this repository
 
-The project's metrics tracker is the working document for the whole effort. It is maintained
-outside this repository — ask the user where it currently lives and to paste or attach the
-relevant part rather than guessing at its contents, and do not assume a copy exists in the
-repo. It holds:
+Each implemented metric and degradation documents itself in a **card** beside its
+implementation, and `docs/catalog.json` is the machine-readable index of all of them. That
+is the source of truth for anything implemented: what it computes, what properties it has,
+and what it did on a recorded run. Read the catalog rather than parsing prose, and see
+`AGENTS.md` §3 for how to add one.
 
-- A **master table** of ~40 candidate metrics, each with a stable ID (e.g. OT-1, NM-2, TD-1).
-  Use these IDs in code, commits, issues, and discussion, and report results back so the
-  `Status` column reflects what has been measured.
-- Per-item sections with the definition, literature precedent, keywords, known pitfalls, and a
-  promise rating (High/Medium/Low) with justification.
-- A full bibliography. Every implemented metric should cite its source paper (and equation
-  number where applicable) in a code comment.
+The external **metrics tracker** remains the planning document for metrics that do not
+exist yet — candidate ideas, literature precedent, promise ratings, the bibliography. It is
+maintained outside this repository; ask the user where it currently lives and to paste the
+relevant part rather than guessing, and do not assume a copy exists here. `Table_of_Ideas.tex`
+in the repository root is a historical snapshot of it and is not maintained.
 
-ID prefixes: OT (optimal transport), SH (shock geometry), NM (function-space norms), CG (curvature/differential geometry), PH (physics invariants), PD (pattern/feature detection), TD (topological data analysis), BD (basis decompositions), PS (probabilistic/distributional), IN (infrastructure and protocol).
+The two-letter ID prefixes (OT-, NM-, TD-, …) are **retired**. They were invented before the
+cards existed, they meant nothing to a reader who had not been told the scheme, and a bundle's
+directory name — which is what users type in `metrics=[...]` — is now its only identity. A
+card's `category` field carries what the prefix used to gesture at, from a controlled
+vocabulary in `fmeval/cards/schema.py`. Cards may differ from the tracker; where they do, the
+measured card wins.
+
+Every implemented metric should still cite its source paper, with the equation number, in
+its `## Definition` section and in `refs.bib`.
 
 ## Core problem framing
 
@@ -120,7 +127,7 @@ each would have quietly corrupted results:
    stored vorticity with a recomputed one — they differ by 8.1% rms because the solver used a
    lattice stencil.
 3. **High-pass filters must preserve the spatial mean.** Deleting k=0 on density removes a
-   component four orders of magnitude larger than the cutoff controls; every rung gave an
+   component four orders of magnitude larger than the cutoff controls; every severity level gave an
    identical damage of 2.7e7 and the axis carried no ordering at all.
 4. **The unrelated-field anchor must be measured, not scavenged.** A 16-cell translation
    reaches only ~0.6 of the true value, which inflated every damage score by ~1.6x. A distant
@@ -129,21 +136,21 @@ each would have quietly corrupted results:
 5. **Severity ranges must follow each field's spectrum.** Fixed cutoffs applied to every field
    alike produce flags that point at the axis rather than the metric: the same blur list reached
    1.2% of the unrelated-field level on density while working well on vorticity, and the same
-   filter cutoffs saturated by the second rung on density. Fixed: severities on the
+   filter cutoffs saturated by the second severity level on density. Fixed: severities on the
    smoothing and spectral axes are now *relative* — a fraction of the field's characteristic
    scale, or of the energy a filter removes — and resolved per field against a spectrum measured
    from the data. Every calibrated axis is now monotone on both fields from one config that names
    no field. Three further defects surfaced only when this was measured: a low-pass severity
    mapped to the wrong side of its cutoff inverted that axis while leaving every number
    plausible; rounding a calibrated width to an even window displaced the field by half a cell
-   and broke monotonicity; and a rung can resolve onto a milder rung's severity or onto a no-op,
-   which the rank correlation would otherwise score as agreement. Rungs that are not distinct
+   and broke monotonicity; and a severity level can resolve onto a milder severity level's severity or onto a no-op,
+   which the rank correlation would otherwise score as agreement. Severity levels that are not distinct
    experiments are now detected and excluded (`severity_degenerate`).
 
    Two limits calibration does not remove, both properties of these fields rather than of the
    config: 69% of density's fluctuation energy sits in the four diagonal modes at |k| = √2 and
    only 3e-5 of it in the axis modes at |k| = 1, so the available cutoffs there are few and far
-   apart and a *sharp* filter cannot resolve four rungs at all. The high-pass axis is squeezed
+   apart and a *sharp* filter cannot resolve four severity levels at all. The high-pass axis is squeezed
    between a no-op below those diagonal modes and near-total damage above them, so it alone does
    not reach the factor-five damage range the other axes do.
 

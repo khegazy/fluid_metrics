@@ -54,12 +54,15 @@ def test_registry_is_nonempty():
     assert all_specs(), "no metrics registered; discovery is broken"
 
 
-def test_name_and_tracker_id_wellformed(spec):
+def test_name_is_wellformed(spec):
+    """The name is the metric's identity: bundle directory, card key, and config token.
+
+    It must therefore be importable as a Python package name, which ``isidentifier``
+    checks, and lowercase so directory names are stable across case-insensitive
+    filesystems.
+    """
     assert spec.name.isidentifier(), f"{spec.name!r} is not a valid identifier"
-    if spec.tracker_id is not None:
-        assert re.fullmatch(r"[A-Z]{2}-\d+", spec.tracker_id), (
-            f"{spec.name}: tracker_id {spec.tracker_id!r} does not look like 'NM-2'"
-        )
+    assert spec.name == spec.name.lower(), f"{spec.name!r} must be lowercase"
 
 
 def test_declared_fields_are_canonical(spec):

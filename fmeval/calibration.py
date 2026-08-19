@@ -5,8 +5,8 @@ different places depending on where a field keeps its energy. Measured on the pr
 trajectory, 99% of the density fluctuation energy sits below wavenumber 6 while vorticity
 needs wavenumber 63, and the energy-weighted characteristic scale differs by a factor of
 about five (~136 cells against ~29). One fixed list therefore cannot serve both: the
-configured high-pass cutoffs saturated by the second rung on density, making two of four
-rungs the same experiment, while the configured blur reached only 1.2% of the
+configured high-pass cutoffs saturated by the second severity level on density, making two of four
+severity levels the same experiment, while the configured blur reached only 1.2% of the
 unrelated-field level there, making that axis carry no signal at all.
 
 The fix is to express those severities relative to a property of the field and resolve them
@@ -74,7 +74,7 @@ class FieldCalibration:
 
         Interpolated between shells, so the result is fractional. A smooth filter can use it
         directly; a sharp one rounds, which is where the quantisation of
-        :meth:`rungs_collapse` comes from.
+        :meth:`quantised_cutoff` comes from.
 
         Args:
             fraction: In [0, 1]. Clamped to the usable range [1, k_max] at the ends rather
@@ -108,7 +108,7 @@ class FieldCalibration:
 
         Exact for an ideal filter, because the curve is tabulated at the same magnitudes the
         filter compares against. Predicted rather than measured -- the run also records what each
-        rung measurably removed, in the ``energy_removed`` result column.
+        severity level measurably removed, in the ``energy_removed`` result column.
         """
         index = int(np.searchsorted(self.wavenumbers, cutoff, side="right")) - 1
         if index < 0:

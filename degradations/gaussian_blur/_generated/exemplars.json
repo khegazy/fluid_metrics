@@ -1,0 +1,89 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      0.503699903483115,
+      2.5184995174155755,
+      5.036999034831151
+    ],
+    "severities": [
+      0.02,
+      0.1,
+      0.2
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "gaussian_blur",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      },
+      "sigma = 0.504 cells": {
+        "max_abs": 0.0005087871322843338,
+        "mean": 1.8992066864217515e-21,
+        "rms": 9.956125189013283e-05
+      },
+      "sigma = 2.52 cells": {
+        "max_abs": 0.004368082398048489,
+        "mean": 0.0,
+        "rms": 0.0009608165894632631
+      },
+      "sigma = 5.04 cells": {
+        "max_abs": 0.00617906375203367,
+        "mean": -4.235164736271502e-22,
+        "rms": 0.0013685640394855338
+      }
+    },
+    "field": {
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      },
+      "sigma = 0.504 cells": {
+        "max": 0.016293724072185312,
+        "mean": -5.421010862427522e-20,
+        "min": -0.01625238937663487,
+        "rms": 0.002533454084570732
+      },
+      "sigma = 2.52 cells": {
+        "max": 0.01577409623182661,
+        "mean": 0.0,
+        "min": -0.015774702502025045,
+        "rms": 0.0021771800732504933
+      },
+      "sigma = 5.04 cells": {
+        "max": 0.014565074152857304,
+        "mean": -5.421010862427522e-20,
+        "min": -0.01456586724064175,
+        "rms": 0.001939850941232228
+      }
+    },
+    "radial_spectrum": {
+      "original": {
+        "departure_wavenumber": null,
+        "power_retained": 1.0
+      },
+      "sigma = 0.504 cells": {
+        "departure_wavenumber": 29.0,
+        "power_retained": 0.9963045823261726
+      },
+      "sigma = 2.52 cells": {
+        "departure_wavenumber": 6.0,
+        "power_retained": 0.9455145552659494
+      },
+      "sigma = 5.04 cells": {
+        "departure_wavenumber": 3.0,
+        "power_retained": 0.8767423418328792
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

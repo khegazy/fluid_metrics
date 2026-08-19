@@ -1,0 +1,39 @@
+schema_version: 1
+
+name: highpass_ideal
+kind: degradation
+category: spectral
+
+summary: >-
+  Removes the large scales from the field by multiplying its Fourier transform by a hard
+  high-pass transfer function.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate that has the fine structure right and the large-scale organisation wrong --
+  the opposite failure to over-smoothing, and one a metric dominated by the energetic
+  scales can miss.
+
+output:
+  description: >-
+    Fraction of the field's spectral energy below the cutoff that the filter removes,
+    resolved per field to a cutoff wavenumber against a measured spectrum.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.45, 0.9, 0.97]
+  field_name: vorticity
+  diagnostics: [difference, radial_spectrum]
+  rationale: >-
+    Three fractions spanning the usable range of this axis. The radial spectrum row is the
+    one that shows the mechanism directly -- the cutoff is visible as the wavenumber where
+    the curve departs from the reference -- and the difference row shows which structures
+    in real space carried the removed energy.
+
+references: []
+review: null

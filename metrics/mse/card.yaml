@@ -1,0 +1,22 @@
+schema_version: 1
+name: mse
+kind: metric
+category: pointwise_norms
+summary: Mean of the squared difference between the candidate and reference fields, taken
+  cell by cell on a common analysis grid.
+status: control
+owners:
+- khegazy
+output:
+  description: Mean over all channels and grid cells of the squared field difference, in the
+    square of the field's units.
+  bounds:
+    lower: 0.0
+    upper: null
+math:
+  triangle_inequality: false
+  scale_dependent: true
+  resolution_dependent: true
+  complexity: O(N)
+references: []
+review: null

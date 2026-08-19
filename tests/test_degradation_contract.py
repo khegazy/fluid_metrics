@@ -15,9 +15,9 @@ from degradations import registry as deg
 from fmeval.context import FieldContext, derive_rng, fluctuation_rms
 from fmeval.data.base import Frame, GridSpec
 from fmeval.ladder import (
-    REFERENCE_RUNG,
-    Rung,
-    apply_rung,
+    REFERENCE_LEVEL,
+    SeverityLevel,
+    apply_severity_level,
     build_ladder,
     ladder_axes,
     ordinal_axes,
@@ -157,7 +157,7 @@ def test_preserves_shape_and_dtype(spec):
 
 
 def test_zero_severity_is_a_passthrough(spec):
-    """Level 0 must be a no-op, or pairwise metrics do not return 0 on the clean rung."""
+    """Level 0 must be a no-op, or pairwise metrics do not return 0 on the clean severity level."""
     if spec.name in {"gaussian_impostor", "random_large_translation", "band_attenuate",
                      "lowpass_ideal", "lowpass_butterworth", "highpass_ideal",
                      "highpass_butterworth", "median_blur"}:
@@ -349,7 +349,7 @@ def test_random_large_translation_decorrelates_a_broadband_field():
 
 
 def test_random_large_translation_is_not_ordinal():
-    """It is a reference measurement defining D = 1, not a rung on a monotone axis."""
+    """It is a reference measurement defining D = 1, not a severity level on a monotone axis."""
     assert deg.get("random_large_translation").ordinal is False
 
 
@@ -364,7 +364,7 @@ def test_lowpass_then_highpass_reconstructs():
     Both keep the cutoff band |k| == c, and the high-pass additionally keeps k = 0 on
     purpose (see highpass_ideal), so each is counted twice and subtracted once.
     """
-    from degradations.spectral import _apply_filter, _wavenumber_magnitude
+    from degradations._shared.filters import _apply_filter, _wavenumber_magnitude
 
     x = synthetic_field((32, 32), 1, seed=0, noise=0.3)
     lo = call_absolute(deg.get("lowpass_ideal"), x, 8)
@@ -401,12 +401,12 @@ def test_coarsen_is_conservative_and_subsample_is_not():
 
 
 def test_build_ladder_expands_entries():
-    rungs = build_ladder({"gaussian_blur": {"severities": [1.0, 2.0]}})
-    assert [r.variant_label for r in rungs] == [
+    severity_levels = build_ladder({"gaussian_blur": {"severities": [1.0, 2.0]}})
+    assert [r.variant_label for r in severity_levels] == [
         "reference", "gaussian_blur_l1", "gaussian_blur_l2"
     ]
-    assert [r.level for r in rungs] == [0, 1, 2]
-    assert [r.severity for r in rungs] == [0.0, 1.0, 2.0]
+    assert [r.level for r in severity_levels] == [0, 1, 2]
+    assert [r.severity for r in severity_levels] == [0.0, 1.0, 2.0]
 
 
 def test_build_ladder_sorts_decreasing_direction_correctly():
@@ -418,10 +418,10 @@ def test_build_ladder_sorts_decreasing_direction_correctly():
     """
     assert deg.get("band_attenuate").severity_direction == "decreasing"
     for given in ([0.8, 0.5, 0.2, 0.0], [0.0, 0.2, 0.5, 0.8]):
-        rungs = build_ladder({"band_attenuate": {"severities": given}},
+        severity_levels = build_ladder({"band_attenuate": {"severities": given}},
                              include_reference=False)
-        assert [r.severity for r in rungs] == [0.8, 0.5, 0.2, 0.0]
-        assert [r.level for r in rungs] == [1, 2, 3, 4]
+        assert [r.severity for r in severity_levels] == [0.8, 0.5, 0.2, 0.0]
+        assert [r.level for r in severity_levels] == [1, 2, 3, 4]
 
 
 def test_build_ladder_supports_two_instances_of_one_operator():
@@ -429,9 +429,9 @@ def test_build_ladder_supports_two_instances_of_one_operator():
         "translate_x": {"op": "translate", "severities": [1, 2], "options": {"axis": "x"}},
         "translate_y": {"op": "translate", "severities": [1, 2], "options": {"axis": "y"}},
     }
-    rungs = build_ladder(cfg, include_reference=False)
-    assert ladder_axes(rungs) == ["translate_x", "translate_y"]
-    assert {r.op for r in rungs} == {"translate"}
+    severity_levels = build_ladder(cfg, include_reference=False)
+    assert ladder_axes(severity_levels) == ["translate_x", "translate_y"]
+    assert {r.op for r in severity_levels} == {"translate"}
 
 
 def test_build_ladder_honours_enabled_only_and_skip():
@@ -450,9 +450,9 @@ def test_ordinal_axes_excludes_the_canary():
         "gaussian_blur": {"severities": [1, 2]},
         "gaussian_impostor": {"severities": [0]},
     }
-    rungs = build_ladder(cfg)
-    assert ladder_axes(rungs) == ["gaussian_blur", "gaussian_impostor"]
-    assert ordinal_axes(rungs) == ["gaussian_blur"]
+    severity_levels = build_ladder(cfg)
+    assert ladder_axes(severity_levels) == ["gaussian_blur", "gaussian_impostor"]
+    assert ordinal_axes(severity_levels) == ["gaussian_blur"]
 
 
 def test_build_ladder_rejects_malformed_entries():
@@ -464,7 +464,7 @@ def test_build_ladder_rejects_malformed_entries():
         build_ladder({"nope": {"severities": [1]}})
 
 
-# --- applying rungs to frames ---------------------------------------------------------
+# --- applying severity levels to frames ---------------------------------------------------------
 
 
 def _frame() -> Frame:
@@ -480,19 +480,19 @@ def _frame() -> Frame:
     )
 
 
-def test_apply_reference_rung_returns_the_originals():
+def test_apply_reference_level_returns_the_originals():
     frame = _frame()
-    out = apply_rung(REFERENCE_RUNG, frame, ["density", "velocity"], seed=0).fields
+    out = apply_severity_level(REFERENCE_LEVEL, frame, ["density", "velocity"], seed=0).fields
     for name, arr in out.items():
         assert arr is frame.fields[name]
 
 
-def test_apply_rung_degrades_every_requested_field():
+def test_apply_severity_level_degrades_every_requested_field():
     frame = _frame()
-    rung = build_ladder({"gaussian_blur": {"severities": [0.3]}},
+    severity_level = build_ladder({"gaussian_blur": {"severities": [0.3]}},
                         include_reference=False)[0]
-    applied = apply_rung(
-        rung, frame, ["density", "velocity"], seed=0,
+    applied = apply_severity_level(
+        severity_level, frame, ["density", "velocity"], seed=0,
         calibration=calibration_for(frame, ["density", "velocity"]),
     )
     out = applied.fields
@@ -504,24 +504,24 @@ def test_apply_rung_degrades_every_requested_field():
         assert not np.allclose(arr, frame.fields[name])
 
 
-def test_apply_rung_is_invariant_to_frame_iteration_order():
+def test_apply_severity_level_is_invariant_to_frame_iteration_order():
     """Seeding from content, not call order, is what makes parallelisation safe later."""
     frame = _frame()
-    rung = build_ladder({"additive_noise": {"severities": [0.1]}},
+    severity_level = build_ladder({"additive_noise": {"severities": [0.1]}},
                         include_reference=False)[0]
-    first = apply_rung(rung, frame, ["density"], seed=11).fields["density"]
-    _ = apply_rung(rung, frame, ["velocity"], seed=11)  # advance nothing
-    again = apply_rung(rung, frame, ["density"], seed=11).fields["density"]
+    first = apply_severity_level(severity_level, frame, ["density"], seed=11).fields["density"]
+    _ = apply_severity_level(severity_level, frame, ["velocity"], seed=11)  # advance nothing
+    again = apply_severity_level(severity_level, frame, ["density"], seed=11).fields["density"]
     assert np.array_equal(first, again)
 
 
 def test_noise_scales_with_the_reference_rms_not_the_raw_rms():
     """Density is 1.0 +/- 1e-3: scaling by the raw RMS would be pure destruction."""
     frame = _frame()
-    rung = build_ladder({"additive_noise": {"severities": [0.1]}},
+    severity_level = build_ladder({"additive_noise": {"severities": [0.1]}},
                         include_reference=False)[0]
     rms = fluctuation_rms(frame["density"])
-    out = apply_rung(rung, frame, ["density"], seed=0,
+    out = apply_severity_level(severity_level, frame, ["density"], seed=0,
                      reference_rms={"density": rms}).fields["density"]
     perturbation = np.abs(out - frame["density"]).mean()
     assert perturbation < 0.5 * frame["density"].mean(), "noise swamped the signal"
@@ -532,7 +532,7 @@ def test_highpass_preserves_the_spatial_mean():
     """Removing k=0 would swamp the ladder on any field with a large mean.
 
     Density is 1.0 with fluctuations of order 1e-4. Before the mean was preserved, every
-    high-pass rung gave an identical damage 2.7e7 times the unrelated-field level, so the
+    high-pass severity level gave an identical damage 2.7e7 times the unrelated-field level, so the
     axis carried no ordering and its rank correlation collapsed to 0.10.
     """
     x = 1.0 + 1e-3 * synthetic_field((32, 32), 1, seed=0, noise=0.3)
@@ -550,7 +550,7 @@ def test_highpass_ladder_is_monotone_on_a_field_with_a_large_mean():
               for c in (2, 4, 8, 16)]
     assert damage == sorted(damage), f"high-pass ladder is not monotone: {damage}"
     assert damage[-1] > 1.5 * damage[0], f"ladder has little dynamic range: {damage}"
-    # The decisive check: before the fix every rung sat ~1e7 times the fluctuation
+    # The decisive check: before the fix every severity level sat ~1e7 times the fluctuation
     # variance, because the mean was being deleted.
     variance = float(np.var(x))
     assert damage[-1] < variance, (

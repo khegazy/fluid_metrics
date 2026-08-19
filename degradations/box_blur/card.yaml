@@ -1,0 +1,38 @@
+schema_version: 1
+
+name: box_blur
+kind: degradation
+category: smoothing
+
+summary: >-
+  Convolves the field with a square kernel of uniform weight, averaging every cell with
+  its neighbours out to a fixed width.
+
+status: control
+owners: [khegazy]
+
+failure_mode: >-
+  A surrogate that has lost its small scales, imitated with the crudest possible averaging
+  -- the failure mode of a model whose effective resolution is coarser than its grid.
+
+output:
+  description: >-
+    Kernel width in analysis-grid cells, rounded to an odd number, resolved per field from
+    a severity given as a fraction of that field's characteristic scale.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.06, 0.14, 0.4]
+  field_name: vorticity
+  diagnostics: [difference, radial_spectrum]
+  rationale: >-
+    Weak is the narrowest width that clears the odd-cell rounding on both fields; strong
+    reaches well into the energetic scales. The radial spectrum row is the one that
+    matters here: unlike a Gaussian, a box kernel does not attenuate every scale, and the
+    sidelobes it leaves are visible only in the spectrum.
+
+references: []
+review: null

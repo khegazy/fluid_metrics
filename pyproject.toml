@@ -1,7 +1,7 @@
 [project]
-name = "fluid-metrics"
+name = "pde-metrics"
 version = "0.1.0"
-description = "Metrics for quantifying the quality of fluid simulations and ML surrogates"
+description = "Metrics for evaluating ML surrogates of PDEs"
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.0",
@@ -16,6 +16,19 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "tqdm", "rich"]
+# The documentation site. All pure Python: mkdocs-bibtex is deliberately absent because it
+# needs pandoc, a system dependency the team would have to install per machine, and
+# references are rendered from each bundle's refs.bib with pybtex instead. `markdown` and
+# `pymdown-extensions` come in via mkdocs-material and are what tests/test_cards.py uses to
+# verify every card's equations typeset for GitHub as well as for the site.
+docs = [
+  "mkdocs-material>=9.5",
+  "mkdocs-gen-files>=0.5",
+  "mkdocs-literate-nav>=0.6",
+  "mkdocs-section-index>=0.3",
+  "mkdocstrings[python]>=0.25",
+  "pybtex>=0.24",
+]
 # Only needed for criterion 18 (gradient signal). Kept out of the default set so a
 # broken torch install cannot block the metric suite, and because the default PyPI
 # wheel is not the build you want for Perlmutter GPUs.
@@ -30,7 +43,13 @@ build-backend = "hatchling.build"
 packages = ["metrics", "degradations", "fmeval"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# Bundle tests live beside the metric they test, in metrics/<name>/test_metric.py, so
+# that adding a metric means adding one directory and nothing else.
+testpaths = ["tests", "metrics", "degradations"]
+# The templates are scaffolding, not bundles: their tests raise NotImplementedError by
+# design, and importing their placeholder implementation would register it as a real
+# metric and break the documentation-coverage check.
+norecursedirs = ["_template", ".venv", "results", "datasets"]
 markers = [
     "data: reads real files on CFS (skipped by default)",
     "slow: needs LaTeX or a long runtime (skipped by default)",

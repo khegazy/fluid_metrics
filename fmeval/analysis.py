@@ -15,7 +15,7 @@ family. The unit is the ladder entry. Where one number per metric is wanted, the
 across axes is reported -- the honest worst case.
 
 **The IN-4 field is excluded from every rank correlation**, by its ``ordinal=False``
-declaration. It is a separate probe, not a rung.
+declaration. It is a separate probe, not a severity level.
 """
 
 from __future__ import annotations
@@ -58,7 +58,7 @@ SATURATION_FRACTION: float = 0.90
 #: 1.6e-16. Both are round-off presented as measurement.
 #:
 #: 1e-9 rather than something nearer the float64 epsilon: accumulated round-off over a 256^2
-#: reduction is several orders of magnitude above 2.2e-16, while the mildest rung that does
+#: reduction is several orders of magnitude above 2.2e-16, while the mildest severity level that does
 #: real work on this data moves the value by 1e-4 of its range. Nothing measured falls in the
 #: gap between.
 DEGENERATE_SPAN: float = 1e-9
@@ -76,19 +76,19 @@ def normalisation(df: pd.DataFrame,
 
         D = (v - clean) / (uncorrelated - clean)
 
-    ``clean`` is the median value on the reference rung. ``uncorrelated`` is *measured*,
+    ``clean`` is the median value on the reference severity level. ``uncorrelated`` is *measured*,
     not inferred: the ``uncorrelated`` ladder entry applies several large random
     translations, which preserve every statistic exactly while destroying alignment, and
     the metric is evaluated against those. D = 1 then means "as different as two unrelated
     fields", which is what makes the score readable across metrics with different units.
 
-    Scavenging the largest configured translation rung instead would understate the anchor
+    Scavenging the largest configured translation severity level instead would understate the anchor
     badly: on the real data a 16-cell displacement only reaches about 0.6 of the true
     uncorrelated value, so every damage score would be inflated by roughly 1.6x.
 
-    A ratio to the clean value is not usable here: mean squared error on the reference rung
+    A ratio to the clean value is not usable here: mean squared error on the reference severity level
     is exactly zero. Per-figure min-max scaling is not usable either, because the figure
-    would change whenever a rung is added.
+    would change whenever a severity level is added.
 
     Returns:
         One row per (dataset, metric, field) with ``value_clean``, ``value_uncorrelated``,
@@ -105,7 +105,7 @@ def normalisation(df: pd.DataFrame,
         # The scale is the LARGEST value anywhere in the group, not the median. The median is
         # defeated in exactly the case this guard exists for: a metric invariant to the
         # operator the anchor is built from returns round-off on the anchor, on the impostor
-        # and on every translation rung, so more than half the rows are round-off and the
+        # and on every translation severity level, so more than half the rows are round-off and the
         # median collapses to round-off with them -- the guard then compares noise against
         # noise and passes. Measured with a spectral metric of the BD-1 shape on the real
         # trajectory: the anchor was 1.5e-16 against a genuine blur response of 3.5e-1, and
@@ -142,7 +142,7 @@ def _uncorrelated_anchor(g: pd.DataFrame, preferred: str) -> tuple[float, str]:
             top = sub.loc[sub["level"] == sub["level"].max()]
             return float(top["value"].median()), f"{label}@max"
 
-    # Otherwise fall back to the worst rung of any ordinal axis, and say so.
+    # Otherwise fall back to the worst severity level of any ordinal axis, and say so.
     ordinal = g[~g["degradation"].isin(PROBE_LABELS)]
     if ordinal.empty:
         return float("nan"), "none"
@@ -234,7 +234,7 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
     )
     rows = []
 
-    # Rungs that resolved to the same experiment as a milder one are not independent points.
+    # Severity levels that resolved to the same experiment as a milder one are not independent points.
     # Scoring a tie would read as agreement in the rank correlation and would compare a
     # distribution against itself in the separability, so they are dropped and counted.
     ladder = df[df["level"] > 0]
@@ -245,7 +245,7 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
         ladder = ladder[~degenerate]
         if n_dropped:
             log.info(
-                "excluded %d rows on rungs that resolved to a milder rung's severity; "
+                "excluded %d rows on severity levels that resolved to a milder severity level's severity; "
                 "n_levels below is what was measured, n_levels_configured what was asked for",
                 n_dropped,
             )
@@ -341,13 +341,13 @@ def _signed(span: float | None, sign: int) -> float | None:
 
 
 def _per_frame_rho(g: pd.DataFrame) -> np.ndarray:
-    """Spearman correlation between rung and value, computed separately in each frame.
+    """Spearman correlation between severity level and value, computed separately in each frame.
 
     **This is the primary statistic, not the pooled one.** Pooling every (level, value)
     pair across frames conflates the metric's response to severity with any trend in the
     field itself, and on this data that ruins it: the density perturbation grows six orders
-    of magnitude along the trajectory, so the worst rung early is far smaller than the
-    mildest rung late. Measured consequence -- every density axis is perfectly ordered
+    of magnitude along the trajectory, so the worst severity level early is far smaller than the
+    mildest severity level late. Measured consequence -- every density axis is perfectly ordered
     inside every frame, yet the pooled correlation reads between 0.10 and 0.91 depending on
     the axis. The pooled value is retained as ``rho_pooled`` for comparison, since a wide
     gap between the two is itself a signal that the field is non-stationary.
@@ -368,7 +368,7 @@ def _is_round_off(values: np.ndarray) -> bool:
 
     A rank correlation is defined for any values that are not exactly tied, and float64
     arithmetic almost never ties exactly: ``np.roll`` cannot change a translation-invariant
-    quantity, but it does change the summation order inside ``np.mean``, so the rungs come out
+    quantity, but it does change the summation order inside ``np.mean``, so the severity levels come out
     differing in the last bits and in an arbitrary order. Ranking that gives a number.
 
     Reproduced end to end -- ``evaluate.py metrics=[enstrophy]`` with a translation-only ladder
@@ -386,7 +386,7 @@ def _is_round_off(values: np.ndarray) -> bool:
 
 
 def _monotone_fraction(g: pd.DataFrame) -> float:
-    """Fraction of frames on which the rung ordering is strictly correct.
+    """Fraction of frames on which the severity level ordering is strictly correct.
 
     A metric can look fine pooled and be non-monotone within every individual frame, which
     a single correlation hides.
@@ -401,10 +401,10 @@ def _monotone_fraction(g: pd.DataFrame) -> float:
 
 
 def _min_adjacent_auc(g: pd.DataFrame) -> float:
-    """Smallest Mann-Whitney AUC between adjacent rungs' distributions over time.
+    """Smallest Mann-Whitney AUC between adjacent severity levels' distributions over time.
 
-    Monotone medians are not enough: if adjacent rungs overlap, the metric cannot rank two
-    models that differ by one rung. Reported as a descriptive overlap measure only -- no
+    Monotone medians are not enough: if adjacent severity levels overlap, the metric cannot rank two
+    models that differ by one severity level. Reported as a descriptive overlap measure only -- no
     p-value, because the trace is autocorrelated and any independence-assuming test would
     be badly anti-conservative.
     """
@@ -426,7 +426,7 @@ def _threshold_level(g: pd.DataFrame, clean: float, fraction: float,
                      shared_span: float | None = None) -> float:
     """First level whose median reaches ``fraction`` of the way to the unrelated limit.
 
-    Measured against the shared span when one is available, so "fires at rung 2" means the
+    Measured against the shared span when one is available, so "fires at severity level 2" means the
     same thing on every axis. Falling back to each axis's own range would make an axis that
     barely damages the field appear just as sensitive as one that destroys it.
     """
@@ -435,7 +435,7 @@ def _threshold_level(g: pd.DataFrame, clean: float, fraction: float,
         return float("nan")
     if _is_round_off(medians.to_numpy()):
         # The level at which a metric "first departs from clean" is not defined when it never
-        # departs. Without this the answer is always rung 1, because any target built from a
+        # departs. Without this the answer is always severity level 1, because any target built from a
         # round-off span is cleared by round-off: measured on enstrophy against a
         # translation-only ladder, both the sensitivity and saturation levels read 1.0 for a
         # quantity translation cannot change at all. Same principle as the rank-correlation
@@ -492,7 +492,7 @@ def _block_bootstrap_rho(
 def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
     """One row per (dataset, metric, field) for the non-monotone probes.
 
-    Reports the IN-4 damage score alongside the ladder rung whose damage is closest, which
+    Reports the IN-4 damage score alongside the ladder severity level whose damage is closest, which
     is what makes it interpretable: "the Gaussian field looks as bad as coarsening to 64".
     """
     scored = add_damage(df, norm)
@@ -507,15 +507,15 @@ def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
             record[f"{label}_value"] = float(sub["value"].median())
             record[f"{label}_damage"] = damage
             if label != UNCORRELATED_LABEL:
-                # The anchor's nearest rung is the largest translation by construction,
+                # The anchor's nearest severity level is the largest translation by construction,
                 # so reporting it would add a column that carries no information.
-                record[f"{label}_nearest_rung"] = _nearest_rung(g, damage, exclude=label)
+                record[f"{label}_nearest_level"] = _nearest_level(g, damage, exclude=label)
         rows.append(record)
     return pd.DataFrame(rows)
 
 
-def _nearest_rung(g: pd.DataFrame, damage: float, exclude: str) -> str:
-    """The ordinal rung whose damage is closest to ``damage``, for interpretation."""
+def _nearest_level(g: pd.DataFrame, damage: float, exclude: str) -> str:
+    """The ordinal severity level whose damage is closest to ``damage``, for interpretation."""
     ordinal = g[(~g["degradation"].isin(PROBE_LABELS)) & (g["level"] > 0)]
     if ordinal.empty or not np.isfinite(damage):
         return ""
@@ -627,7 +627,7 @@ def cross_metric_correlation(df: pd.DataFrame, *, field: str | None = None) -> p
     which the panel decision is actually made. Using every raw row instead would inflate
     the correlation through shared time trends.
 
-    The reference rung is excluded. Every pairwise error metric is exactly zero there, so
+    The reference severity level is excluded. Every pairwise error metric is exactly zero there, so
     keeping it would add a point all metrics share by construction and pull every
     correlation towards +1.
     """

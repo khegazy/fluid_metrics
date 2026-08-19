@@ -1,0 +1,85 @@
+{
+  "applied": {
+    "mode": "draws",
+    "resolved": [],
+    "severities": [
+      0,
+      1,
+      2
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "gaussian_impostor",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "field": {
+      "draw 1": {
+        "max": 0.009396311017130614,
+        "mean": 0.0,
+        "min": -0.011692390688949172,
+        "rms": 0.0025733478577632486
+      },
+      "draw 2": {
+        "max": 0.009235223905011244,
+        "mean": -1.0842021724855044e-19,
+        "min": -0.010226781365035383,
+        "rms": 0.0025733478577632486
+      },
+      "draw 3": {
+        "max": 0.009548314251586698,
+        "mean": 0.0,
+        "min": -0.008881154704427395,
+        "rms": 0.0025733478577632486
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    },
+    "pdf": {
+      "draw 1": {
+        "flatness": 3.0501490477118,
+        "mean": 0.0,
+        "std": 0.0025733478577632486
+      },
+      "draw 2": {
+        "flatness": 3.040138809482286,
+        "mean": -1.0842021724855044e-19,
+        "std": 0.0025733478577632486
+      },
+      "draw 3": {
+        "flatness": 2.8512050846304655,
+        "mean": 0.0,
+        "std": 0.0025733478577632486
+      },
+      "original": {
+        "flatness": 17.057721889155673,
+        "mean": 0.0,
+        "std": 0.0025733478577632486
+      }
+    },
+    "radial_spectrum": {
+      "draw 1": {
+        "departure_wavenumber": 181.0,
+        "power_retained": 1.0
+      },
+      "draw 2": {
+        "departure_wavenumber": null,
+        "power_retained": 1.0
+      },
+      "draw 3": {
+        "departure_wavenumber": null,
+        "power_retained": 1.0
+      },
+      "original": {
+        "departure_wavenumber": null,
+        "power_retained": 1.0
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

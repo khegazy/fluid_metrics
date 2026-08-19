@@ -19,7 +19,7 @@ DOC = REPO / "TEST_DESCRIPTION.md"
 #: documented, but grouped into one heading each rather than given a section apiece.
 _GROUPED_HEADINGS = {
     "dataset", "dataset_family", "complexity_rank", "param_reynolds", "param_mach",
-    "param_resolution", "trajectory", "frame_index", "time", "metric", "tracker_id",
+    "param_resolution", "trajectory", "frame_index", "time", "metric",
     "arity", "field", "component", "seed", "wall_time_s", "degradation",
     "degradation_op", "degradation_family", "level", "severity", "severity_name",
     "variant_label", "analysis_grid", "remap_op", "rho_median", "rho_min",
@@ -191,3 +191,185 @@ def test_setup_check_runs_and_reports():
     for expected in ("numpy", "metrics registry", "degradations registry",
                      "spectral vorticity", "dataset root"):
         assert expected in result.stdout, f"check_setup.py does not report on {expected!r}"
+
+
+# --------------------------------------------------------------------------------------
+# The human file guide
+# --------------------------------------------------------------------------------------
+
+GUIDE = REPO / "docs" / "working-with-the-repo.md"
+
+
+def test_the_file_guide_covers_every_file_of_the_bundle_contract():
+    """A guide that has fallen behind the contract sends a reader to a file that is gone.
+
+    This checks coverage, not quality: every file a contributor is expected to create or
+    to leave alone must be named somewhere in the guide.
+    """
+    text = GUIDE.read_text()
+    required = [
+        "metric.py", "degradation.py", "card.yaml", "card.md", "refs.bib",
+        "test_metric.py", "_generated/", "AGENTS.md", "TEST_DESCRIPTION.md",
+        "configs/", "issues/",
+    ]
+    missing = [name for name in required if name not in text]
+    assert not missing, f"docs/working-with-the-repo.md does not mention: {missing}"
+
+
+def test_the_file_guide_names_the_card_commands():
+    """The guide's job is to make the workflow runnable without a second document."""
+    text = GUIDE.read_text()
+    for command in ("fmeval.cards new", "fmeval.cards check", "fmeval.cards sign"):
+        assert command in text, f"the file guide does not mention `{command}`"
+
+
+def test_the_file_guide_starts_with_a_summary_table():
+    """A reader looking up one file should not have to read the whole document."""
+    head = GUIDE.read_text().split("## The bundle files in detail")[0]
+    assert "| File | What it is | Who edits it | When |" in head
+
+
+def test_agents_documents_the_card_workflow(doc_agents=None):
+    """AGENTS.md must describe the bundle workflow, not the one it replaced.
+
+    An agent follows this file. When cards became mandatory, a file that still said "a
+    metric goes in any module under metrics/" would have produced a metric that does not
+    import, and the agent would have had no way to know why from here.
+    """
+    text = (REPO / "AGENTS.md").read_text()
+    for required in ("python -m fmeval.cards new",
+                     "python -m fmeval.cards check",
+                     "python -m fmeval.cards evidence",
+                     "python -m fmeval.cards exemplars",
+                     "card.yaml",
+                     "card.md",
+                     "docs/catalog.json",
+                     "GENERATED"):
+        assert required in text, f"AGENTS.md never mentions {required!r}"
+
+
+def test_agents_states_the_card_prohibitions():
+    """The rules that exist because breaking them produces plausible, wrong documentation."""
+    text = (REPO / "AGENTS.md").read_text()
+    for rule in ("Never invent a number",
+                 "Never state expected behaviour",
+                 "never edit `_generated/`",
+                 "never sign a card"):
+        assert rule.lower() in text.lower(), f"AGENTS.md does not say: {rule}"
+
+
+# --------------------------------------------------------------------------------------
+# The recipes: canonical instructions, each pinned by its own check
+# --------------------------------------------------------------------------------------
+#
+# The recipes in docs/recipes/ are the canonical instructions for extending the
+# repository; AGENTS.md summarises and points at them. They are separate files, each
+# asserted here by name, precisely so that no single careless edit can destroy the
+# instructions: an agent that overwrites AGENTS.md loses a summary, and an edit that guts
+# a recipe fails CI naming that recipe. Destroying the instructions would require
+# deliberately editing several named files and this test together.
+
+RECIPES = {
+    "index.md": (
+        "Never invent a number",
+        "Never invent a citation",
+        "Never state expected behaviour",
+        "never sign a card",
+        "report it rather than writing around it",
+    ),
+    "add-a-metric.md": (
+        "python -m fmeval.cards new <name>",
+        "python -m fmeval.cards check",
+        "test_metric.py",
+        "### Boundary handling",
+        "python -m fmeval.cards evidence",
+        "python -m fmeval.cards catalog",
+        "equation number",
+        "worked example",
+    ),
+    "add-a-degradation.md": (
+        "--kind degradation",
+        "severity_direction",
+        "configs/degradation/default.yaml",
+        "FAMILY_BLOCKS",
+        "FAMILY_HEADINGS",
+        "exemplars",
+        "python -m fmeval.cards exemplars <name>",
+        "mode: draws",
+    ),
+    "add-a-dataset.md": (
+        "configs/dataset/",
+        "fmeval/data/base.py",
+        "Never slice the time axis".lower(),
+        "calibration.csv",
+        "severity_degenerate",
+        "evidence_datasets",
+        "configs/cards/default.yaml",
+        "developed",
+    ),
+    "add-a-diagnostic.md": (
+        "fmeval/cards/diagnostics.py",
+        "@diagnostic",
+        "ctx.limits",
+        "show_field",
+        "numbers behind the picture",
+        "fmeval/cards/schema.py",
+    ),
+    "verify-a-refactor.md": (
+        "any numerical difference is a bug you introduced",
+        "variant_label",
+        "_IMPORT_ERRORS",
+        "dataset=kinet_re5e4_dev",
+        "Rows are missing",
+        "Values differ",
+    ),
+    "refresh-the-evidence.md": (
+        "evidence --all",
+        "python -m fmeval.cards catalog",
+        "typed into sentences do not",
+        "issues/032",
+        "does **not** invalidate a signature",
+    ),
+}
+
+
+@pytest.mark.parametrize("recipe", sorted(RECIPES))
+def test_each_recipe_still_carries_its_instructions(recipe):
+    path = REPO / "docs" / "recipes" / recipe
+    assert path.is_file(), f"docs/recipes/{recipe} is missing"
+    # Prose wraps at the margin, so a pinned phrase may be split across lines.
+    # Comparing with whitespace collapsed keeps the pins about content, not layout.
+    text = " ".join(path.read_text().split())
+    for required in RECIPES[recipe]:
+        assert " ".join(required.split()).lower() in text.lower(), (
+            f"docs/recipes/{recipe} no longer says {required!r}. These files are the "
+            "canonical instructions; if this changed deliberately, update this test in "
+            "the same commit and say why in its message."
+        )
+
+
+def test_the_decisions_ledger_still_lists_the_deliberate_absences():
+    """docs/decisions.md stops an agent from "fixing" a deliberate absence.
+
+    Each entry corresponds to an enforced decision; if one is removed here it will be
+    rediscovered as a mysterious test failure by whoever trips over it next.
+    """
+    text = (REPO / "docs" / "decisions.md").read_text()
+    for absence in ("no predictions",
+                    "no pass or fail",
+                    "no word counts",
+                    "no metric IDs",
+                    "GENERATED",
+                    "never sign",
+                    "at `get()`, not at import",
+                    "stops the run",
+                    "docs/recipes/"):
+        assert absence.lower() in text.lower(), (
+            f"docs/decisions.md no longer covers: {absence!r}"
+        )
+
+
+def test_agents_points_at_the_recipes():
+    """AGENTS.md is the summary; an agent reading only it must be sent to the recipes."""
+    text = (REPO / "AGENTS.md").read_text()
+    assert "docs/recipes/" in text, "AGENTS.md never mentions the recipes directory"
