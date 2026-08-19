@@ -38,20 +38,6 @@ math:
   scale_dependent: true       # changes if both fields are scaled by the same constant
   resolution_dependent: true  # changes with the analysis-grid resolution
   complexity: "O(N)"          # in the number of grid cells
-
-# Predictions about how this metric behaves along each degradation axis, checked against
-# the measured evidence. `axis` is a ladder-entry label from configs/degradation/, not an
-# operator name. A prediction that turns out wrong is a result to explain in the card's
-# Assessment section, not a failure -- nothing here gates on it.
-expectations: []
-#  - axis: translate_x
-#    field: vorticity          # omit to apply the prediction to every field
-#    response: increasing      # increasing | decreasing | invariant | nonmonotone | sensitive
-#    statistic: rho_median
-#    threshold: 0.9
-#    rationale: >-
-#      Why you expect this, physically or mathematically.
-
 # Where this metric is meaningful. This repository covers PDEs in general, so a metric
 # that only makes sense for one regime should say so.
 applicability:

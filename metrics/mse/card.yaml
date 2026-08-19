@@ -27,64 +27,6 @@ math:
   resolution_dependent: true   # a mean over cells, so refining the grid reweights the sum
   complexity: "O(N)"
 
-expectations:
-  - axis: translate_x
-    response: increasing
-    statistic: rho_median
-    threshold: 0.9
-    rationale: >-
-      A displacement leaves every value intact and only moves it, which a cell-by-cell
-      comparison cannot see; the differences it does see grow with the displacement until
-      the two fields decorrelate. Expected to be ordered but insensitive at the small end,
-      because the response goes as the square of the displacement.
-
-  - axis: translate_subpixel
-    response: increasing
-    statistic: rho_median
-    threshold: 0.9
-    rationale: >-
-      Same mechanism as translate_x, resolved below one cell by a Fourier phase ramp. The
-      quadratic response means the damage at an eighth of a cell should be very small in
-      absolute terms while still ordering cleanly.
-
-  - axis: gaussian_blur
-    response: increasing
-    statistic: rho_median
-    threshold: 0.9
-    rationale: >-
-      Smoothing removes small-scale amplitude that is present in the reference, and that
-      loss appears directly as a pointwise difference. This is the failure mode a
-      pointwise norm is genuinely good at, so a strong monotone response is expected.
-
-  - axis: additive_noise
-    response: increasing
-    statistic: rho_median
-    threshold: 0.9
-    rationale: >-
-      Uncorrelated noise of amplitude a adds a squared to the expected squared difference
-      in every cell, so the response should be close to exactly quadratic in the amplitude
-      and perfectly ordered.
-
-  - axis: coarsen
-    response: increasing
-    statistic: rho_median
-    threshold: 0.9
-    rationale: >-
-      Block averaging then upsampling discards sub-block structure, which is an amplitude
-      error at every cell rather than a displacement, so a pointwise norm should see it
-      plainly.
-
-  - axis: gaussian_impostor
-    response: sensitive
-    statistic: impostor_damage
-    threshold: 0.5
-    rationale: >-
-      The impostor keeps the reference's amplitude spectrum and randomises the phases, so
-      it is pointwise uncorrelated with the reference even though it looks statistically
-      similar. A pointwise norm is phase-sensitive and should reject it firmly. This
-      canary is aimed at metrics built on the amplitude spectrum alone, and is expected
-      not to catch this family.
-
 applicability:
   regimes: [any]
   data_requirements: []

@@ -119,30 +119,16 @@ def test_a_newer_schema_version_is_refused_rather_than_guessed_at():
         parse(card(schema_version=SCHEMA_VERSION + 1))
 
 
-def test_an_expectation_must_carry_a_reason():
-    """A prediction without a rationale cannot be argued with, only believed."""
-    with pytest.raises(CardError, match="rationale"):
-        parse(card(expectations=[{"axis": "translate_x", "response": "increasing",
-                                  "rationale": "grows"}]))
+def test_a_card_cannot_carry_a_prediction():
+    """Nothing in a card may state how a metric is expected to behave.
 
-
-def test_an_expectation_names_a_statistic_the_analysis_actually_computes():
-    with pytest.raises(CardError, match="statistic"):
-        parse(card(expectations=[{"axis": "translate_x", "response": "increasing",
-                                  "statistic": "vibes",
-                                  "rationale": "a rationale long enough to pass"}]))
-
-
-def test_a_full_expectation_round_trips():
-    parsed = parse(card(expectations=[{
-        "axis": "translate_x", "field": "vorticity", "response": "increasing",
-        "statistic": "rho_median", "threshold": 0.9,
-        "rationale": "Pointwise differences grow with displacement below the field scale.",
-    }]))
-    (expectation,) = parsed.expectations
-    assert expectation.axis == "translate_x"
-    assert expectation.field == "vorticity"
-    assert expectation.dataset is None, "an unrestricted prediction applies to every dataset"
+    A statement about behaviour is either measured -- and then it belongs in the
+    generated evidence -- or it comes from published work, and then it belongs in
+    `## Definition` or `## Assessment` with a citation. An unsourced prediction is an
+    opinion, and an opinion in structured YAML reads like a finding.
+    """
+    with pytest.raises(CardError, match="unrecognised key"):
+        parse(card(expectations=[{"axis": "translate_x", "response": "increasing"}]))
 
 
 def test_a_degradation_card_must_illustrate_itself():

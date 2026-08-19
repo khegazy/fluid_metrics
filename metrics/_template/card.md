@@ -44,12 +44,6 @@ counts as a good value, and what does that depend on? And which comparisons are
 meaningful — across models, across resolutions, across datasets — and which of those are
 invalid for this metric in particular?
 
-## Prediction
-
-TODO(fill) At least 60 words. The reasoning behind each entry in the `expectations` block
-of `card.yaml`: why you expect this metric to behave that way along those axes. Write it
-before you look at the evidence; a prediction made afterwards is not a prediction.
-
 ## Definition
 
 TODO(fill) The exact definition, as numbered display equations. State the discretisation

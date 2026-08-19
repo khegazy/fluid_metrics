@@ -70,23 +70,6 @@ stand: the value is a mean over cells, so refining the grid changes the weight g
 small scales even when nothing about the prediction has changed. Compare on a common
 analysis grid, which is what this suite remaps onto before measuring.
 
-## Prediction
-
-The response to a displacement follows the order of the norm. For a shift small compared
-with the scale over which the field varies, the difference between the shifted and the
-original field is approximately the shift times the local gradient, so squaring it makes
-the error grow as the square of the displacement. Mean squared error should therefore
-order displacement axes cleanly while reading as almost indifferent to sub-cell shifts,
-and MAE, which is linear in the same quantity, should register those shifts far more
-strongly.
-
-Against degradations that change amplitude rather than position — blurring, coarsening,
-additive noise — a pointwise norm is measuring exactly what changed, so the response
-should be strongly monotone with no interesting structure. Against the phase-randomised
-impostor the prediction is firm rejection: that field matches the reference's amplitude
-spectrum but is pointwise uncorrelated with it, and a pointwise norm is sensitive to
-exactly the phase information the impostor discards.
-
 ## Definition
 
 For fields $f$ (reference) and $g$ (candidate) sampled on the same analysis grid, with $C$
@@ -136,8 +119,9 @@ $$
 
 Measurements on 256-squared vorticity at Reynolds 5e4, over 21 frames of developed flow,
 confirm the quadratic scaling of Equation (3): the damage ratios
-per doubling of sub-cell displacement are 3.99, 3.95 and 3.82, against the 4 that a
-quadratic response predicts, and MAE gives 2.00, 1.98 and 1.93 against a predicted 2. The
+per doubling of sub-cell displacement are 3.99, 3.95 and 3.82, against the 4 implied by a
+quadratic response, and MAE gives 2.00, 1.98 and 1.93 against the 2 implied by a
+linear one. The
 practical consequence is large and easy to miss. At an eighth of a cell MAE assigns 55
 times the damage MSE does, and at one full cell 6.5 times. If what you need is a pointwise
 metric that notices sub-cell displacement, MAE is strictly the better choice, and the
@@ -145,7 +129,7 @@ quadratic suppression is why MSE reads as tolerant of small shifts while being s
 about moderate ones. The double penalty has no single onset; where it begins depends on
 the order of the norm.
 
-The phase-randomised impostor does not catch this family, as predicted: MSE assigns it
+The phase-randomised impostor does not catch this family: MSE assigns it
 0.80 damage on vorticity and 0.51 on velocity, which is firm rejection. That canary is
 aimed at metrics that depend only on the amplitude spectrum, and a report in which every
 implemented metric rejects the impostor should not be read as reassuring until such a

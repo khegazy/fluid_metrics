@@ -82,45 +82,6 @@ blind to, and how it compares to the controls is recorded in the measured eviden
 discussed in the card's ``## Assessment`` section.
 """
 
-RESPONSES = (
-    "increasing",
-    "decreasing",
-    "invariant",
-    "nonmonotone",
-    "sensitive",
-)
-"""Predicted behaviour of a metric along one degradation axis.
-
-``increasing`` / ``decreasing``
-    The value moves monotonically with severity, in the stated direction.
-``invariant``
-    Provably unchanged by this degradation, by construction.
-``nonmonotone``
-    Expected to move without a consistent ordering -- a prediction in its own right, not
-    an absence of one.
-``sensitive``
-    Used for the canary axes, which have no ordered severity: the prediction is that the
-    metric registers substantial damage at all, not that it orders anything.
-"""
-
-STATISTICS = (
-    "rho_median",
-    "rho_min",
-    "rho_pooled",
-    "monotone_fraction",
-    "separability_auc_min",
-    "sensitivity_level",
-    "saturation_level",
-    "impostor_damage",
-    "damage_max",
-)
-"""The measured quantities an expectation may be checked against.
-
-Every one of these is already computed by :mod:`fmeval.analysis` for every
-(metric, field, axis). Expectations name one of them rather than inventing a parallel
-statistics layer, so a prediction is checked against the same number the report shows.
-"""
-
 EXEMPLAR_MODES = ("severity", "draws", "none")
 """How a degradation's illustration panel is laid out.
 
@@ -210,52 +171,6 @@ class MathProperties:
 
 
 @dataclass(frozen=True)
-class Expectation:
-    """One prediction about how a metric behaves along one degradation axis.
-
-    A prediction that turns out to be wrong is a result, not a failure. Nothing in this
-    repository blocks, gates, or rejects on a disagreement between an expectation and the
-    measurement; the disagreement is recorded in the evidence and discussed in the card's
-    ``## Assessment`` section, where it can be explained.
-    """
-
-    axis: str
-    """A ladder-entry label from the degradation config, e.g. ``translate_x``.
-
-    The label, not the operator name: the label is the unit of rank correlation, and one
-    operator can appear under several labels with different options.
-    """
-    response: str
-    rationale: str
-    """Why this behaviour is expected, physically or mathematically. Not optional: an
-    expectation without a reason cannot be argued with, only believed."""
-    statistic: str = "rho_median"
-    threshold: float = 0.9
-    field: str | None = None
-    """Restrict this prediction to one physical field. ``None`` means every field.
-
-    Predictions legitimately differ by field: a metric can be monotone on an
-    intermittent vorticity field and degenerate on a smooth density field.
-    """
-    dataset: str | None = None
-    """Restrict this prediction to one dataset. ``None`` means every dataset with evidence.
-
-    Predictions legitimately differ by regime too, which is why evidence is keyed by
-    dataset: a shock-sensitive metric that orders compressible data cleanly may have
-    nothing to order in incompressible data.
-    """
-    tolerance_damage: float = 0.05
-    """Slack for the ``invariant`` case, in damage units.
-
-    Damage is ``D = (value - clean) / (unrelated - clean)``: 0 at the reference and 1 at
-    the measured unrelated-field anchor. Expressing the tolerance in damage rather than
-    in the metric's own units makes it comparable across metrics whose raw values differ
-    by orders of magnitude. The default of 0.05 is a starting point, not a calibrated
-    number, and should be revisited once run-to-run variance has been measured.
-    """
-
-
-@dataclass(frozen=True)
 class Applicability:
     """Where this metric is meaningful, for a repository that spans many PDE settings."""
 
@@ -315,7 +230,6 @@ class Card:
     owners: tuple[str, ...]
     output: Output
     math: MathProperties | None = None
-    expectations: tuple[Expectation, ...] = ()
     applicability: Applicability = dc_field(default_factory=Applicability)
     exemplars: Exemplars | None = None
     references: tuple[str, ...] = ()
@@ -427,9 +341,6 @@ def parse_card(data: Any, *, where: str) -> Card:
         owners=owners,
         output=_parse_output(_require(data, "output", where, fix), where, fix),
         math=_parse_math(data.get("math"), where, fix),
-        expectations=tuple(
-            _parse_expectation(e, where, fix) for e in (data.get("expectations") or ())
-        ),
         applicability=_parse_applicability(data.get("applicability"), where, fix),
         exemplars=_parse_exemplars(data.get("exemplars"), where, fix),
         references=_str_tuple(data.get("references"), "references", where, fix),
@@ -454,7 +365,7 @@ def parse_card(data: Any, *, where: str) -> Card:
 _KNOWN_KEYS = frozenset(
     {
         "schema_version", "name", "kind", "category", "summary", "status", "owners",
-        "output", "math", "expectations", "applicability", "exemplars", "references",
+        "output", "math", "applicability", "exemplars", "references",
         "review", "failure_mode",
     }
 )
@@ -504,35 +415,6 @@ def _parse_math(data: Any, where: str, fix: str) -> MathProperties | None:
         scale_dependent=bool(_require(data, "scale_dependent", where, fix)),
         resolution_dependent=bool(_require(data, "resolution_dependent", where, fix)),
         complexity=str(_require(data, "complexity", where, fix)),
-    )
-
-
-def _parse_expectation(data: Any, where: str, fix: str) -> Expectation:
-    axis = str(_require(data, "axis", where, fix))
-    response = _one_of(
-        _require(data, "response", where, fix), RESPONSES, "response", where, fix
-    )
-    rationale = str(_require(data, "rationale", where, fix)).strip()
-    if len(rationale) < 20:
-        raise CardError(
-            where,
-            f"the rationale for axis {axis!r} is {len(rationale)} characters. State why "
-            "this behaviour is expected; a prediction without a reason cannot be argued "
-            "with.",
-            fix,
-        )
-    statistic = _one_of(
-        data.get("statistic", "rho_median"), STATISTICS, "statistic", where, fix
-    )
-    return Expectation(
-        axis=axis,
-        response=response,
-        rationale=rationale,
-        statistic=statistic,
-        threshold=float(data.get("threshold", 0.9)),
-        field=None if data.get("field") is None else str(data["field"]),
-        dataset=None if data.get("dataset") is None else str(data["dataset"]),
-        tolerance_damage=float(data.get("tolerance_damage", 0.05)),
     )
 
 

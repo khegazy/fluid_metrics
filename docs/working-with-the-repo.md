@@ -20,7 +20,7 @@ documents it. Adding a metric means adding one directory; nothing elsewhere need
 |---|---|---|---|
 | `metric.py` / `degradation.py` | The implementation. The only file holding your science. | You | Always |
 | `test_metric.py` / `test_degradation.py` | Tests specific to this metric, including the worked example the card quotes | You | Always |
-| `card.yaml` | The typed record: category, status, bounds, predictions, references | You | Always |
+| `card.yaml` | The typed record: category, status, bounds, references | You | Always |
 | `card.md` | The prose: what it detects, how to read it, where it misleads | You | Always |
 | `refs.bib` | BibTeX for the sources this card cites | You | When you cite something |
 | `_generated/` | Measured evidence and figures | **A command. Never by hand** | Run the command |
@@ -103,7 +103,7 @@ the fact that it scores two equal errors identically wherever they sit.
 ### `card.yaml` — the typed record
 
 Everything a machine can check, compare or filter on. The catalog, the site's filters and
-the expectation checks all read this, so it is what an agent consults when deciding whether
+the catalog reads this, so it is what an agent consults when deciding whether
 your metric suits its problem.
 
 Two things to know before you fill it in.
@@ -121,13 +121,12 @@ nothing in this repository passes or fails a metric: a metric that misses one th
 catches another, and that nuance lives in the evidence and the prose. Leave new bundles as
 `candidate`; only a human moves a card to `validated`.
 
-The `expectations` block is where you predict how the metric behaves along each degradation
-axis, and it is worth writing carefully. `axis` names a **ladder entry label** from
-`configs/degradation/default.yaml` — `translate_x`, not `translate` — because the label is
-the unit of rank correlation and one operator can appear under several labels. Every
-prediction needs a `rationale`: a prediction without a reason cannot be argued with, only
-believed. A prediction that turns out wrong is a result to explain, not a failure; nothing
-gates on it.
+Notice what the card does **not** contain: anywhere to say how you think the metric will
+behave. That is deliberate. Every statement about behaviour in this repository is either
+measured — and then it belongs in the generated evidence, which you do not write — or it
+comes from published work, and then it belongs in `## Definition` or `## Assessment` with
+a citation. An unsourced prediction is an opinion, and an opinion written in structured
+YAML reads like a finding. The schema refuses one.
 
 Every field, and the reasoning behind it, is documented in `fmeval/cards/schema.py`. Read
 that file. `python -m fmeval.cards check <name>` will tell you exactly what is wrong and
@@ -147,10 +146,11 @@ needs a physical picture, a worked example with real numbers from your test file
 sentence naming what the metric ignores. Every metric is blind to something; saying so here
 rather than only in Limitations is what makes the section honest.
 
-**`## Assessment`** replaces what other projects would call a verdict. Say where your
-predictions held and where they did not, what this metric sees that the controls do not,
-what it is blind to including any canary it fails, and in what situations someone should
-reach for it. Failing a canary is information, not a mark against the metric — a
+**`## Assessment`** replaces what other projects would call a verdict. Say what the
+measurements show: what this metric sees that the controls do not, what it is blind to
+including any canary it fails, and in what situations someone should reach for it. Every
+claim here is either a number from the evidence or a citation — if you find yourself
+writing what you expect rather than what was measured, that sentence does not belong. Failing a canary is information, not a mark against the metric — a
 spectral-energy metric that a phase-randomised impostor fools is still the right tool for
 asking about the energy cascade.
 
@@ -203,7 +203,7 @@ is why they are recorded.
 
 `configs/degradation/default.yaml` defines the severity ladder. Its keys are **labels**,
 not operator names, which is what lets one operator appear twice with different options.
-Those labels are what your card's expectations refer to.
+Those labels are what the evidence is reported against.
 
 ### `evaluate.py` and `make_report.py` — run them, don't edit them
 
