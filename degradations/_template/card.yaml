@@ -42,10 +42,5 @@ exemplars:
   rationale: >-
     TODO(fill) why these three severities and these diagnostics. This becomes the caption
     under the figure, so say what each column is meant to show.
-
-applicability:
-  regimes: [any]
-  data_requirements: []
-
 references: []
 review: null

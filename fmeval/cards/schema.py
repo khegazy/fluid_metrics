@@ -95,9 +95,6 @@ EXEMPLAR_MODES = ("severity", "draws", "none")
     No panel. Only the identity operator, which by definition changes nothing.
 """
 
-REGIMES = ("any", "compressible", "incompressible", "mhd", "ensemble")
-"""Physical settings a metric is meaningful in. Grows as new datasets are added."""
-
 DATA_REQUIREMENTS = ("ensemble", "vector_field", "time_series")
 """What a metric needs beyond a single pair of fields on the analysis grid.
 
@@ -171,14 +168,6 @@ class MathProperties:
 
 
 @dataclass(frozen=True)
-class Applicability:
-    """Where this metric is meaningful, for a repository that spans many PDE settings."""
-
-    regimes: tuple[str, ...] = ("any",)
-    data_requirements: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
 class Exemplars:
     """Which severities to illustrate for a degradation, and how.
 
@@ -230,7 +219,6 @@ class Card:
     owners: tuple[str, ...]
     output: Output
     math: MathProperties | None = None
-    applicability: Applicability = dc_field(default_factory=Applicability)
     exemplars: Exemplars | None = None
     references: tuple[str, ...] = ()
     review: Review | None = None
@@ -341,7 +329,6 @@ def parse_card(data: Any, *, where: str) -> Card:
         owners=owners,
         output=_parse_output(_require(data, "output", where, fix), where, fix),
         math=_parse_math(data.get("math"), where, fix),
-        applicability=_parse_applicability(data.get("applicability"), where, fix),
         exemplars=_parse_exemplars(data.get("exemplars"), where, fix),
         references=_str_tuple(data.get("references"), "references", where, fix),
         review=_parse_review(data.get("review"), where, fix),
@@ -365,7 +352,7 @@ def parse_card(data: Any, *, where: str) -> Card:
 _KNOWN_KEYS = frozenset(
     {
         "schema_version", "name", "kind", "category", "summary", "status", "owners",
-        "output", "math", "applicability", "exemplars", "references",
+        "output", "math", "exemplars", "references",
         "review", "failure_mode",
     }
 )
@@ -416,20 +403,6 @@ def _parse_math(data: Any, where: str, fix: str) -> MathProperties | None:
         resolution_dependent=bool(_require(data, "resolution_dependent", where, fix)),
         complexity=str(_require(data, "complexity", where, fix)),
     )
-
-
-def _parse_applicability(data: Any, where: str, fix: str) -> Applicability:
-    if data is None:
-        return Applicability()
-    regimes = _str_tuple(data.get("regimes", ["any"]), "applicability.regimes", where, fix)
-    for regime in regimes:
-        _one_of(regime, REGIMES, "applicability.regimes entry", where, fix)
-    reqs = _str_tuple(
-        data.get("data_requirements"), "applicability.data_requirements", where, fix
-    )
-    for req in reqs:
-        _one_of(req, DATA_REQUIREMENTS, "data_requirements entry", where, fix)
-    return Applicability(regimes=regimes or ("any",), data_requirements=reqs)
 
 
 def _parse_exemplars(data: Any, where: str, fix: str) -> Exemplars | None:

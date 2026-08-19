@@ -14,15 +14,21 @@ stop any one of them being forgotten:
 Only the mechanical parts are checked here. Whether the prose is *good* is a human's
 judgement, recorded through the review ledger in :mod:`fmeval.cards.review`.
 
-On word counts
---------------
-The minimum word counts are honest guesses, not calibrated numbers. They exist because an
-unenforced request for documentation is ignored, but a word count does not measure
-clarity, and an author told to write 120 words will pad to 120 words. So they are
-*warnings* for a bundle still in progress and *failures* only for one claiming
-``validated``. If a section says what it needs to say in 90 words, leave it at 90, let the
-warning stand, and say so -- that is evidence the floor is wrong, and the floor should
-move rather than the prose.
+On judging whether a section says enough
+---------------------------------------
+There are no word counts here, and that is deliberate. A count is a proxy that measures
+length rather than clarity, and an author told to reach ninety words reaches ninety words,
+so the check would manufacture exactly the padding it was meant to prevent.
+
+What is checked instead is structural and mechanical: that the section exists, is not
+empty, holds no sentinel, keeps notation out of the sections written for readers from
+outside the field, and -- in the results -- that measurements come from the generator and
+are linked to the tests that produced them. What each section has to *say* is described in
+the templates, in words, so an author is told what is wanted rather than how long to make
+it. Whether it succeeds is a human's judgement, recorded through the review ledger in
+:mod:`fmeval.cards.review`, which cannot be signed until measurements exist to back the
+claims.
+
 """
 
 from __future__ import annotations
@@ -134,13 +140,6 @@ people who do not know this repository. Two subsections sit outside this mapping
 findings that span every test, such as how the metric correlates with the controls.
 """
 
-RESULT_PROSE_FLOOR = 25
-"""Words of explanation each result subsection needs beside its generated numbers.
-
-Low on purpose. A subsection whose evidence has not been generated yet has nothing to
-explain, so this is a warning until a card claims ``validated``.
-"""
-
 CROSS_CUTTING_SUBSECTIONS = frozenset({"Across the ladder"})
 """Result subsections that report no single degradation and so link to none.
 
@@ -148,26 +147,6 @@ Everything else in ``## Results`` reports named axes and must link to the bundle
 define them; this one reports what holds over all of them at once, such as how the metric
 correlates with the controls.
 """
-
-RESULT_PROSE_CEILING = 90
-"""Words of explanation each result subsection may spend before it is saying too much.
-
-A ceiling rather than only a floor, because the failure mode here is duplication rather
-than silence. What the experiment was -- dataset, Reynolds number, resolution, frame
-count -- is the same for every subsection of every card, and belongs in the run summary
-once. What a degradation *is*, and what its severity numbers mean, belongs in that
-degradation's own bundle, which this subsection links to. What is left, and the only
-thing that genuinely lives here, is what this metric did when that test was applied.
-
-Prose repeated across thirty cards is prose nobody can keep true.
-"""
-
-WORD_FLOORS: dict[str, int] = {
-    "Intuition": 90,
-    "Reading the output": 80,
-    "Limitations": 80,
-    "Severity scale": 40,
-}
 
 NO_MATH_SECTIONS = frozenset({"Intuition", "What to look for"})
 """Sections a reader from outside the field must be able to follow, so notation is not
@@ -442,27 +421,17 @@ def _check_result_section(section: str, body: str, name: str) -> list[Problem]:
                     "card.md)",
                 )
             )
-        if len(after.split()) > RESULT_PROSE_CEILING:
+        if not after.strip():
             problems.append(
                 Problem(
                     section,
-                    f"'### {heading}' spends {len(after.split())} words explaining its "
-                    f"numbers; {RESULT_PROSE_CEILING} is the ceiling. Say what this "
-                    "metric did, and link out for what the experiment and the "
-                    "degradation are.",
-                    "move the description of the run into the run summary, and the "
-                    "description of the degradation into its own bundle",
-                    severity="warning",
-                )
-            )
-        if len(after.split()) < RESULT_PROSE_FLOOR:
-            problems.append(
-                Problem(
-                    section,
-                    f"'### {heading}' shows numbers without saying what they mean. "
-                    f"Say what this test found, in at least {RESULT_PROSE_FLOOR} words.",
-                    "write the explanation below the include line; if the evidence has "
-                    f"not been generated yet, run  {regenerate}  first",
+                    f"'### {heading}' shows numbers with nothing said about them. Say "
+                    "what this test found about the metric -- and only that; what the "
+                    "run was is in the run summary, and what the degradation does is in "
+                    "its own bundle.",
+                    "write the reading below the include line; if the evidence has not "
+                    f"been generated yet, run  python -m fmeval.cards {generator} {name}"
+                    "  first",
                     severity="warning",
                 )
             )
@@ -580,18 +549,6 @@ def check_prose(text: str, *, kind: str, name: str) -> list[Problem]:
                     "a reader from another field is guaranteed to read, so it has to work "
                     "without symbols.",
                     "move the equations to '## Definition' and describe the idea in words",
-                )
-            )
-        floor = WORD_FLOORS.get(section)
-        count = _words(body)
-        if floor and count < floor:
-            problems.append(
-                Problem(
-                    section,
-                    f"'## {section}' is {count} words; the guideline is {floor}.",
-                    "expand it, or -- if it already says what it needs to -- leave it and "
-                    "report that the floor is wrong. Do not pad.",
-                    severity="warning",
                 )
             )
         if section == "Intuition" and not _TABLE_OR_CODE.search(body):

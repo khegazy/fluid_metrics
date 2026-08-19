@@ -106,7 +106,8 @@ def _report(bundle: Bundle, *, strict: bool) -> int:
         state = review_state(bundle, card.review.prose_sha256 if card.review else None)
         if state != "current":
             reason = (
-                "no one has signed this prose yet."
+                "no one has signed this prose yet. A card is signed once its claims "
+                "are backed by a run."
                 if state == "unsigned"
                 else "the prose has changed since it was signed."
             )
@@ -162,10 +163,25 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_sign(args: argparse.Namespace) -> int:
-    """Record that a human has read this bundle's prose."""
+    """Record that a human has read this bundle's prose.
+
+    Refused while the bundle has no measurements. A signature says a person read the
+    prose and stands behind it, and most of a card's claims are claims about how the
+    metric behaved; there is nothing to stand behind until a run exists to back them.
+    Signing first would put the ledger's strongest statement on the least supported text.
+    """
     bundle = find_bundle(args.name)
     if bundle is None:
         print(f"no bundle named {args.name!r}", file=sys.stderr)
+        return 1
+    if not (bundle.path / "_generated" / "fingerprint.json").is_file():
+        print(
+            f"{args.name} has no measurements yet, so there is nothing for a signature "
+            f"to stand behind.\n"
+            f"A card is signed once its claims are backed by a run.\n"
+            f"Fix: python -m fmeval.cards evidence {args.name} --results results/<run>",
+            file=sys.stderr,
+        )
         return 1
     data = yaml.safe_load(bundle.card_yaml.read_text()) or {}
     data["review"] = build_signature(bundle, args.by)

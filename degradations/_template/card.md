@@ -3,6 +3,11 @@ name: template_degradation
 kind: degradation
 ---
 
+**On length.** There are no word counts anywhere in this contract. Say what the section
+needs to say and stop: a short section that is complete is better than a padded one, and
+a reviewer reading the card is the judge, not a counter. If a section feels thin, the
+question is what a reader still does not know after reading it, not how many words it has.
+
 ## Definition
 
 TODO(fill) Exactly what is computed, as numbered display equations. State the
@@ -45,7 +50,7 @@ usually what makes it a useful test.
 
 ## Severity scale
 
-TODO(fill) At least 40 words. What are the physical units of the severity number, and
+TODO(fill) What are the physical units of the severity number, and
 what does each step of the ladder correspond to? If the severity is calibrated rather
 than absolute — a fraction of the field's characteristic scale, or of the energy a filter
 removes — say so, and say what that means for comparing it across fields, because the
@@ -53,7 +58,7 @@ number applied to density and the number applied to vorticity will differ.
 
 ## Limitations
 
-TODO(fill) At least 80 words. Where this degradation is not a fair stand-in for the
+TODO(fill) Where this degradation is not a fair stand-in for the
 failure it imitates, where its severities stop being distinguishable, and any field whose
 spectrum cannot resolve the whole ladder. If a severity level can collapse onto a milder
 one or onto a no-op, say under what conditions.
@@ -64,7 +69,7 @@ one or onto a no-op, say under what conditions.
 
 {{ include _generated/exemplars.md }}
 
-TODO(fill) At least 25 words, no mathematical notation. The figure does not explain
+TODO(fill) No mathematical notation. The figure does not explain
 itself. Say what changes between the weak and the strong columns, which diagnostic row
 makes it visible, and what a reader should check first. If the effect is invisible in the
 field images and only shows up in one of the other rows, say that explicitly — that is

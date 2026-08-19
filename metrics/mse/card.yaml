@@ -26,10 +26,5 @@ math:
   scale_dependent: true        # scaling both fields by c scales the value by c squared
   resolution_dependent: true   # a mean over cells, so refining the grid reweights the sum
   complexity: "O(N)"
-
-applicability:
-  regimes: [any]
-  data_requirements: []
-
 references: []
 review: null

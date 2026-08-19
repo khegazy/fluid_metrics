@@ -179,8 +179,7 @@ Say only what the metric did. What the run was — dataset, Reynolds number, res
 frame count — goes in the run summary at the top of Results, once, and is generated. What
 a degradation does, and what its severity numbers mean, lives in its own bundle, which the
 links reach. Repeating either in a subsection means writing it once per metric and then
-keeping thirty copies true, so each subsection has a word ceiling as well as a floor, and
-a link to every degradation it reports.
+keeping thirty copies true, so each subsection links to every degradation it reports.
 
 Evidence and explanation used to be two separate sections, and a reader checking a
 sentence against the number behind it had to scroll between them and work out which
@@ -189,6 +188,9 @@ summarises the ladder in general instead of saying what each test found. You sti
 write the numbers: run `python -m fmeval.cards evidence <name> --results results/<run>`
 and never edit anything under `_generated/`. A subsection whose evidence has not been
 generated yet warns rather than fails, because there is nothing there to explain.
+
+There are no word counts anywhere in the contract. Say what a section needs to say and
+stop; a short complete section beats a padded one, and a reader is the judge.
 
 `## Definition` must contain a `### Boundary handling` subsection, and the checker
 enforces it. `None.` is a fine answer — write it, with one clause saying why, rather than
@@ -201,6 +203,11 @@ Keep the Definition to what the equation does not already say. That a sum runs o
 indices it is written with does not need a sentence.
 
 The two sections people most often get wrong:
+
+A card is signed only once its measurements exist: `python -m fmeval.cards sign <name>
+--by <who>` refuses while the bundle has no run behind it. Most of a card's claims are
+claims about how the metric behaved, and a signature says a person read them and stands
+behind them — there is nothing to stand behind until there are results.
 
 **`## Intuition`** explains the metric. Open with what it measures and which way of being
 wrong it reveals, then say how it works. Write about the metric itself — not about its

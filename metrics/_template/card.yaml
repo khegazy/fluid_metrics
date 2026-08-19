@@ -38,13 +38,6 @@ math:
   scale_dependent: true       # changes if both fields are scaled by the same constant
   resolution_dependent: true  # changes with the analysis-grid resolution
   complexity: "O(N)"          # in the number of grid cells
-# Where this metric is meaningful. This repository covers PDEs in general, so a metric
-# that only makes sense for one regime should say so.
-applicability:
-  regimes: [any]
-  data_requirements: []
-
-# BibTeX keys from this bundle's refs.bib, cited by card.md.
 references: []
 
 # Written by `python -m fmeval.cards sign <name> --by <who>`. Never edit by hand.

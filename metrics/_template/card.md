@@ -3,6 +3,11 @@ name: template_metric
 kind: metric
 ---
 
+**On length.** There are no word counts anywhere in this contract. Say what the section
+needs to say and stop: a short section that is complete is better than a padded one, and
+a reviewer reading the card is the judge, not a counter. If a section feels thin, the
+question is what a reader still does not know after reading it, not how many words it has.
+
 ## Definition
 
 TODO(fill) The exact definition, as numbered display equations. State the
@@ -81,7 +86,7 @@ and saying so here rather than only in Limitations is what makes this section ho
 
 ## Reading the output
 
-TODO(fill) At least 80 words, answering four questions in order. What is the range, and
+TODO(fill) Answer four questions, in order. What is the range, and
 what are the units? Is lower better, higher better, or is there a target value? What
 counts as a good value, and what does that depend on? And which comparisons are
 meaningful — across models, across resolutions, across datasets — and which of those are
@@ -89,7 +94,7 @@ invalid for this metric in particular?
 
 ## Limitations
 
-TODO(fill) At least 80 words. At least one concrete situation where this metric gives a
+TODO(fill) At least one concrete situation where this metric gives a
 misleading answer, described so precisely that a reader can recognise it in their own
 results. Saturation, blind spots, and any case where the number disagrees with what a
 person sees when they look at the two fields.
@@ -119,8 +124,9 @@ and `### Across the ladder` only if you have measurements for them.
 
 {{ include _generated/results_smoothing.md }}
 
-TODO(fill) At least 25 words on what the smoothing axes found. Say what the numbers show,
-not what you expected them to show.
+TODO(fill) What the smoothing axes found. Say what the numbers show, not what you
+expected them to show, and say it about this metric: what the run was is in the run
+summary above, and what the degradation does is in its own bundle.
 
 ### Spectral filtering
 
@@ -129,7 +135,7 @@ not what you expected them to show.
 
 {{ include _generated/results_spectral.md }}
 
-TODO(fill) At least 25 words on what the spectral axes found.
+TODO(fill) What the spectral axes found.
 
 ### Displacement
 
@@ -138,7 +144,7 @@ TODO(fill) At least 25 words on what the spectral axes found.
 
 {{ include _generated/results_geometric.md }}
 
-TODO(fill) At least 25 words on what the displacement axes found. This is where a
+TODO(fill) What the displacement axes found. This is where a
 pointwise norm is usually at its worst, so say how yours compares.
 
 ### Resolution loss
@@ -147,7 +153,7 @@ pointwise norm is usually at its worst, so say how yours compares.
 
 {{ include _generated/results_resolution.md }}
 
-TODO(fill) At least 25 words on what coarsening found.
+TODO(fill) What coarsening found.
 
 ### Noise
 
@@ -155,7 +161,7 @@ TODO(fill) At least 25 words on what coarsening found.
 
 {{ include _generated/results_stochastic.md }}
 
-TODO(fill) At least 25 words on what the noise axis found.
+TODO(fill) What the noise axis found.
 
 ### Canaries
 
@@ -164,7 +170,7 @@ TODO(fill) At least 25 words on what the noise axis found.
 
 {{ include _generated/results_canaries.md }}
 
-TODO(fill) At least 25 words. The phase-randomised impostor and the unrelated-field
+TODO(fill) The phase-randomised impostor and the unrelated-field
 anchor. State plainly what your metric does with them, including a canary it fails —
 that is information a reader needs, not a mark against the metric.
 
@@ -172,7 +178,7 @@ that is information a reader needs, not a mark against the metric.
 
 {{ include _generated/results_summary.md }}
 
-TODO(fill) At least 25 words on what holds across every axis: how this metric correlates
+TODO(fill) What holds across every axis: how this metric correlates
 with the controls, where it merely tracks them, and the situations in which someone
 should reach for it. Do not write a verdict; nothing in this repository passes or fails a
 metric.

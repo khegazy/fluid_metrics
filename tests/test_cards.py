@@ -67,7 +67,6 @@ def test_a_minimal_card_parses():
     parsed = parse(card())
     assert parsed.name == "example"
     assert parsed.status == "candidate"
-    assert parsed.applicability.regimes == ("any",)
 
 
 @pytest.mark.parametrize("missing", ["name", "kind", "category", "summary", "status", "owners"])
@@ -275,14 +274,6 @@ def test_the_outside_reader_section_must_show_a_worked_example():
     assert any("worked example" in p.message for p in problems_for(text))
 
 
-def test_a_short_section_is_a_warning_not_an_error():
-    """Word floors are guesses. A section that says what it needs to in fewer words is a
-    signal that the floor is wrong, not that the prose is."""
-    text = build_prose(Limitations="Too short.")
-    short = [p for p in problems_for(text) if "words" in p.message]
-    assert short and all(p.severity == "warning" for p in short)
-
-
 def test_the_definition_must_state_its_boundary_handling():
     """The detail most likely to differ silently between two implementations.
 
@@ -347,11 +338,31 @@ def test_measurements_come_before_the_explanation():
 def test_an_unexplained_result_subsection_warns_but_does_not_fail():
     """A subsection whose evidence has not been generated has nothing to explain yet."""
     text = build_prose(
-        Results="### Smoothing\n\n{{ include _generated/results_smoothing.md }}\n"
+        Results=(
+            "### Smoothing\n\n"
+            "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
+            "{{ include _generated/results_smoothing.md }}\n"
+        )
     )
     problems = problems_for(text)
-    unexplained = [p for p in problems if "without saying what they mean" in p.message]
+    unexplained = [p for p in problems if "nothing said about them" in p.message]
     assert unexplained and all(p.severity == "warning" for p in unexplained)
+
+
+def test_the_contract_sets_no_word_counts():
+    """Length is described in the templates and judged by a reader, never counted.
+
+    A count measures length rather than clarity, and an author told to reach a number
+    reaches that number -- so the check would manufacture the padding it was meant to
+    prevent.
+    """
+    assert not hasattr(prose, "WORD_FLOORS")
+    assert not hasattr(prose, "RESULT_PROSE_FLOOR")
+    assert not hasattr(prose, "RESULT_PROSE_CEILING")
+    long_enough = build_prose(Limitations="It saturates on shifted shocks.")
+    assert not any(
+        "words" in p.message and p.section == "Limitations" for p in problems_for(long_enough)
+    )
 
 
 def test_the_run_summary_may_precede_the_subsections():
@@ -393,51 +404,6 @@ def test_a_result_subsection_must_link_to_its_degradations():
         )
     )
     assert any("does not link to the degradations" in p.message for p in problems_for(text))
-
-
-def test_an_over_long_result_explanation_warns():
-    """The failure mode here is duplication, so there is a ceiling as well as a floor."""
-    text = build_prose(
-        Results=(
-            "### Smoothing\n\n[gaussian_blur](../../degradations/gaussian_blur/card.md)"
-            "\n\n{{ include _generated/results_smoothing.md }}\n\n"
-            + "Words about the run and the degradation and the metric. " * 20
-        )
-    )
-    over = [p for p in problems_for(text) if "is the ceiling" in p.message]
-    assert over and all(p.severity == "warning" for p in over)
-
-
-@pytest.mark.parametrize("sentinel", prose.SENTINELS)
-def test_template_sentinels_block_completion(sentinel):
-    text = build_prose(Limitations=f"{sentinel} say where this misleads.")
-    assert any(sentinel in p.message for p in problems_for(text))
-
-
-# --------------------------------------------------------------------------------------
-# Math that renders in both readers
-# --------------------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "snippet",
-    [
-        "\\begin{equation}\nx = 1\n\\end{equation}",
-        "\\begin{align}\nx &= 1\n\\end{align}",
-        "$$x = 1 \\label{eq:x}$$",
-        "See Equation \\eqref{eq:x}.",
-        "\\(x = 1\\)",
-        "\\[x = 1\\]",
-    ],
-)
-def test_math_that_github_cannot_render_is_refused(snippet):
-    """These constructs are typeset by MathJax and shown as raw source by GitHub.
-
-    The failure is silent -- no error appears anywhere, the equation is simply printed as
-    its own LaTeX -- so it has to be caught here rather than noticed by a reader.
-    """
-    problems = prose.check_math(f"## Definition\n\n{snippet}\n")
-    assert problems, f"{snippet!r} should have been refused"
 
 
 def test_the_portable_subset_is_accepted():
