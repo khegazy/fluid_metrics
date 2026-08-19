@@ -3,6 +3,47 @@ name: mse
 kind: metric
 ---
 
+## Definition
+
+For fields $f$ (reference) and $g$ (candidate) sampled on the same analysis grid, with $C$
+channels and $N$ cells per channel,
+
+$$
+\mathrm{MSE}(f, g) = \frac{1}{CN} \sum_{c=1}^{C} \sum_{i=1}^{N}
+\bigl( f_{c,i} - g_{c,i} \bigr)^2 \tag{1}
+$$
+
+The sum runs over all channels and all cells with equal weight, so for a vector field the
+components are pooled rather than reduced separately. The grid is uniform and the domain
+doubly periodic, so no boundary term and no cell-volume weighting appears; on a
+non-uniform grid Equation (1) would need cell volumes and would no longer be a plain
+mean.
+
+There is no boundary handling to state because the operation is local to each cell. This
+is exactly why the metric is cheap, and also why it can say nothing about position: no
+neighbourhood ever enters the calculation.
+
+The pointwise map that this repository stores alongside the scalar is the summand,
+
+$$
+m_i = \sum_{c=1}^{C} \bigl( f_{c,i} - g_{c,i} \bigr)^2 ,
+\qquad
+\mathrm{MSE} = \frac{1}{C} \, \langle m \rangle \tag{2}
+$$
+
+where the average is over cells. The declared reduction is the mean divided by the channel
+count, and a contract test checks that reducing the map reproduces the scalar.
+
+For a displacement $\delta$ small compared with the scale of variation, expanding
+$f(x + \delta) - f(x) \simeq \delta\, \partial_x f$ in Equation (1) gives the
+scaling that governs everything this metric does with shifted features:
+
+$$
+\mathrm{MSE} \simeq \delta^{2} \bigl\langle (\partial_x f)^2 \bigr\rangle ,
+\qquad
+\mathrm{MAE} \simeq \delta \bigl\langle |\partial_x f| \bigr\rangle \tag{3}
+$$
+
 ## Intuition
 
 Mean squared error compares two fields one cell at a time: subtract, square, average.
@@ -54,46 +95,23 @@ stand: the value is a mean over cells, so refining the grid changes the weight g
 small scales even when nothing about the prediction has changed. Compare on a common
 analysis grid, which is what this suite remaps onto before measuring.
 
-## Definition
+## Limitations
 
-For fields $f$ (reference) and $g$ (candidate) sampled on the same analysis grid, with $C$
-channels and $N$ cells per channel,
+The concrete situation to recognise is a model that reproduces the structure of a flow
+well but places it slightly wrong. Two candidates, one that predicts a shock of the right
+strength one cell from its true position and one that smears the same shock over four
+cells while keeping it centred, can receive similar mean squared errors even though a
+person looking at the two fields would not hesitate to prefer the first. Ranking such
+models by MSE therefore selects for smoothness. This is the mechanism behind the blurry
+outputs that regression losses are known to produce, and it is visible in the results
+here: the metric saturates slowly on displacement axes while responding immediately to
+blurring.
 
-$$
-\mathrm{MSE}(f, g) = \frac{1}{CN} \sum_{c=1}^{C} \sum_{i=1}^{N}
-\bigl( f_{c,i} - g_{c,i} \bigr)^2 \tag{1}
-$$
-
-The sum runs over all channels and all cells with equal weight, so for a vector field the
-components are pooled rather than reduced separately. The grid is uniform and the domain
-doubly periodic, so no boundary term and no cell-volume weighting appears; on a
-non-uniform grid Equation (1) would need cell volumes and would no longer be a plain
-mean.
-
-There is no boundary handling to state because the operation is local to each cell. This
-is exactly why the metric is cheap, and also why it can say nothing about position: no
-neighbourhood ever enters the calculation.
-
-The pointwise map that this repository stores alongside the scalar is the summand,
-
-$$
-m_i = \sum_{c=1}^{C} \bigl( f_{c,i} - g_{c,i} \bigr)^2 ,
-\qquad
-\mathrm{MSE} = \frac{1}{C} \, \langle m \rangle \tag{2}
-$$
-
-where the average is over cells. The declared reduction is the mean divided by the channel
-count, and a contract test checks that reducing the map reproduces the scalar.
-
-For a displacement $\delta$ small compared with the scale of variation, expanding
-$f(x + \delta) - f(x) \simeq \delta\, \partial_x f$ in Equation (1) gives the
-scaling that governs everything this metric does with shifted features:
-
-$$
-\mathrm{MSE} \simeq \delta^{2} \bigl\langle (\partial_x f)^2 \bigr\rangle ,
-\qquad
-\mathrm{MAE} \simeq \delta \bigl\langle |\partial_x f| \bigr\rangle \tag{3}
-$$
+Two further cautions. The value is not comparable across grid resolutions, because it is
+a mean over cells, so a run whose analysis grid differs is not comparable at all. And
+because the differences are squared, a single badly wrong cell can dominate the whole
+field; this is an advantage when outliers are what matters and a liability when they are
+an artefact of the reader or the remap.
 
 ## Evidence
 
@@ -130,24 +148,6 @@ Reach for MSE when the errors you care about are errors of amplitude — a model
 damps, that adds noise, that loses the small scales — and when you want a cheap,
 differentiable quantity with a long history behind its interpretation. Do not reach for it
 alone when position is what matters.
-
-## Limitations
-
-The concrete situation to recognise is a model that reproduces the structure of a flow
-well but places it slightly wrong. Two candidates, one that predicts a shock of the right
-strength one cell from its true position and one that smears the same shock over four
-cells while keeping it centred, can receive similar mean squared errors even though a
-person looking at the two fields would not hesitate to prefer the first. Ranking such
-models by MSE therefore selects for smoothness. This is the mechanism behind the blurry
-outputs that regression losses are known to produce, and it is visible in the results
-here: the metric saturates slowly on displacement axes while responding immediately to
-blurring.
-
-Two further cautions. The value is not comparable across grid resolutions, because it is
-a mean over cells, so a run whose analysis grid differs is not comparable at all. And
-because the differences are squared, a single badly wrong cell can dominate the whole
-field; this is an advantage when outliers are what matters and a liability when they are
-an artefact of the reader or the remap.
 
 ## References
 

@@ -3,13 +3,39 @@ name: template_metric
 kind: metric
 ---
 
+## Definition
+
+TODO(fill) The exact definition, as numbered display equations. State the discretisation
+and how boundaries are handled — those are part of the metric, not an implementation
+detail. Cite sources as `[@bibkey]` and put the entry in this bundle's `refs.bib`,
+including the equation number you took.
+
+**Write the maths like this, and only like this.** A card is read both on GitHub and on
+the documentation site, and only this subset renders in both. Anything else is shown by
+GitHub as its own raw source, with no error reported anywhere, so the checker refuses it:
+
+```
+inline      $ ... $
+display     $$ ... $$        delimiters alone on their own lines
+numbering   \tag{1}          referred to in prose as "Equation (1)"
+```
+
+Do not use `\begin{equation}`, `\label` or `\eqref`: those need a full LaTeX toolchain
+and degrade silently. An example of the expected form:
+
+$$
+\mathrm{METRIC}(f, g) = \frac{1}{N} \sum_{i=1}^{N} \bigl( f_i - g_i \bigr)^2 \tag{1}
+$$
+
+and then refer to it as Equation (1) in the prose.
+
 ## Intuition
 
 TODO(fill) Written for an early graduate student in any STEM field — someone comfortable
 with means, variances and fields, but who may never have opened a fluid simulation and
 should not have to know this project's vocabulary. **No mathematical notation at all in
 this section** — the checker rejects dollar signs and LaTeX delimiters, so describe the
-idea in words and keep the equations for the Definition section below.
+idea in words; the equations belong in the Definition section above.
 
 Be direct and be brief. State what the metric computes and what that implies; do not
 build up to it through an extended analogy, and do not explain what the reader already
@@ -47,31 +73,12 @@ counts as a good value, and what does that depend on? And which comparisons are
 meaningful — across models, across resolutions, across datasets — and which of those are
 invalid for this metric in particular?
 
-## Definition
+## Limitations
 
-TODO(fill) The exact definition, as numbered display equations. State the discretisation
-and how boundaries are handled — those are part of the metric, not an implementation
-detail. Cite sources as `[@bibkey]` and put the entry in this bundle's `refs.bib`,
-including the equation number you took.
-
-**Write the maths like this, and only like this.** A card is read both on GitHub and on
-the documentation site, and only this subset renders in both. Anything else is shown by
-GitHub as its own raw source, with no error reported anywhere, so the checker refuses it:
-
-```
-inline      $ ... $
-display     $$ ... $$        delimiters alone on their own lines
-numbering   \tag{1}          referred to in prose as "Equation (1)"
-```
-
-Do not use `\begin{equation}`, `\label` or `\eqref`: those need a full LaTeX toolchain
-and degrade silently. An example of the expected form:
-
-$$
-\mathrm{METRIC}(f, g) = \frac{1}{N} \sum_{i=1}^{N} \bigl( f_i - g_i \bigr)^2 \tag{1}
-$$
-
-and then refer to it as Equation (1) in the prose.
+TODO(fill) At least 80 words. At least one concrete situation where this metric gives a
+misleading answer, described so precisely that a reader can recognise it in their own
+results. Saturation, blind spots, and any case where the number disagrees with what a
+person sees when they look at the two fields.
 
 ## Evidence
 
@@ -85,13 +92,6 @@ simply tracks them. State plainly what it is blind to, including any canary it f
 that is information a reader needs, not a mark against the metric. Finish with the
 situations in which someone should reach for this metric. Do not write a verdict; nothing
 in this repository passes or fails a metric.
-
-## Limitations
-
-TODO(fill) At least 80 words. At least one concrete situation where this metric gives a
-misleading answer, described so precisely that a reader can recognise it in their own
-results. Saturation, blind spots, and any case where the number disagrees with what a
-person sees when they look at the two fields.
 
 ## References
 

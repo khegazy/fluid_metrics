@@ -218,13 +218,39 @@ def test_a_missing_section_is_named():
 
 def test_sections_must_be_in_the_fixed_order():
     text = build_prose()
-    intuition = text.index("## Intuition")
-    reading = text.index("## Reading the output")
-    definition = text.index("## Definition")
-    swapped = (
-        text[:intuition] + text[reading:definition] + text[intuition:reading] + text[definition:]
-    )
+    first, second, third = prose.METRIC_SECTIONS[:3]
+    a, b, c = (text.index(f"## {s}") for s in (first, second, third))
+    swapped = text[:a] + text[b:c] + text[a:b] + text[c:]
     assert any("out of order" in p.message for p in problems_for(swapped))
+
+
+def test_the_declared_order_is_the_one_the_cards_use():
+    """The order is a decision, so it is written down once and asserted here.
+
+    Definition first: the equation is the thing being documented, and every later section
+    is commentary on it. The account of the metric itself finishes with Limitations, and
+    only then does the card turn to what this repository measured -- so a reader adopting
+    the metric elsewhere can stop after Limitations and have everything that holds
+    independently of our runs.
+    """
+    assert prose.METRIC_SECTIONS == (
+        "Definition",
+        "Intuition",
+        "Reading the output",
+        "Limitations",
+        "Evidence",
+        "Assessment",
+        "References",
+    )
+    assert prose.DEGRADATION_SECTIONS == (
+        "Definition",
+        "Intuition",
+        "Severity scale",
+        "Limitations",
+        "Exemplars",
+        "What to look for",
+        "References",
+    )
 
 
 def test_the_outside_reader_section_may_not_contain_notation():

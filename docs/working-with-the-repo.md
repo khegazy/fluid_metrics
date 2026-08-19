@@ -138,6 +138,22 @@ Seven sections each for a metric and a degradation, in a fixed order, all requir
 exist so that three different readers each get what they need: an early graduate student
 from any STEM field, a domain expert, and a coding agent.
 
+The order runs from what the metric *is* to what it *did here*:
+
+```
+Definition -> Intuition -> Reading the output -> Limitations -> Evidence -> Assessment
+```
+
+Definition opens because the equation is the thing being documented and everything after
+it is commentary on that equation. Intuition restates it in words, then Reading the output
+and Limitations finish the account of the metric itself — how to interpret a value, and
+where a value misleads. Only then does the card turn to this repository's measurements:
+Evidence is generated from the canonical run, and Assessment interprets it. That break
+matters if you are adopting a metric elsewhere — the first four sections hold for any
+dataset, the last two are findings about our run. Degradation cards follow the same shape,
+with Severity scale in place of Reading the output and Exemplars and What to look for in
+place of Evidence and Assessment.
+
 The two sections people most often get wrong:
 
 **`## Intuition`** explains the metric. Open with what it measures and which way of being

@@ -31,15 +31,26 @@ import re
 from dataclasses import dataclass
 
 METRIC_SECTIONS: tuple[str, ...] = (
+    "Definition",
     "Intuition",
     "Reading the output",
-    "Definition",
+    "Limitations",
     "Evidence",
     "Assessment",
-    "Limitations",
     "References",
 )
 """Required H2 headings of a metric card, in the order they must appear.
+
+The order moves from what the metric *is* to what it *did here*. ``Definition`` opens,
+because the equation is the thing being documented and everything after it is commentary
+on that equation. ``Intuition`` then says the same thing in words, and ``Reading the
+output`` and ``Limitations`` complete the account of the metric itself -- how to
+interpret a value, and where a value misleads. Only then does the card turn to this
+repository's measurements: ``Evidence`` is generated, and ``Assessment`` interprets it.
+
+The split matters for reuse. A reader adopting this metric in another project needs the
+first four sections and nothing else; they hold for any dataset. The last two are
+findings about the canonical run and change when it does.
 
 ``Assessment`` is deliberately not called "Verdict". A verdict invites a yes or a no, and
 no metric here earns one: the useful thing to record is what this metric sees, what it
@@ -48,12 +59,12 @@ question they are asking.
 """
 
 DEGRADATION_SECTIONS: tuple[str, ...] = (
-    "Intuition",
     "Definition",
+    "Intuition",
     "Severity scale",
+    "Limitations",
     "Exemplars",
     "What to look for",
-    "Limitations",
     "References",
 )
 """Required H2 headings of a degradation card, in order.

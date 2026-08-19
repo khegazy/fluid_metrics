@@ -3,6 +3,19 @@ name: template_degradation
 kind: degradation
 ---
 
+## Definition
+
+TODO(fill) Exactly what is computed, as numbered display equations. State the
+discretisation, the kernel or filter shape, and how the boundaries are handled — this
+domain is periodic, and whether an operator respects that changes what it measures. Cite
+sources as `[@bibkey]` with the entry in this bundle's `refs.bib`.
+
+**Write the maths like this, and only like this** — inline `$ ... $`, display `$$ ... $$`
+with the delimiters alone on their own lines, and `\tag{1}` for numbering, referred to in
+prose as "Equation (1)". A card is read both on GitHub and on the documentation site, and
+only this subset renders in both; `\begin{equation}`, `\label` and `\eqref` are shown by
+GitHub as raw source with no error reported, so the checker refuses them.
+
 ## Intuition
 
 TODO(fill) For an early graduate student in any STEM field, with no mathematical notation
@@ -24,19 +37,6 @@ before           after
 Finish with one sentence on what this degradation leaves untouched, because that is
 usually what makes it a useful test.
 
-## Definition
-
-TODO(fill) Exactly what is computed, as numbered display equations. State the
-discretisation, the kernel or filter shape, and how the boundaries are handled — this
-domain is periodic, and whether an operator respects that changes what it measures. Cite
-sources as `[@bibkey]` with the entry in this bundle's `refs.bib`.
-
-**Write the maths like this, and only like this** — inline `$ ... $`, display `$$ ... $$`
-with the delimiters alone on their own lines, and `\tag{1}` for numbering, referred to in
-prose as "Equation (1)". A card is read both on GitHub and on the documentation site, and
-only this subset renders in both; `\begin{equation}`, `\label` and `\eqref` are shown by
-GitHub as raw source with no error reported, so the checker refuses them.
-
 ## Severity scale
 
 TODO(fill) At least 40 words. What are the physical units of the severity number, and
@@ -44,6 +44,13 @@ what does each step of the ladder correspond to? If the severity is calibrated r
 than absolute — a fraction of the field's characteristic scale, or of the energy a filter
 removes — say so, and say what that means for comparing it across fields, because the
 number applied to density and the number applied to vorticity will differ.
+
+## Limitations
+
+TODO(fill) At least 80 words. Where this degradation is not a fair stand-in for the
+failure it imitates, where its severities stop being distinguishable, and any field whose
+spectrum cannot resolve the whole ladder. If a severity level can collapse onto a milder
+one or onto a no-op, say under what conditions.
 
 ## Exemplars
 
@@ -56,13 +63,6 @@ itself. Say what changes between the weak and the strong columns, which diagnost
 makes it visible, and what a reader should check first. If the effect is invisible in the
 field images and only shows up in one of the other rows, say that explicitly — that is
 exactly the situation a reader will otherwise misread.
-
-## Limitations
-
-TODO(fill) At least 80 words. Where this degradation is not a fair stand-in for the
-failure it imitates, where its severities stop being distinguishable, and any field whose
-spectrum cannot resolve the whole ladder. If a severity level can collapse onto a milder
-one or onto a no-op, say under what conditions.
 
 ## References
 
