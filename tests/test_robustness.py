@@ -560,3 +560,78 @@ def test_the_displacement_figure_declines_rather_than_crashes_without_damage():
         f"renderer(s) raised on a metric with no dynamic range: {errored}. "
         "AGENTS.md section 6 requires unavailability to be declared with ctx.require."
     )
+
+
+# --------------------------------------------------------------------------------------
+# A broken operator must stop the run, not quietly shrink the ladder
+# --------------------------------------------------------------------------------------
+
+
+def test_a_broken_operator_stops_the_run_rather_than_dropping_its_axis():
+    """A defect in an operator is not the same as a severity this grid cannot support.
+
+    Dropping an unsupported severity is right: it is one missing experiment and the rest
+    are still worth having. Dropping a *broken* operator is wrong, because the run then
+    completes, reports fewer rows, and gives a reader no reason to suspect an axis is
+    missing rather than merely quiet.
+
+    This is not hypothetical. Splitting the degradation modules into bundles dropped two
+    private helpers that three operators needed, and the NameError was reported as
+    "cannot run on the 16-cell analysis grid; raise analysis_grid.resolution" -- pointing
+    at a knob with nothing to do with it. The run finished with 630 rows missing.
+    """
+    import numpy as np
+
+    from degradations import registry as deg
+    from fmeval import ladder, pipeline
+    from fmeval.calibration import calibrate
+    from fmeval.data.base import Frame, GridSpec
+
+    deg.discover()
+
+    @deg.degradation(name="_broken_for_test", family="smoothing",
+                     severity_name="width", severity_units="cells")
+    def _broken_for_test(x, severity, *, ctx):
+        return _missing_helper(x, severity)   # noqa: F821
+
+    try:
+        grid = GridSpec(shape=(16, 16), spacing=(1.0, 1.0), periodic=(True, True))
+        data = np.random.default_rng(0).normal(size=(1, 16, 16))
+        frame = Frame(index=0, time=0.0, grid=grid, fields={"vorticity": data})
+        calibration = calibrate({"vorticity": [data]}, grid, ["vorticity"])
+        levels = ladder.build_ladder({"_broken_for_test": {"severities": [1.0]}})
+
+        with pytest.raises(RuntimeError, match="operator is broken"):
+            pipeline._runnable_levels(levels, frame, ["vorticity"], seed=1,
+                                      calibration=calibration, analysis_grid=16)
+    finally:
+        deg.REGISTRY.pop("_broken_for_test", None)
+
+
+def test_a_severity_the_grid_cannot_support_is_still_dropped_with_a_warning(caplog):
+    """The legitimate case still behaves as before: warn, drop, and carry on.
+
+    Coarsening by a factor that does not divide the grid is a limit of this run's
+    configuration, not a defect, so the other severities are still worth measuring.
+    """
+    import logging
+
+    import numpy as np
+
+    from fmeval import ladder, pipeline
+    from fmeval.calibration import calibrate
+    from fmeval.data.base import Frame, GridSpec
+
+    grid = GridSpec(shape=(8, 8), spacing=(1.0, 1.0), periodic=(True, True))
+    data = np.random.default_rng(0).normal(size=(1, 8, 8))
+    frame = Frame(index=0, time=0.0, grid=grid, fields={"vorticity": data})
+    calibration = calibrate({"vorticity": [data]}, grid, ["vorticity"])
+    levels = ladder.build_ladder({"coarsen": {"severities": [2.0, 16.0]}})
+
+    with caplog.at_level(logging.WARNING):
+        kept = pipeline._runnable_levels(levels, frame, ["vorticity"], seed=1,
+                                         calibration=calibration, analysis_grid=8)
+
+    assert [level.severity for level in kept if level.label == "coarsen"] == [2.0]
+    assert any("cannot run on the 8-cell analysis grid" in r.message for r in caplog.records)
+    assert any("will not appear in the results" in r.message for r in caplog.records)

@@ -433,6 +433,26 @@ def _map_frames(maps: MapRequest, indices: np.ndarray) -> set[int]:
     return out
 
 
+_OPERATOR_DEFECTS = (NameError, AttributeError, ImportError, TypeError)
+"""Exception types that mean the operator is broken rather than unsupported here.
+
+:func:`_runnable_levels` drops a severity level it cannot apply, which is right when the
+analysis grid is too small for the severity asked of it -- that is one missing experiment,
+not a reason to discard the others. It is wrong when the operator itself is defective:
+the run then completes, reports fewer rows, and says nothing that would make a reader
+suspect an axis is missing rather than merely quiet.
+
+That happened. Splitting the degradation modules into bundles dropped two private helpers
+that three operators depended on, and the resulting NameError was reported as "cannot run
+on the 16-cell analysis grid; raise analysis_grid.resolution" -- advice pointing at a knob
+that had nothing to do with it. The run finished with 630 rows missing.
+
+A NameError, AttributeError, ImportError or TypeError is a defect in the code, so it stops
+the run. Anything else is treated as a limit of this grid and drops the level with a
+warning, as before.
+"""
+
+
 def _runnable_levels(
     severity_levels: Sequence[SeverityLevel],
     probe: Frame,
@@ -460,18 +480,36 @@ def _runnable_levels(
         ValueError: If no severity level survives, since there is then nothing to measure.
     """
     keep: list[SeverityLevel] = []
+    dropped: list[str] = []
     for severity_level in severity_levels:
         try:
             apply_severity_level(severity_level, probe, fields, seed=seed, calibration=calibration)
-        except Exception as exc:  # noqa: BLE001 - any failure means the severity level cannot run here
+        except _OPERATOR_DEFECTS as exc:
+            raise RuntimeError(
+                f"the {severity_level.label!r} operator is broken: {type(exc).__name__}: {exc}.\n"
+                "This is a defect in the operator rather than a severity the analysis grid "
+                "cannot support, so the run stops here rather than quietly measuring one "
+                "axis fewer. Fix the operator, or remove it from the ladder with "
+                f"degradation.skip=[{severity_level.label}] if that is deliberate."
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - the severity itself cannot run here
             log.warning(
                 "dropping %s level %d (%s = %g): it cannot run on the %d-cell analysis grid "
                 "(%s). Raise analysis_grid.resolution or lower this severity.",
                 severity_level.label, severity_level.level, severity_level.severity_name, severity_level.severity,
                 analysis_grid, exc,
             )
+            dropped.append(f"{severity_level.label} level {severity_level.level}")
             continue
         keep.append(severity_level)
+
+    # One line naming the total, because a per-level warning scrolls past in a long run and
+    # a reader comparing two runs needs to see that they measured different ladders.
+    if dropped:
+        log.warning(
+            "%d of %d severity levels were dropped and will not appear in the results: %s",
+            len(dropped), len(severity_levels), ", ".join(dropped),
+        )
 
     if not keep:
         raise ValueError(
