@@ -5,10 +5,11 @@ kind: metric
 
 ## Definition
 
-TODO(fill) The exact definition, as numbered display equations. State the discretisation
-and how boundaries are handled — those are part of the metric, not an implementation
-detail. Cite sources as `[@bibkey]` and put the entry in this bundle's `refs.bib`,
-including the equation number you took.
+TODO(fill) The exact definition, as numbered display equations. State the
+discretisation — it is part of the metric, not an implementation detail. Say what is not
+deducible from the equation itself, and do not restate what is: that a sum runs over the
+indices it is written with is not worth a sentence. Cite sources as `[@bibkey]` and put
+the entry in this bundle's `refs.bib`, including the equation number you took.
 
 **Write the maths like this, and only like this.** A card is read both on GitHub and on
 the documentation site, and only this subset renders in both. Anything else is shown by
@@ -28,6 +29,15 @@ $$
 $$
 
 and then refer to it as Equation (1) in the prose.
+
+### Boundary handling
+
+TODO(fill) Required, and "None." is a valid answer. If the calculation never looks beyond
+a single cell, write `None.` and one clause saying so. If it does consult a neighbourhood
+— a stencil, a convolution, a transform — say exactly what happens at the edge of the
+domain: periodic wrap, reflection, zero padding, or edge cells dropped. Two
+implementations of the same formula that differ only here produce different numbers, and
+a reader has no way to tell which you used unless you write it down.
 
 ## Intuition
 

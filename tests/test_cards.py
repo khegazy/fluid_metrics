@@ -191,6 +191,10 @@ def build_prose(name="example", **bodies):
         + "\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n"
         + "It ignores where a feature sits."
     )
+    defaults["Definition"] = (
+        "Body for Definition. " * 20
+        + "\n\n### Boundary handling\n\nNone. The operation is local to each cell."
+    )
     defaults["Evidence"] = "{{ include _generated/evidence.md }}"
     defaults["References"] = "\\bibliography"
     defaults.update(bodies)
@@ -271,6 +275,27 @@ def test_a_short_section_is_a_warning_not_an_error():
     text = build_prose(Limitations="Too short.")
     short = [p for p in problems_for(text) if "words" in p.message]
     assert short and all(p.severity == "warning" for p in short)
+
+
+def test_the_definition_must_state_its_boundary_handling():
+    """The detail most likely to differ silently between two implementations.
+
+    Periodic wrap, reflection, zero padding and dropping the edge give different numbers
+    from the same formula, and a reader comparing across projects cannot tell which was
+    used. Silence and "none" look identical; only one of them is a claim.
+    """
+    text = build_prose(Definition="An equation and some words about it. " * 10)
+    assert any("Boundary handling" in p.message for p in problems_for(text))
+
+
+def test_none_is_an_acceptable_boundary_answer():
+    text = build_prose(
+        Definition=(
+            "An equation and some words about it. " * 10
+            + "\n\n### Boundary handling\n\nNone. The operation is local to each cell."
+        )
+    )
+    assert not any("Boundary handling" in p.message for p in problems_for(text))
 
 
 def test_a_hand_written_evidence_section_is_refused():

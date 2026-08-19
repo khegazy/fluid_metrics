@@ -154,6 +154,16 @@ dataset, the last two are findings about our run. Degradation cards follow the s
 with Severity scale in place of Reading the output and Exemplars and What to look for in
 place of Evidence and Assessment.
 
+`## Definition` must contain a `### Boundary handling` subsection, and the checker
+enforces it. `None.` is a fine answer — write it, with one clause saying why, rather than
+leaving it out. A pointwise metric consults no neighbourhood and so has no boundary to
+handle; anything with a stencil, a convolution or a transform does, and periodic wrap,
+reflection and zero padding give different numbers from the same formula. Silence and
+"none" look identical to a reader, and only one of them is a claim.
+
+Keep the Definition to what the equation does not already say. That a sum runs over the
+indices it is written with does not need a sentence.
+
 The two sections people most often get wrong:
 
 **`## Intuition`** explains the metric. Open with what it measures and which way of being

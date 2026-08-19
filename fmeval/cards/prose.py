@@ -74,6 +74,20 @@ does not explain itself; this section says, in plain language, what changes betw
 weak and strong columns and which diagnostic row reveals it.
 """
 
+REQUIRED_SUBSECTIONS: dict[str, str] = {"Definition": "Boundary handling"}
+"""H3 subsections a section must contain, as ``section -> subsection``.
+
+Boundary handling is required because it is the detail most often left unstated and most
+likely to differ silently between two implementations of the same formula. Periodic wrap,
+reflection, zero padding and simply ignoring the edge give different numbers on the same
+field, and a reader comparing results across projects has no way to tell which was used
+unless it is written down.
+
+"None" is a perfectly good answer and the common one for pointwise metrics -- but it has
+to be said, with the reason, rather than left to be inferred from silence. An empty
+statement and an absent one look identical to a reader; only one of them is a claim.
+"""
+
 GENERATED_SECTIONS = frozenset({"Evidence", "Exemplars"})
 """Sections whose body is written by a generator and must not be typed by hand."""
 
@@ -305,6 +319,23 @@ def check_prose(text: str, *, kind: str, name: str) -> list[Problem]:
             )
 
     problems.extend(check_math(text))
+
+    for section, subsection in REQUIRED_SUBSECTIONS.items():
+        if section not in required:
+            continue
+        body = split_sections(text).get(section, "")
+        if f"### {subsection}" not in body:
+            problems.append(
+                Problem(
+                    section,
+                    f"no '### {subsection}' subsection. This is the detail most often "
+                    "left unstated and most likely to differ between implementations of "
+                    "the same formula.",
+                    f"add '### {subsection}' to ## {section}. If there is none, write "
+                    "'None.' and one clause saying why -- for a pointwise metric, that "
+                    "no neighbourhood is ever consulted",
+                )
+            )
 
     sections = split_sections(text)
     present = [s for s in sections if s in required]

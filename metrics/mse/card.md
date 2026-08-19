@@ -13,15 +13,9 @@ $$
 \bigl( f_{c,i} - g_{c,i} \bigr)^2 \tag{1}
 $$
 
-The sum runs over all channels and all cells with equal weight, so for a vector field the
-components are pooled rather than reduced separately. The grid is uniform and the domain
-doubly periodic, so no boundary term and no cell-volume weighting appears; on a
-non-uniform grid Equation (1) would need cell volumes and would no longer be a plain
-mean.
-
-There is no boundary handling to state because the operation is local to each cell. This
-is exactly why the metric is cheap, and also why it can say nothing about position: no
-neighbourhood ever enters the calculation.
+For a vector field the channels are pooled rather than reduced separately. The analysis
+grid is uniform, so cells carry equal weight; on a non-uniform grid Equation (1) would
+need cell volumes and would no longer be a plain mean.
 
 The pointwise map that this repository stores alongside the scalar is the summand,
 
@@ -31,8 +25,8 @@ m_i = \sum_{c=1}^{C} \bigl( f_{c,i} - g_{c,i} \bigr)^2 ,
 \mathrm{MSE} = \frac{1}{C} \, \langle m \rangle \tag{2}
 $$
 
-where the average is over cells. The declared reduction is the mean divided by the channel
-count, and a contract test checks that reducing the map reproduces the scalar.
+The declared reduction is the mean divided by the channel count, and a contract test
+checks that reducing the map reproduces the scalar.
 
 For a displacement $\delta$ small compared with the scale of variation, expanding
 $f(x + \delta) - f(x) \simeq \delta\, \partial_x f$ in Equation (1) gives the
@@ -43,6 +37,11 @@ $$
 \qquad
 \mathrm{MAE} \simeq \delta \bigl\langle |\partial_x f| \bigr\rangle \tag{3}
 $$
+
+### Boundary handling
+
+None. The operation is local to each cell, so no neighbourhood is ever consulted and no
+boundary condition can enter.
 
 ## Intuition
 

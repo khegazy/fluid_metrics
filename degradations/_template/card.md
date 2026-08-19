@@ -6,15 +6,21 @@ kind: degradation
 ## Definition
 
 TODO(fill) Exactly what is computed, as numbered display equations. State the
-discretisation, the kernel or filter shape, and how the boundaries are handled — this
-domain is periodic, and whether an operator respects that changes what it measures. Cite
-sources as `[@bibkey]` with the entry in this bundle's `refs.bib`.
+discretisation and the kernel or filter shape. Say what is not deducible from the
+equation itself, and do not restate what is.
 
 **Write the maths like this, and only like this** — inline `$ ... $`, display `$$ ... $$`
 with the delimiters alone on their own lines, and `\tag{1}` for numbering, referred to in
 prose as "Equation (1)". A card is read both on GitHub and on the documentation site, and
 only this subset renders in both; `\begin{equation}`, `\label` and `\eqref` are shown by
 GitHub as raw source with no error reported, so the checker refuses them.
+
+### Boundary handling
+
+TODO(fill) Required. This domain is doubly periodic, and whether your operator respects
+that changes what it measures — a convolution that wraps and one that pads with zeros
+disagree along every edge. Say which yours does. If the operator is pointwise and never
+looks beyond a single cell, write `None.` and say so.
 
 ## Intuition
 
