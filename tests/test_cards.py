@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import sys
 import pathlib
 import re
 
@@ -21,6 +22,8 @@ import pytest
 import yaml
 
 from fmeval.cards import loader, prose, review
+
+REPO = pathlib.Path(__file__).resolve().parent.parent
 from fmeval.cards.schema import SCHEMA_VERSION, CardError, parse_card
 
 # --------------------------------------------------------------------------------------
@@ -790,3 +793,44 @@ def test_the_catalog_supports_the_query_it_exists_for():
         and e["evidence"]["measured"]
     ]
     assert set(answer) == {"mae", "mse", "rmse", "nrmse", "enstrophy", "kinetic_energy"}
+
+
+# --------------------------------------------------------------------------------------
+# The site
+# --------------------------------------------------------------------------------------
+
+
+def test_the_committed_catalog_matches_the_bundles():
+    """`docs/catalog.json` is generated and committed, so it can go stale.
+
+    CI rebuilds and diffs it; this fails locally first, which is where it is cheaper to
+    notice.
+    """
+    from fmeval.cards.catalog import build
+
+    committed = json.loads((REPO / "docs" / "catalog.json").read_text())
+    assert committed == build(), (
+        "docs/catalog.json is stale; run  python -m fmeval.cards catalog"
+    )
+
+
+@pytest.mark.slow
+def test_the_site_builds_without_the_dataset(tmp_path):
+    """The site must build on a machine with no CFS mount.
+
+    Everything it needs -- cards, figures, fingerprints -- is committed, and the page
+    generator reads those rather than running anything. If that stops being true the site
+    becomes unbuildable by anyone without NERSC access, and CI is the first to find out.
+    """
+    import subprocess
+
+    pytest.importorskip("mkdocs", reason="the docs toolchain is not installed")
+    result = subprocess.run(
+        [sys.executable, "-m", "mkdocs", "build", "--strict", "--site-dir", str(tmp_path)],
+        cwd=REPO, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr[-3000:]
+    assert (tmp_path / "catalog.json").is_file(), "the machine surface is missing"
+    assert (tmp_path / "llms.txt").is_file()
+    assert (tmp_path / "metrics" / "mse" / "index.html").is_file()
+    assert (tmp_path / "degradations" / "gallery" / "index.html").is_file()
