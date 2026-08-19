@@ -225,14 +225,14 @@ def test_sections_must_be_in_the_fixed_order():
     assert any("out of order" in p.message for p in problems_for(swapped))
 
 
-def test_the_undergraduate_section_may_not_contain_notation():
+def test_the_outside_reader_section_may_not_contain_notation():
     """Intuition is the one section a reader from another field is guaranteed to read."""
     text = build_prose(Intuition="The error is $\\sum (a-b)^2$ over cells. " * 30
                        + "\n\n```\n1 2\n```\n")
     assert any("mathematical notation" in p.message for p in problems_for(text))
 
 
-def test_the_undergraduate_section_must_show_a_worked_example():
+def test_the_outside_reader_section_must_show_a_worked_example():
     text = build_prose(Intuition="Words about the idea, but no numbers anywhere. " * 30)
     assert any("worked example" in p.message for p in problems_for(text))
 

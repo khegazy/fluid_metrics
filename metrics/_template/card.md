@@ -12,18 +12,23 @@ it as an argument rather than a description.
 
 ## Intuition
 
-TODO(fill) Written for a STEM undergraduate from any field — someone who may work in
-chemistry or biology and has never opened a fluid simulation. **No mathematical notation
-at all in this section** — the checker rejects dollar signs and LaTeX delimiters, so
-describe the idea in words and keep the equations for the Definition section below.
-Three things must be here:
+TODO(fill) Written for an early graduate student in any STEM field — someone comfortable
+with means, variances and fields, but who may never have opened a fluid simulation and
+should not have to know this project's vocabulary. **No mathematical notation at all in
+this section** — the checker rejects dollar signs and LaTeX delimiters, so describe the
+idea in words and keep the equations for the Definition section below.
 
-First, a physical picture or analogy, stated without symbols, that gets the idea across.
+Be direct and be brief. State what the metric computes and what that implies; do not
+build up to it through an extended analogy, and do not explain what the reader already
+knows. Three things must be here:
 
-Second, a worked example with real numbers. Two small fields, four by four is ideal, the
-value this metric returns for them, and one sentence on why that number comes out. The
-numbers must come from actually running the metric — put the same example in
-`test_metric.py` so it cannot drift.
+First, the idea itself, in words, including the mechanism behind its characteristic
+behaviour.
+
+Second, a compact worked example with real numbers — two small fields, four by four is
+ideal, the value this metric returns, and one sentence on why. The numbers must come from
+actually running the metric — put the same example in `test_metric.py` so it cannot
+drift.
 
 ```
 reference        candidate        result

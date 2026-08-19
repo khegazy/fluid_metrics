@@ -15,19 +15,17 @@ a candidate's improvement be stated as a number rather than asserted.
 
 ## Intuition
 
-Think of two photographs of the same scene, and a machine that can only compare them by
-laying one on top of the other and measuring, at each point, how different the two
-brightnesses are. It never steps back to look at the shapes. If the second photograph is
-identical but shifted by a hair, the machine reports a large disagreement, because at the
-edge of every object it now finds bright where it expected dark and dark where it expected
-bright. If instead the second photograph is perfectly aligned but slightly washed out, the
-machine reports a small disagreement, because nothing moved. That is mean squared error:
-it takes every difference, squares it so that large errors dominate and signs cannot
-cancel, and averages.
+Mean squared error compares two fields one cell at a time: subtract, square, average.
+Squaring keeps errors of opposite sign from cancelling and makes the largest local errors
+dominate the total. Nothing in the calculation ever looks at more than one cell, so the
+metric carries no notion of shape or position — it sees a bag of per-cell differences,
+not a picture.
 
-Here is the whole thing on a four-by-four grid. The reference has a small bright square.
-One candidate has moved it one cell to the right; the other has left it where it is but
-halved its brightness.
+That locality produces its characteristic failure. A feature with the right shape and
+strength but slightly displaced is wrong twice — once in the cells it left, once in the
+cells it entered — while a feature in the right place with reduced amplitude is wrong
+only once, and only by the amount reduced. On a four-by-four grid, with a candidate that
+moved the square one cell and another that halved its brightness:
 
 ```
 reference        moved one cell    half brightness
@@ -39,16 +37,12 @@ reference        moved one cell    half brightness
                  mse = 0.25        mse = 0.0625
 ```
 
-The candidate that kept the shape and the strength perfectly, and only moved it, scores
-four times worse than the one that lost half its amplitude. Looking at where the error
-sits explains why: the moved candidate is wrong in two places at once, the column it
-vacated and the column it invaded, while the column where the two overlap contributes
-nothing at all. That doubling is what "double penalty" names.
+The candidate that preserved the feature and only moved it scores four times worse. This
+is the double penalty, and it is why a pointwise norm misjudges sharp features that are
+nearly in the right place.
 
-What it ignores is the arrangement of the errors. Mean squared error sees a bag of
-per-cell differences and nothing about how they are laid out, so an error concentrated at
-one sharp front and the same total error scattered as noise across the domain are the same
-number to it.
+What it ignores is the arrangement of the errors: one error concentrated at a sharp front
+and the same total error scattered as noise across the domain are the same number.
 
 ## Reading the output
 

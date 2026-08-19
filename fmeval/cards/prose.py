@@ -3,8 +3,10 @@
 The prose half of a card is written for three readers at once, and the sections exist to
 stop any one of them being forgotten:
 
-* a **STEM undergraduate from any field**, who should finish ``## Intuition`` knowing why
-  the test matters and what its number means, without a background in fluids or ML;
+* an **early graduate student in any STEM field**, who should finish ``## Intuition``
+  knowing why the test matters and what its number means, without a background in fluids
+  or ML -- and without being walked through it: state the idea directly, keep any example
+  compact, and trust the reader with everything except the jargon;
 * a **domain expert**, who needs the definition, the discretisation and the failure modes;
 * a **coding agent**, which needs the structure to be predictable enough that it never has
   to guess where something is.
@@ -68,7 +70,7 @@ GENERATED_SECTIONS = frozenset({"Evidence", "Exemplars"})
 
 WORD_FLOORS: dict[str, int] = {
     "Claim": 40,
-    "Intuition": 120,
+    "Intuition": 70,
     "Reading the output": 80,
     "Assessment": 60,
     "Limitations": 80,
@@ -77,7 +79,8 @@ WORD_FLOORS: dict[str, int] = {
 }
 
 NO_MATH_SECTIONS = frozenset({"Intuition", "What to look for"})
-"""Sections an undergraduate must be able to read, so notation is not allowed in them."""
+"""Sections a reader from outside the field must be able to follow, so notation is not
+allowed in them. The audience is an early graduate student: avoid jargon, not rigor."""
 
 SENTINELS = ("TODO(fill)", "TODO(cite)")
 """Markers a template leaves behind. Both must be gone before a card is complete.

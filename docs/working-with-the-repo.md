@@ -134,14 +134,16 @@ what to type to fix it.
 
 ### `card.md` — your argument, in prose
 
-Nine sections for a metric, eight for a degradation, in a fixed order, all required. They
-exist so that three different readers each get what they need: a STEM undergraduate from
-any field, a domain expert, and a coding agent.
+Eight sections each for a metric and a degradation, in a fixed order, all required. They
+exist so that three different readers each get what they need: an early graduate student
+from any STEM field, a domain expert, and a coding agent.
 
 The two sections people most often get wrong:
 
-**`## Intuition`** is written for someone who has never opened a fluid simulation. No
-mathematical notation at all — the checker rejects dollar signs and LaTeX delimiters. It
+**`## Intuition`** is written for someone who has never opened a fluid simulation —
+assume an early graduate student: skip the jargon, keep the rigor, and get to the point
+without belabored analogies. No mathematical notation at all — the checker rejects dollar
+signs and LaTeX delimiters. It
 needs a physical picture, a worked example with real numbers from your test file, and one
 sentence naming what the metric ignores. Every metric is blind to something; saying so here
 rather than only in Limitations is what makes the section honest.

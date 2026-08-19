@@ -13,7 +13,7 @@ two halves:
 
 ``card.md``
     The prose half. Required sections in a fixed order, written for three readers: a
-    STEM undergraduate from any field, a domain expert, and a coding agent. Two of its
+    early graduate student in any STEM field, a domain expert, and a coding agent. Two of its
     sections are generated and must not be hand-written.
 
 The split exists so that a claim about a metric is either machine-checkable or clearly
