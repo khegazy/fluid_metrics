@@ -126,6 +126,27 @@ Low on purpose. A subsection whose evidence has not been generated yet has nothi
 explain, so this is a warning until a card claims ``validated``.
 """
 
+CROSS_CUTTING_SUBSECTIONS = frozenset({"Across the ladder"})
+"""Result subsections that report no single degradation and so link to none.
+
+Everything else in ``## Results`` reports named axes and must link to the bundles that
+define them; this one reports what holds over all of them at once, such as how the metric
+correlates with the controls.
+"""
+
+RESULT_PROSE_CEILING = 90
+"""Words of explanation each result subsection may spend before it is saying too much.
+
+A ceiling rather than only a floor, because the failure mode here is duplication rather
+than silence. What the experiment was -- dataset, Reynolds number, resolution, frame
+count -- is the same for every subsection of every card, and belongs in the run summary
+once. What a degradation *is*, and what its severity numbers mean, belongs in that
+degradation's own bundle, which this subsection links to. What is left, and the only
+thing that genuinely lives here, is what this metric did when that test was applied.
+
+Prose repeated across thirty cards is prose nobody can keep true.
+"""
+
 WORD_FLOORS: dict[str, int] = {
     "Intuition": 90,
     "Reading the output": 80,
@@ -241,6 +262,8 @@ _HEADING = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
 _FRONTMATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 _INCLUDE = re.compile(r"^\{\{\s*include\s+\S+\s*\}\}$", re.MULTILINE)
 _SUBHEADING = re.compile(r"^### (.+?)\s*$", re.MULTILINE)
+_LINK = re.compile(r"\[[^\]]*\]\([^)]*\)")
+_DEGRADATION_LINK = re.compile(r"\]\(\.\./\.\./degradations/([a-z][a-z0-9_]*)/card\.md\)")
 _TABLE_OR_CODE = re.compile(r"^```|^\s*\|", re.MULTILINE)
 
 
@@ -334,13 +357,17 @@ def _check_result_section(section: str, body: str, name: str) -> list[Problem]:
     preamble, rest = parts[0], parts[1:]
     subsections = list(zip(rest[::2], rest[1::2]))
 
-    if _INCLUDE.search(preamble):
+    # One include is allowed before the first subsection: the run summary, which says
+    # which dataset, resolution and frames produced everything below it. Stated once
+    # here rather than repeated in every subsection of every card.
+    if len(_INCLUDE.findall(preamble)) > 1:
         problems.append(
             Problem(
                 section,
-                f"'## {section}' has an include outside any subsection. Every set of "
-                "numbers belongs under the heading naming the test that produced it.",
-                f"move it under a '### <test>' heading, then run  {regenerate}",
+                f"'## {section}' has more than one include before its first subsection. "
+                "Only the run summary belongs there; every other set of numbers belongs "
+                "under the heading naming the test that produced it.",
+                f"move the rest under '### <test>' headings, then run  {regenerate}",
             )
         )
     if not subsections:
@@ -369,13 +396,48 @@ def _check_result_section(section: str, body: str, name: str) -> list[Problem]:
             continue
 
         before, after = sub.split(includes[0], 1)
-        if before.strip():
+        # Links above the numbers are navigation, not explanation: they say which
+        # degradations this subsection reports before the reader meets their results.
+        # Anything left once the link markup and its separators are removed is prose,
+        # and prose belongs below the measurement it reads.
+        stray = _LINK.sub("", before)
+        stray = re.sub(r"[\s·,;/|—–-]+", "", stray)
+        if stray:
             problems.append(
                 Problem(
                     section,
                     f"'### {heading}' has prose before its generated numbers. The "
-                    "measurement comes first; the explanation reads it.",
+                    "measurement comes first; the explanation reads it. Links naming "
+                    "the degradations may sit above it.",
                     "move the text below the include line",
+                )
+            )
+        if (
+            section == "Results"
+            and heading not in CROSS_CUTTING_SUBSECTIONS
+            and not _DEGRADATION_LINK.search(sub)
+        ):
+            problems.append(
+                Problem(
+                    section,
+                    f"'### {heading}' does not link to the degradations it reports. A "
+                    "reader who wants to know what the test does should be sent to the "
+                    "bundle that defines it, not told again here.",
+                    "add a link per axis, as [translate_x](../../degradations/translate/"
+                    "card.md)",
+                )
+            )
+        if len(after.split()) > RESULT_PROSE_CEILING:
+            problems.append(
+                Problem(
+                    section,
+                    f"'### {heading}' spends {len(after.split())} words explaining its "
+                    f"numbers; {RESULT_PROSE_CEILING} is the ceiling. Say what this "
+                    "metric did, and link out for what the experiment and the "
+                    "degradation are.",
+                    "move the description of the run into the run summary, and the "
+                    "description of the degradation into its own bundle",
+                    severity="warning",
                 )
             )
         if len(after.split()) < RESULT_PROSE_FLOOR:

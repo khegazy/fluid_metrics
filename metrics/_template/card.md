@@ -92,9 +92,16 @@ person sees when they look at the two fields.
 
 ## Results
 
-One subsection per kind of test, each opening with its generated numbers and continuing
-with what those numbers show. Keep the evidence beside the claim it supports: a reader
-checking a sentence should not have to hunt for the figure behind it.
+{{ include _generated/run.md }}
+
+One subsection per kind of test: the degradations it reports, then their generated
+numbers, then what those numbers show about this metric. Keep the evidence beside the
+claim it supports.
+
+Say only what this metric did. What the run was — dataset, Reynolds number, resolution,
+frames — is in the run summary above, once. What a degradation does, and what its
+severity numbers mean, is in its own bundle, which the links reach. Repeating either here
+means writing it once per metric and keeping thirty copies true.
 
 Run `python -m fmeval.cards evidence <name> --results results/<run>` to produce the
 includes. Never write the numbers yourself, and never edit anything under `_generated/`.
@@ -103,6 +110,9 @@ and `### Across the ladder` only if you have measurements for them.
 
 ### Smoothing
 
+[gaussian_blur](../../degradations/gaussian_blur/card.md) ·
+[box_blur](../../degradations/box_blur/card.md)
+
 {{ include _generated/results_smoothing.md }}
 
 TODO(fill) At least 25 words on what the smoothing axes found. Say what the numbers show,
@@ -110,11 +120,17 @@ not what you expected them to show.
 
 ### Spectral filtering
 
+[lowpass_ideal](../../degradations/lowpass_ideal/card.md) ·
+[highpass_ideal](../../degradations/highpass_ideal/card.md)
+
 {{ include _generated/results_spectral.md }}
 
 TODO(fill) At least 25 words on what the spectral axes found.
 
 ### Displacement
+
+[translate_x](../../degradations/translate/card.md) ·
+[translate_subpixel](../../degradations/translate_subpixel/card.md)
 
 {{ include _generated/results_geometric.md }}
 
@@ -123,17 +139,24 @@ pointwise norm is usually at its worst, so say how yours compares.
 
 ### Resolution loss
 
+[coarsen](../../degradations/coarsen/card.md)
+
 {{ include _generated/results_resolution.md }}
 
 TODO(fill) At least 25 words on what coarsening found.
 
 ### Noise
 
+[additive_noise](../../degradations/additive_noise/card.md)
+
 {{ include _generated/results_stochastic.md }}
 
 TODO(fill) At least 25 words on what the noise axis found.
 
 ### Canaries
+
+[gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
+[uncorrelated](../../degradations/random_large_translation/card.md)
 
 {{ include _generated/results_canaries.md }}
 

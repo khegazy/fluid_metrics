@@ -161,10 +161,20 @@ with what those particular numbers show:
 ```
 ### Displacement
 
+[translate_x](../../degradations/translate/card.md) ·
+[translate_subpixel](../../degradations/translate_subpixel/card.md)
+
 {{ include _generated/results_geometric.md }}
 
-The damage ratios per doubling of sub-cell displacement are 3.99, 3.95 and 3.82 ...
+The response is quadratic in the displacement: the damage ratios per doubling ...
 ```
+
+Say only what the metric did. What the run was — dataset, Reynolds number, resolution,
+frame count — goes in the run summary at the top of Results, once, and is generated. What
+a degradation does, and what its severity numbers mean, lives in its own bundle, which the
+links reach. Repeating either in a subsection means writing it once per metric and then
+keeping thirty copies true, so each subsection has a word ceiling as well as a floor, and
+a link to every degradation it reports.
 
 Evidence and explanation used to be two separate sections, and a reader checking a
 sentence against the number behind it had to scroll between them and work out which

@@ -13,6 +13,7 @@ time.
 from __future__ import annotations
 
 import datetime as dt
+import pathlib
 import re
 
 import pytest
@@ -196,7 +197,9 @@ def build_prose(name="example", **bodies):
         + "\n\n### Boundary handling\n\nNone. The operation is local to each cell."
     )
     defaults["Results"] = (
-        "### Smoothing\n\n{{ include _generated/results_smoothing.md }}\n\n"
+        "### Smoothing\n\n"
+        "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
+        "{{ include _generated/results_smoothing.md }}\n\n"
         + "What the smoothing axes found, stated in enough words to clear the floor. " * 4
     )
     defaults["References"] = "\\bibliography"
@@ -333,15 +336,58 @@ def test_an_unexplained_result_subsection_warns_but_does_not_fail():
     assert unexplained and all(p.severity == "warning" for p in unexplained)
 
 
-def test_an_include_outside_a_subsection_is_refused():
+def test_the_run_summary_may_precede_the_subsections():
+    """One include before the first subsection is the run summary, stated once.
+
+    Which dataset, resolution and frames produced the numbers is the same for every
+    subsection of every card, so it is said here rather than thirty times.
+    """
     text = build_prose(
         Results=(
-            "{{ include _generated/results_summary.md }}\n\n### Smoothing\n\n"
+            "{{ include _generated/run.md }}\n\n### Smoothing\n\n"
+            "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
             "{{ include _generated/results_smoothing.md }}\n\n"
             + "What the smoothing axes found, at length. " * 5
         )
     )
-    assert any("outside any subsection" in p.message for p in problems_for(text))
+    assert not any("before its first subsection" in p.message for p in problems_for(text))
+
+
+def test_a_second_preamble_include_is_refused():
+    text = build_prose(
+        Results=(
+            "{{ include _generated/run.md }}\n\n"
+            "{{ include _generated/results_summary.md }}\n\n### Smoothing\n\n"
+            "[gaussian_blur](../../degradations/gaussian_blur/card.md)\n\n"
+            "{{ include _generated/results_smoothing.md }}\n\n"
+            + "What the smoothing axes found, at length. " * 5
+        )
+    )
+    assert any("before its first subsection" in p.message for p in problems_for(text))
+
+
+def test_a_result_subsection_must_link_to_its_degradations():
+    """The card sends the reader out for what the test is, rather than restating it."""
+    text = build_prose(
+        Results=(
+            "### Smoothing\n\n{{ include _generated/results_smoothing.md }}\n\n"
+            + "What the smoothing axes found, at length. " * 5
+        )
+    )
+    assert any("does not link to the degradations" in p.message for p in problems_for(text))
+
+
+def test_an_over_long_result_explanation_warns():
+    """The failure mode here is duplication, so there is a ceiling as well as a floor."""
+    text = build_prose(
+        Results=(
+            "### Smoothing\n\n[gaussian_blur](../../degradations/gaussian_blur/card.md)"
+            "\n\n{{ include _generated/results_smoothing.md }}\n\n"
+            + "Words about the run and the degradation and the metric. " * 20
+        )
+    )
+    over = [p for p in problems_for(text) if "is the ceiling" in p.message]
+    assert over and all(p.severity == "warning" for p in over)
 
 
 @pytest.mark.parametrize("sentinel", prose.SENTINELS)
@@ -549,6 +595,33 @@ def test_every_equation_in_every_card_actually_typesets(bundle):
             f"{bundle.name}: on {label} a `$$` survives as literal text, so a display "
             "equation was not recognised as math."
         )
+
+
+@pytest.mark.parametrize("bundle", BUNDLES, ids=IDS)
+def test_every_degradation_a_card_links_to_exists(bundle):
+    """A card's links out must land somewhere.
+
+    A metric card sends the reader to the degradation bundles for what each test does,
+    rather than repeating it. That only works while the targets exist, and a dead link
+    is worse than no link -- it looks like the explanation is one click away.
+
+    Missing targets are reported rather than tolerated. While the degradations are still
+    being migrated into bundles this test will name the ones not yet moved, which is the
+    intended signal.
+    """
+    degradations = pathlib.Path(__file__).resolve().parent.parent / "degradations"
+    if not any(d.is_dir() and not d.name.startswith("_") for d in degradations.iterdir()):
+        pytest.skip("no degradation bundles yet; the links are targets for the migration")
+
+    text = bundle.card_md.read_text()
+    targets = re.findall(r"\]\((\.\./\.\./degradations/[a-z0-9_]+/card\.md)\)", text)
+    missing = sorted({
+        target for target in targets
+        if not (bundle.path / target).resolve().is_file()
+    })
+    assert not missing, (
+        f"{bundle.name}: links to degradation bundles that do not exist yet: {missing}"
+    )
 
 
 @pytest.mark.parametrize("bundle", BUNDLES, ids=IDS)
