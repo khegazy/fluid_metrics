@@ -51,6 +51,15 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed: {alternate_style: true}
 
+# Contributor instructions are kept in the repository, where a colleague or an agent working
+# in a checkout will find them, and are deliberately not published. They are rules for people
+# extending this repository -- never invent a number, never sign a card, here is what is
+# missing on purpose -- and a reader who came to the site to understand a metric is not their
+# audience. Their tests still pin them in place; only the publishing stops.
+exclude_docs: |
+  decisions.md
+  recipes/
+
 plugins:
   - search
   - gen-files: {scripts: [docs/gen_pages.py]}

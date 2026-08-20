@@ -11,10 +11,6 @@ A reference for every quantity the evaluation reports, written for someone who h
 read the code. Open this page when a table column says `separability_auc_min = 0.62` and
 you need to know what that means and whether to care.
 
-**The suite measures; it does not decide.** Every number below is a measurement. Where a
-reference threshold appears, it only fills in a `flags` column so that a row can be found
-quickly — a flag never labels a metric accepted or rejected. That judgement is ours to make.
-
 A copy of this file sits in every results folder, so that a folder still explains its own
 numbers after being sent to someone else.
 

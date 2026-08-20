@@ -13,21 +13,20 @@ The last two report findings from one specific recorded run on our data.
 ## Definition
 
 The equation, how the equation is turned into arithmetic on a grid, and how the edges of
-the domain are handled. That last part is a required subsection, and "None." is a common
-and perfectly good answer — a metric that never looks beyond a single grid cell has no
-edge to treat. The answer is written down rather than left out because the choices
-available at the edge (wrapping around to the opposite side, mirroring, padding with
-zeros) give different numbers from the same formula, and silence looks identical to
-"none" while being much less informative.
+the domain are handled. "None." is a common and perfectly good answer to that last one — a
+metric that never looks beyond a single grid cell has no edge to treat. It is worth
+reading, because the choices available at the edge (wrapping around to the opposite side,
+mirroring, padding with zeros) give different numbers from the same formula, and two
+implementations of one published equation can disagree on nothing else.
 
 ## Intuition
 
 The same content in words, with no notation at all, written for an early graduate student
 in any field. The section opens with what the metric measures and which way of being
 wrong the metric reveals, explains the mechanism, and includes a small worked example —
-usually a four-by-four grid — whose numbers are taken from the metric's own test file, so
-the prose cannot drift away from the code. The section closes by naming what the metric
-ignores, because every metric is blind to something.
+usually a four-by-four grid — whose numbers are taken from the metric's own test file. The
+section closes by naming what the metric ignores, because every metric is blind to
+something.
 
 ## Reading the output
 
@@ -45,7 +44,9 @@ that you can recognise the situation in your own results.
 
 ## Performance and Results
 
-The measured half of the card, and none of it is typed by hand.
+The measured half of the page. Every number in both sections comes from one recorded
+evaluation run, named at the top of Results along with the dataset, the grid and the
+number of snapshots it covered.
 
 **Performance** is a single table near the top of the card summarising how the metric
 behaved on every family of test, broken down by physical field, so that two metrics can
@@ -78,12 +79,6 @@ much between neighbouring strengths that it cannot distinguish two models one st
 The reported number is the smallest such overlap along the whole sequence, where 1 means
 two neighbouring strengths never overlap and 0.5 means the metric cannot separate them at
 all.
-
-## What you will not find
-
-No score, no ranking, and no pass or fail. If you want to know whether a metric is right
-for you, the question these pages are built to answer is what the metric detects and what
-the metric misses.
 
 ## About the figures
 

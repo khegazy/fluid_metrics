@@ -6,9 +6,6 @@ measured against — rather than a new candidate. So this page can tell you how 
 familiar baselines differ from one another and what all of them miss, and not much more.
 The page will grow as candidate metrics land.
 
-This is also the one page on the site that necessarily spans several metrics, since
-comparing them is the whole point of it.
-
 ## Start from the failure you care about
 
 Every other page is organised by metric. This table is organised by what goes wrong in
@@ -68,9 +65,3 @@ candidate metric correlates above about 0.95 with a baseline across the degradat
 candidate is ordering the same things the baseline already ordered, and the case for
 including both has to rest on something other than ranking — a different sensitivity to
 small errors, say, or usefulness as a training loss.
-
-## If you are a program rather than a person
-
-Read [catalog.json](catalog.json) instead of this page. It carries the same facts in a
-form that needs no prose parsing, including how each metric behaved on each degradation
-and each physical field.

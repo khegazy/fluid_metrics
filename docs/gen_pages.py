@@ -224,9 +224,8 @@ def _write_catalogue_page(catalog: dict) -> None:
         print("Every metric and every degradation in the repository. A **metric** scores "
               "how close a prediction is to the truth; a **degradation** damages a "
               "trusted field in a controlled way, so that the metrics can be tested "
-              "against damage of a known size. The same content is served as "
-              "[catalog.json](catalog.json) for machine readers, which is what an agent "
-              "should read rather than parsing this page.\n", file=f)
+              "against damage of a known size. The same content is available as "
+              "[catalog.json](catalog.json).\n", file=f)
         print("## Metrics\n", file=f)
         print("| metric | how far the work has got | what kind of metric | units of the value | "
               "usable as a training loss | cost to evaluate | measured yet |", file=f)
@@ -307,6 +306,10 @@ def _write_nav(metrics: list, degradations: list) -> None:
     The group labels spell the status out. ``control`` and ``candidate`` are this
     repository's own vocabulary, and a reader meeting them in a sidebar has been told
     nothing.
+
+    The recipes and the deliberate-absences page are absent on purpose. They instruct
+    somebody extending this repository, which is a different job from understanding a
+    metric, and ``exclude_docs`` in ``mkdocs.yml`` keeps them out of the build entirely.
     """
     status_labels = {
         "validated": "validated — measured, and read by a person",
@@ -319,15 +322,6 @@ def _write_nav(metrics: list, degradations: list) -> None:
         print("- [How to read a metric page](reading-guide.md)", file=f)
         print("- [Choosing a metric](choosing-a-metric.md)", file=f)
         print("- [Working in the repository](working-with-the-repo.md)", file=f)
-        print("- Recipes", file=f)
-        print("    - [Overview](recipes/index.md)", file=f)
-        print("    - [Add a metric](recipes/add-a-metric.md)", file=f)
-        print("    - [Add a degradation](recipes/add-a-degradation.md)", file=f)
-        print("    - [Add a dataset](recipes/add-a-dataset.md)", file=f)
-        print("    - [Add a diagnostic](recipes/add-a-diagnostic.md)", file=f)
-        print("    - [Refresh the evidence](recipes/refresh-the-evidence.md)", file=f)
-        print("    - [Verify a refactor](recipes/verify-a-refactor.md)", file=f)
-        print("- [Things missing on purpose](decisions.md)", file=f)
         print("- [Catalogue](catalogue.md)", file=f)
         print("- Metrics", file=f)
         for status in ("validated", "candidate", "control", "deprecated"):

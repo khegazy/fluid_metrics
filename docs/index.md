@@ -25,11 +25,9 @@ damaged versions, and everything measured is written down beside the metric it d
 
 ## What is here
 
-Each metric, and each way of damaging a field, gets its own directory holding everything
-the repository knows about it: the code, the tests, a machine-readable record, prose
-written for three different kinds of reader, and the figures and numbers from a recorded
-run. Nothing about a metric lives anywhere else. Such a directory is called a **bundle**,
-and the page describing one is called its **card**.
+Each metric, and each way of damaging a field, gets its own page: what it computes, what
+the number means, where it misleads, and the figures and measurements from a recorded run
+on real turbulence data.
 
 **[Start with the gallery](degradations/gallery.md)** if you have never looked at a fluid
 simulation before. The gallery shows every way of damaging a field, each applied to the
@@ -41,21 +39,3 @@ then read [mse](metrics/mse.md) as the worked example.
 
 **[Choose a metric](choosing-a-metric.md)** if you came here to pick one for your own
 project.
-
-**[Read catalog.json](catalog.json)** if you are a program rather than a person. That file
-holds every structural fact — what exists, what each metric returns, what properties each
-metric has, how each metric behaved — so no program has to parse prose to answer a
-question about the code.
-
-## What this repository does not do
-
-This repository does not decide. No metric here is marked good or bad, and there is no
-ranking. A metric that misses one kind of error usually catches another, so the useful
-record is what each metric sees and what each metric is blind to, letting a reader match
-a metric to the question they are asking.
-
-Two consequences are worth stating plainly. Nothing on a metric's page is a prediction:
-every claim about how a metric behaves is either a measurement from a named run or a
-citation to published work. And where a page reports how far the work has got — whether
-the metric has been measured, and whether a person has read and signed off on the
-description — that says nothing about whether the results were good.
