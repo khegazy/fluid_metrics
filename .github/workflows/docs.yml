@@ -53,6 +53,19 @@ jobs:
             echo "::error::docs/catalog.json is stale. Run: python -m fmeval.cards catalog"
             exit 1
           }
+      # The tests job installs `--extra dev` only, so every test that needs the docs
+      # toolchain -- MathJax's delimiters, the card equations, the metric-type wording, the
+      # site build itself -- calls `pytest.importorskip` and is SKIPPED there. Without this
+      # step those tests run nowhere in CI, which is the same as not having them: the
+      # MathJax delimiter mismatch that shipped every equation as raw LaTeX would have been
+      # caught by a test that was never executed.
+      #
+      # This job is the one place the toolchain is present by definition, so it runs the
+      # whole suite. It duplicates ~25 s of the tests job, which is cheaper than the class
+      # of bug it catches, and it means no test in this repository is skipped everywhere.
+      - name: Run the tests that need the docs toolchain
+        run: pytest -ra
+
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with:

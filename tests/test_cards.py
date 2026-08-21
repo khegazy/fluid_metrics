@@ -113,8 +113,14 @@ def test_every_metric_type_can_be_said_in_words_on_the_site():
     every metric page, the catalogue, and the navigation group label -- falling back to the
     raw code when it has no entry. That fallback is silent, so adding a value to CATEGORIES
     and forgetting the wording ships `functional` to a reader who has been told nothing.
+
+    Skipped where the docs toolchain is not installed: `gen_pages` imports
+    `mkdocs_gen_files` at module scope. It runs in the docs job, where the toolchain is
+    present by definition.
     """
     import sys
+
+    pytest.importorskip("mkdocs_gen_files", reason="the docs toolchain is not installed")
 
     sys.path.insert(0, str(REPO / "docs"))
     try:

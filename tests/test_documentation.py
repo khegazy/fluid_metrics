@@ -224,9 +224,17 @@ def test_mathjax_is_configured_for_the_delimiters_arithmatex_emits():
     its own source. This test closes the gap by asking arithmatex what it actually emits
     for the configuration in ``mkdocs.yml``, then checking the MathJax config declares
     those same delimiters.
+
+    Skipped where the docs toolchain is not installed, so the fast suite stays
+    dependency-free; it runs in the docs job, where the toolchain is present by
+    definition.
     """
-    import markdown
     import yaml
+
+    markdown = pytest.importorskip(
+        "markdown", reason="the docs toolchain is not installed in this environment"
+    )
+    pytest.importorskip("pymdownx", reason="the docs toolchain is not installed")
 
     config = yaml.safe_load((REPO / "mkdocs.yml").read_text())
     options = next(
