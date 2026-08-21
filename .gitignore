@@ -26,3 +26,15 @@ __pycache__/
 *.synctex.gz
 *.toc
 site/
+
+# Pages built by docs/gen_pages.py. `mkdocs build` keeps these in a temporary directory,
+# but `mkdocs serve` materialises them into docs/ itself, so anyone who previews the site
+# and then runs `git add -A` would commit build output -- including ~6 MB of figures that
+# are already committed in their bundles. A stale copy here also shadows the freshly
+# generated page, so the site would silently serve yesterday's content.
+/docs/SUMMARY.md
+/docs/catalogue.md
+/docs/protocol.md
+/docs/llms.txt
+/docs/metrics/
+/docs/degradations/

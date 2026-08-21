@@ -1,10 +1,10 @@
 schema_version: 1
 name: mse
 kind: metric
-category: pointwise_norms
+category: pointwise
 summary: Mean of the squared difference between the candidate and reference fields, taken
   cell by cell on a common analysis grid.
-status: control
+status: candidate
 owners:
 - khegazy
 output:

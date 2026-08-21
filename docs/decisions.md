@@ -29,8 +29,12 @@ The one status field records only how far the work has progressed:
 - **candidate** — implemented, but the evidence is incomplete or nobody has reviewed it;
 - **validated** — measured, and read and signed off by a person. This says the work was
   done, and says nothing at all about whether the results were good;
-- **control** — a familiar baseline that candidate metrics are read against;
 - **deprecated** — superseded, kept for the record.
+
+There was once a **control** value for the familiar baselines. It is gone: it answered
+"what kind of thing is this" while the others answer "how far has the work got", so the
+field had to pick one and a baseline could never also be marked unreviewed. What kind of
+measurement a metric makes is now the separate `category` field.
 
 Why: a metric that fails one test usually catches something another metric misses. The
 useful record is what each metric sees and what each metric misses, so that a reader can

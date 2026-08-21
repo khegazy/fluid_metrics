@@ -275,7 +275,7 @@ Computed on the median value at each (axis, severity level), over every axis and
 
 NRMSE correlates with MSE at 0.979 and with MAE at 0.977 across every degradation, above
 the 0.95 redundancy threshold. Its distinct contribution is not a different ordering but a
-comparable scale: it is the control that allows a density result and a vorticity result to
+comparable scale: it is the one baseline that allows a density result and a vorticity result to
 be read side by side.
 
 ## References

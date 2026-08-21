@@ -217,7 +217,7 @@ Not generated yet. Run `python -m fmeval.cards evidence <name>`.
 <!-- END GENERATED results_summary -->
 
 TODO(fill) What holds across every degradation: how this metric correlates
-with the controls, where it merely tracks them, and the situations in which someone
+with the other metrics, where it merely tracks them, and the situations in which someone
 should reach for it. Do not write a verdict; nothing in this repository passes or fails a
 metric.
 

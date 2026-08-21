@@ -43,7 +43,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Adds independent Gaussian noise to every cell, with an amplitude set as a fraction of the reference field's fluctuation."
     },
     {
@@ -83,7 +83,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Weakens one chosen band of scales and leaves every larger and smaller scale untouched, by scaling down the Fourier modes between two fixed wavenumbers."
     },
     {
@@ -123,7 +123,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Adds a constant offset to every cell, shifting the whole field up or down without changing any spatial structure."
     },
     {
@@ -163,7 +163,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Convolves the field with a square kernel of uniform weight, averaging every cell with its neighbours out to a fixed width."
     },
     {
@@ -203,7 +203,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Block-averages the field onto a coarser grid and expands it back, discarding everything below the block size."
     },
     {
@@ -243,7 +243,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Convolves the field with an isotropic disk kernel of a given radius, removing structure below that scale."
     },
     {
@@ -283,7 +283,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Convolves the field with an isotropic epanechnikov kernel of a given radius, removing structure below that scale."
     },
     {
@@ -323,7 +323,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Multiplies the field's fluctuation about its spatial mean by a constant factor, leaving the mean itself unchanged."
     },
     {
@@ -363,7 +363,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Convolves the field with an isotropic Gaussian kernel, removing structure below the kernel width while leaving the large scales intact."
     },
     {
@@ -403,7 +403,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Replaces the field with a Gaussian random field that has the same amplitude spectrum and the same low-order moments, but random phases."
     },
     {
@@ -443,7 +443,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Removes the large scales from the field by multiplying its Fourier transform by a smooth Butterworth high-pass transfer function."
     },
     {
@@ -483,7 +483,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Removes the large scales from the field by multiplying its Fourier transform by a hard high-pass transfer function."
     },
     {
@@ -523,7 +523,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Returns the field unchanged. The level-zero reference against which every degradation is measured."
     },
     {
@@ -563,7 +563,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Removes the small scales from the field by multiplying its Fourier transform by a smooth Butterworth low-pass transfer function."
     },
     {
@@ -603,7 +603,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Removes the small scales from the field by multiplying its Fourier transform by a hard low-pass transfer function."
     },
     {
@@ -643,7 +643,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Replaces each cell with the median of a square neighbourhood, a nonlinear smoother that removes small features while leaving sharp edges in place."
     },
     {
@@ -683,7 +683,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Scales every cell by an independent random factor about one, so the perturbation is proportional to the local field value."
     },
     {
@@ -723,7 +723,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Shifts the field by a large random displacement, producing a field that is statistically identical to the reference but positionally unrelated to it."
     },
     {
@@ -763,7 +763,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Point-samples every Nth cell and expands the result back to the full grid, discarding the rest without averaging."
     },
     {
@@ -803,7 +803,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Shifts the whole field by a whole number of cells along one axis, wrapping at the periodic boundary."
     },
     {
@@ -843,12 +843,12 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Shifts the field by a fractional number of cells using a Fourier phase ramp, resolving displacements smaller than the grid spacing."
     },
     {
       "card": "metrics/enstrophy/card.md",
-      "category": "physics_invariants",
+      "category": "physical",
       "declared": {
         "arity": "single",
         "cost": "cheap",
@@ -1042,12 +1042,12 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Mean squared vorticity of a single field, a reference-free diagnostic of how much small-scale rotational activity a flow carries."
     },
     {
       "card": "metrics/kinetic_energy/card.md",
-      "category": "physics_invariants",
+      "category": "physical",
       "declared": {
         "arity": "single",
         "cost": "cheap",
@@ -1241,12 +1241,12 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Mean specific kinetic energy of a single velocity field, a reference-free diagnostic of how much energy the flow carries."
     },
     {
       "card": "metrics/mae/card.md",
-      "category": "pointwise_norms",
+      "category": "pointwise",
       "declared": {
         "arity": "pairwise",
         "cost": "cheap",
@@ -1738,12 +1738,12 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Mean of the absolute difference between the candidate and reference fields, taken cell by cell on a common analysis grid."
     },
     {
       "card": "metrics/mse/card.md",
-      "category": "pointwise_norms",
+      "category": "pointwise",
       "declared": {
         "arity": "pairwise",
         "cost": "cheap",
@@ -2235,12 +2235,12 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Mean of the squared difference between the candidate and reference fields, taken cell by cell on a common analysis grid."
     },
     {
       "card": "metrics/nrmse/card.md",
-      "category": "pointwise_norms",
+      "category": "pointwise",
       "declared": {
         "arity": "pairwise",
         "cost": "cheap",
@@ -2732,12 +2732,12 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Root mean squared error divided by the root-mean-square fluctuation of the reference, giving a dimensionless error that can be read across fields."
     },
     {
       "card": "metrics/rmse/card.md",
-      "category": "pointwise_norms",
+      "category": "pointwise",
       "declared": {
         "arity": "pairwise",
         "cost": "cheap",
@@ -3229,7 +3229,7 @@
       "reviewed": false,
       "reviewed_at": null,
       "reviewed_by": null,
-      "status": "control",
+      "status": "candidate",
       "summary": "Square root of the mean squared difference between the candidate and reference fields, carrying the error back into the field's own units."
     }
   ],

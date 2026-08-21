@@ -8,7 +8,7 @@ summary: >-
   Shifts the whole field by a whole number of cells along one axis, wrapping at the
   periodic boundary.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

@@ -8,7 +8,7 @@ summary: >-
   Shifts the field by a large random displacement, producing a field that is statistically
   identical to the reference but positionally unrelated to it.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

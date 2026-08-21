@@ -2,13 +2,13 @@ schema_version: 1
 
 name: rmse
 kind: metric
-category: pointwise_norms
+category: pointwise
 
 summary: >-
   Square root of the mean squared difference between the candidate and reference fields,
   carrying the error back into the field's own units.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 output:

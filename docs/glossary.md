@@ -18,9 +18,11 @@ and editing nothing else.
 read on this site. A card lives inside its bundle, so the file a colleague opens in the
 repository and the page a reader opens here are the same text.
 
-**Control** — a metric that is present as a familiar reference point rather than as a
-candidate for the panel. The cell-by-cell error norms are the controls: every candidate
-metric is read against them.
+**Metric type** — what kind of measurement a metric makes, and the way this site groups
+metrics for browsing. `pointwise` compares the two fields cell by cell; `physical` reports
+a physical quantity of the flow; `spectral` compares them scale by scale; `statistical`
+compares distributions. The full list, with what belongs in each, is in
+`fmeval/cards/schema.py`.
 
 **Damage** — a metric's raw value rescaled onto a common 0-to-1 scale, where 0 is what the
 metric gives the undamaged reference and 1 is what the metric gives a field that shares

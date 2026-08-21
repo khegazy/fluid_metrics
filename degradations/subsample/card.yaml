@@ -8,7 +8,7 @@ summary: >-
   Point-samples every Nth cell and expands the result back to the full grid, discarding
   the rest without averaging.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

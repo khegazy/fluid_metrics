@@ -2,15 +2,15 @@ schema_version: 1
 
 name: mae
 kind: metric
-category: pointwise_norms
+category: pointwise
 
 summary: >-
   Mean of the absolute difference between the candidate and reference fields, taken cell by
   cell on a common analysis grid.
 
-# A control, not a candidate: the pointwise baseline that position-tolerant metrics are
-# read against, rather than a metric competing for a panel slot of its own.
-status: control
+# One of the familiar cell-by-cell error norms that position-tolerant metrics will be read
+# against. `candidate` because nobody has signed the prose yet, which is all this field says.
+status: candidate
 owners: [khegazy]
 
 output:

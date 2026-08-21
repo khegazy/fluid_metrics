@@ -8,7 +8,7 @@ summary: >-
   Convolves the field with an isotropic Gaussian kernel, removing structure below the
   kernel width while leaving the large scales intact.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

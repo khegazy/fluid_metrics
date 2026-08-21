@@ -2,13 +2,13 @@ schema_version: 1
 
 name: nrmse
 kind: metric
-category: pointwise_norms
+category: pointwise
 
 summary: >-
   Root mean squared error divided by the root-mean-square fluctuation of the reference,
   giving a dimensionless error that can be read across fields.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 output:

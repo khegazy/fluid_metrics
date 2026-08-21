@@ -8,7 +8,7 @@ summary: >-
   Block-averages the field onto a coarser grid and expands it back, discarding everything
   below the block size.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

@@ -1,10 +1,10 @@
 # Choosing a metric
 
-This page is honest about its own limits. At present every metric implemented here is a
-**baseline control** — one of the familiar error norms that new candidate metrics will be
-measured against — rather than a new candidate. So this page can tell you how those
-familiar baselines differ from one another and what all of them miss, and not much more.
-The page will grow as candidate metrics land.
+This page is honest about its own limits. Everything implemented so far is either a
+familiar error norm that compares the fields cell by cell, or a physical quantity of the
+flow — no position-tolerant metric exists here yet. So this page can tell you how those
+familiar measures differ from one another and what all of them miss, and not much more.
+The page will grow as new metrics land.
 
 ## Start from the failure you care about
 

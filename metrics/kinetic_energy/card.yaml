@@ -2,7 +2,7 @@ schema_version: 1
 
 name: kinetic_energy
 kind: metric
-category: physics_invariants
+category: physical
 
 summary: >-
   Mean specific kinetic energy of a single velocity field, a reference-free diagnostic of
@@ -10,7 +10,7 @@ summary: >-
 
 # A tripwire rather than a candidate: one scalar cannot distinguish a good prediction from
 # a bad one, but a large drift from the reference is worth noticing.
-status: control
+status: candidate
 owners: [khegazy]
 
 output:

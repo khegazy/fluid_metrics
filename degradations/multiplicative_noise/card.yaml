@@ -8,7 +8,7 @@ summary: >-
   Scales every cell by an independent random factor about one, so the perturbation is
   proportional to the local field value.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

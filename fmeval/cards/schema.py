@@ -37,28 +37,60 @@ See the module docstring of :mod:`fmeval.cards` for the versioning policy.
 KINDS = ("metric", "degradation")
 
 CATEGORIES = (
-    "pointwise_norms",
-    "function_space_norms",
-    "optimal_transport",
-    "spectral_decomposition",
-    "physics_invariants",
-    "shock_geometry",
-    "topological",
+    "pointwise",
+    "physical",
+    "spectral",
+    "statistical",
     "probabilistic",
-    "pattern_detection",
-    "curvature",
+    "transport",
+    "functional",
+    "geometric",
+    "topological",
 )
-"""How a metric is grouped for a reader browsing the catalog.
+"""What kind of measurement a metric makes. Set by whoever adds the metric.
 
-The vocabulary is mathematical rather than physical, because this repository evaluates
-metrics for PDEs in general -- compressible and incompressible flow, MHD, ensemble data --
-and a category that named a fluid phenomenon would not survive the second application
-area. Degradation cards do not use this vocabulary: they reuse the ``family`` their
-registry entry already declares, and a test asserts the two agree.
+This is the primary way a reader browses: the navigation groups metrics by it, and it is
+the first row of every metric's header table. Each name answers "what does this thing
+look at?" rather than "how good is it" or "how far has the work got".
+
+``pointwise``
+    Compares the two fields cell by cell and never consults a neighbour. MAE, MSE, RMSE
+    and NRMSE.
+``physical``
+    A conserved or derived physical quantity of the flow, characterising one field rather
+    than comparing two. Enstrophy and kinetic energy.
+``spectral``
+    Compares scale by scale, in wavenumber. Reserved for metrics that actually resolve
+    scales -- an energy-spectrum comparison, a band-limited error. Note that a quantity
+    which merely *has* a spectral reading does not belong here: kinetic energy is the
+    zeroth moment of E(k) and enstrophy the k^2-weighted moment, so that reading would
+    put both in this bucket and separate neither, and both collapse the spectrum to a
+    single number rather than resolving it.
+``statistical``
+    Compares distributions or moments of the field: increment PDFs, flatness, structure
+    functions.
+``probabilistic``
+    Needs an ensemble. Spread, skill, CRPS. Mark N/A for a deterministic surrogate.
+``transport``
+    The cost of moving one field onto the other. Wasserstein and its relatives.
+``functional``
+    Norms that weight the scales differently from a plain average -- Sobolev, the
+    negative-order norms.
+``geometric``
+    Where features are and what shape they have: shock-surface distances, feature
+    displacement, curvature.
+``topological``
+    Which features exist and how they connect. Persistence diagrams.
+
+The vocabulary is mathematical rather than tied to fluids, because this repository
+evaluates metrics for PDEs in general -- compressible and incompressible flow, MHD,
+ensemble data -- and a name drawn from one fluid phenomenon would not survive the second
+application area. Degradation cards do not use this vocabulary: they reuse the ``family``
+their registry entry already declares, and a test asserts the two agree.
 """
 
-STATUSES = ("candidate", "validated", "control", "deprecated")
-"""Where a bundle sits in the evaluation process. **This is not a quality rating.**
+STATUSES = ("candidate", "validated", "deprecated")
+"""How far the work on a bundle has got. **This is not a quality rating.**
 
 ``candidate``
     Implemented. Its evidence is either not yet generated or not yet reviewed by a human.
@@ -67,19 +99,22 @@ STATUSES = ("candidate", "validated", "control", "deprecated")
     The evaluation suite has been run on the canonical data *and* a human has read and
     signed the prose. It says the measurement was done and checked -- it does not say the
     results were good.
-``control``
-    A baseline or tripwire that candidates are read against rather than a candidate for a
-    panel slot of its own. The pointwise norms (MAE, MSE, RMSE, NRMSE) are controls.
 ``deprecated``
     Superseded, kept so the record and any older results remain interpretable.
 
+There was once a ``control`` status for the familiar baselines that candidates are read
+against. It is gone, because it answered a different question from the other three and so
+made the field mean two things at once: MSE was ``control`` and therefore could not also
+say whether anyone had reviewed it. What kind of measurement a metric makes is now
+``category``, which is orthogonal and is what the navigation groups by.
+
 There is deliberately no ``rejected`` status, and nothing anywhere in this repository
 reduces a metric to pass or fail. A metric that misses one thing usually catches another:
-a spectral-energy metric is fooled by a phase-randomised impostor and is still the right
-tool for asking whether the energy cascade is reproduced. Collapsing that into a verdict
-would discard exactly the information a reader needs. What a metric detects, what it is
-blind to, and how it compares to the controls is recorded in the measured evidence and
-discussed in the card's ``## Assessment`` section.
+a spectral-energy metric is fooled by a phase-scrambled fake prediction and is still the
+right tool for asking whether the energy cascade is reproduced. Collapsing that into a
+verdict would discard exactly the information a reader needs. What a metric detects, what
+it is blind to, and how it compares to the others is recorded in the measured evidence and
+discussed in the card's ``## Results`` section.
 """
 
 EXEMPLAR_MODES = ("severity", "draws", "none")

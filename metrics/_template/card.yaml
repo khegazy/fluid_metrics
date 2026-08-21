@@ -10,15 +10,17 @@ schema_version: 1
 name: template_metric
 kind: metric
 
-# How this is grouped for someone browsing. Allowed values are listed in
-# fmeval/cards/schema.py: CATEGORIES.
-category: pointwise_norms
+# What kind of measurement this metric makes: pointwise, physical, spectral, statistical,
+# probabilistic, transport, functional, geometric, topological. This is how the site groups
+# metrics for a reader, so pick the one that says what your metric looks at. Every value is
+# documented in fmeval/cards/schema.py: CATEGORIES.
+category: pointwise
 
 # One sentence, 20 to 300 characters. This is what appears beside the metric in every
 # index, so say what it measures, not why it is interesting.
 summary: TODO(fill) one sentence saying what this metric measures.
 
-# candidate | validated | control | deprecated -- see STATUSES in schema.py.
+# candidate | validated | deprecated -- see STATUSES in schema.py.
 # Leave this as `candidate`. Only a human moves a card to `validated`, after reading the
 # evidence. Note that none of these values is a quality rating.
 status: candidate

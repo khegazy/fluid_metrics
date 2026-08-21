@@ -8,7 +8,7 @@ summary: >-
   Shifts the field by a fractional number of cells using a Fourier phase ramp, resolving
   displacements smaller than the grid spacing.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-
