@@ -27,9 +27,9 @@ size, and no cell outside the retained set is consulted.
 
 ## Intuition
 
-This stands in for a surrogate that has been downsampled carelessly -- decimated
-without filtering first. It is the wrong way to lose resolution, and it is in the ladder
-as the counterexample to ``coarsen``, which is the right way.
+This stands in for a surrogate that has been downsampled carelessly -- decimated without
+filtering first. It is the wrong way to lose resolution, and it is in the default set as
+the counterexample to ``coarsen``, which is the right way.
 
 The difference between them is aliasing. Block averaging removes the small scales; point
 sampling folds them back into the large ones, so the coarse field contains structure that
@@ -48,38 +48,39 @@ The feature has not merely coarsened -- it has moved. Point sampling picked up t
 at one corner of each sampling cell and repeated it, displacing the structure by up to a
 cell and changing its apparent position.
 
-What it leaves untouched is the values themselves: every number in the output appears in
-the input, unaveraged, so extremes survive where block averaging would have softened
-them.
+What this degradation leaves untouched is the values themselves: every number in the
+output appears in the input, unaveraged, so extremes survive where block averaging would
+have softened them.
 
 ## Severity scale
 
 The severity is the subsampling factor -- the spacing between retained cells -- and is
-**absolute** rather than calibrated, matching ``coarsen`` so the two axes are directly
-comparable. The ladder is configured at 2, 4, 8 and 16.
+**absolute** rather than calibrated, matching ``coarsen`` so the two degradations are
+directly comparable. The strengths are configured at 2, 4, 8 and 16.
 
 The factor must divide the analysis grid size; larger factors that do not fit are dropped
 before the run rather than silently doing something else.
 
-This axis is disabled in the default ladder. It is a control for the coarsening axis
-rather than a failure mode worth measuring on its own, and the ladder is kept short.
+This degradation is disabled in the default set of degradations. It is a control for the
+coarsening degradation rather than a failure mode worth measuring on its own, and the set
+of degradations is kept short.
 
 ## Limitations
 
-Disabled by default, so a run will not include it unless asked.
+Disabled by default, so a run will not include this operator unless asked.
 
 The displacement that point sampling introduces is real and is not part of the failure
 being imitated. Structures shift by up to half a sampling cell depending on where the grid
 falls, so part of the damage measured here is displacement damage rather than resolution
-damage -- which, in a suite whose central concern is that metrics over-punish displacement,
-makes this axis harder to interpret than it looks.
+damage -- which, in a suite whose central concern is that metrics over-punish
+displacement, makes this degradation harder to interpret than it looks.
 
 The unpreserved spatial mean is a second confound: a metric sensitive to the mean will
 register a change that has nothing to do with the resolution question.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars subsample`, do not edit -->
 

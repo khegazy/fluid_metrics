@@ -17,11 +17,11 @@ $$
 where the average runs over channels and cells. The denominator is the root-mean-square
 *fluctuation* of the reference, not its raw root-mean-square.
 
-That choice is not cosmetic. The kinet weakly compressible density field is
-$1.0 \pm 1.8 \times 10^{-4}$, so its raw RMS is essentially one; dividing by that would
-leave the value indistinguishable from RMSE and would hide four orders of magnitude of
-relative error, making density and velocity incomparable on the same axis. Removing the
-mean first is what puts them on one scale.
+That choice is not cosmetic. The kinet weakly compressible density field is $1.0 \pm 1.8
+\times 10^{-4}$, so its raw RMS is essentially one; dividing by that would leave the value
+indistinguishable from RMSE and would hide four orders of magnitude of relative error,
+making density and velocity incomparable on the same degradation. Removing the mean first
+is what puts them on one scale.
 
 The reference alone sets the denominator, so Equation (1) is not symmetric: exchanging the
 two fields changes the value. Where the reference is spatially uniform there is no
@@ -73,10 +73,10 @@ dividing by the size of the reference's own variation is what makes those two si
 produce the same number.
 
 The variation used is the fluctuation about the spatial mean, not the raw size of the
-field. This matters more than it sounds. A density field sitting at one with ripples of
-a ten-thousandth would, if divided by its raw size, report a tiny error no matter how
-badly the ripples were predicted, because the constant background would swamp everything.
-Subtracting the mean first means the ripples are compared against the ripples.
+field. This matters more than the phrase suggests. A density field sitting at one with
+ripples of a ten-thousandth would, if divided by its raw size, report a tiny error no
+matter how badly the ripples were predicted, because the constant background would swamp
+everything. Subtracting the mean first means the ripples are compared against the ripples.
 
 Here is the whole point on a four-by-four grid. The same displaced feature is scored
 twice: once as it stands, and once with both fields multiplied by a ten-thousandth, as a
@@ -92,12 +92,13 @@ The unnormalised score falls by four orders of magnitude and says nothing about 
 the prediction got worse. The normalised one does not move, because the error and the
 reference's variation shrank together.
 
-The consequence is that this is the one pointwise control whose value can be read across
-fields: a value of 0.1 means the error is a tenth of the field's variation, whether the
-field is density, velocity or vorticity. It also means the reference and the candidate are
-not interchangeable, since only the reference sets the scale.
+The consequence is that this is the one cell-by-cell baseline whose value can be read
+across fields: a value of 0.1 means the error is a tenth of the field's variation, whether
+the field is density, velocity or vorticity. It also means the reference and the candidate
+are not interchangeable, since only the reference sets the scale.
 
-What it ignores is the same thing every pointwise norm ignores: where the errors sit.
+What this metric ignores is the same thing every cell-by-cell metric ignores: where the
+errors sit.
 
 ## Reading the output
 
@@ -106,9 +107,9 @@ better, and zero means the fields are identical. One is a useful landmark rather
 bound: it means the error is as large as the reference's own fluctuation, which is roughly
 what predicting the mean everywhere would achieve.
 
-Because it is dimensionless, this is the pointwise control that supports the comparison
-the others cannot: across fields, and across datasets whose fields have different
-magnitudes. Comparisons across models on one field are of course still valid.
+Because it is dimensionless, this is the cell-by-cell baseline that supports the
+comparison the others cannot: across fields, and across datasets whose fields have
+different magnitudes. Comparisons across models on one field are of course still valid.
 
 Two cautions. It is asymmetric, so the reference must genuinely be the reference. And it
 is undefined for a spatially uniform reference, where it returns NaN — a run reporting NaN
@@ -141,8 +142,8 @@ Every number in this section comes from that one run. Regenerate with `python -m
 
 <!-- END GENERATED run -->
 
-Each subsection links to the degradations it reports; what those degradations do, and what
-their severity numbers mean, is documented in their own bundles.
+Each subsection links to the degradations that subsection reports. What those degradations
+do, and what their strength numbers mean, is documented on their own pages.
 
 ### Smoothing
 
@@ -239,7 +240,7 @@ their severity numbers mean, is documented in their own bundles.
 
 <!-- END GENERATED results_stochastic -->
 
-### Canaries
+### Trap tests
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
@@ -256,7 +257,7 @@ Damage of 1 is what an unrelated field scores, so the impostor column says how c
 
 <!-- END GENERATED results_canaries -->
 
-### Across the ladder
+### Compared with the other metrics
 
 <!-- GENERATED results_summary: written by `python -m fmeval.cards evidence nrmse --results results/comparison_1787115827`, do not edit -->
 
@@ -272,8 +273,8 @@ Computed on the median value at each (axis, severity level), over every axis and
 
 <!-- END GENERATED results_summary -->
 
-NRMSE correlates with MSE at 0.979 and with MAE at 0.977 across the full ladder, above the
-0.95 redundancy threshold. Its distinct contribution is not a different ordering but a
+NRMSE correlates with MSE at 0.979 and with MAE at 0.977 across every degradation, above
+the 0.95 redundancy threshold. Its distinct contribution is not a different ordering but a
 comparable scale: it is the control that allows a density result and a vorticity result to
 be read side by side.
 

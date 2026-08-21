@@ -19,7 +19,7 @@ In wavenumber space Equation (1) multiplies each mode by a product of Dirichlet 
 $\prod_i \mathrm{sinc}(w k_i / 2) / \mathrm{sinc}(k_i / 2)$, which is not monotone: it
 crosses zero and changes sign, so some wavenumbers are annihilated and others are
 returned with inverted phase. This is the property that distinguishes the box from the
-Gaussian, and the reason both are in the ladder.
+Gaussian, and the reason both are in the default set.
 
 ### Boundary handling
 
@@ -29,8 +29,8 @@ padding or shrinking near the boundary.
 ## Intuition
 
 This stands in for a surrogate whose effective resolution is coarser than the grid it
-writes on -- the crudest form of losing the small scales. It is in the ladder alongside
-the Gaussian because the two remove roughly the same amount of structure by very
+writes on -- the crudest form of losing the small scales. It is in the default set
+alongside the Gaussian because the two remove roughly the same amount of structure by very
 different means, and a metric that cannot tell them apart is only measuring how much
 smoothing happened rather than what kind.
 
@@ -46,9 +46,9 @@ before                 after (width = 3 cells)
 0 0 0 0                0.11 0.22 0.22 0.11
 ```
 
-What it leaves untouched is the total. Like every kernel here it only redistributes,
-preserving the mean exactly, and it moves nothing -- a feature stays where it was and
-merely spreads.
+What this degradation leaves untouched is the total. Like every kernel here it only
+redistributes, preserving the mean exactly, and it moves nothing -- a feature stays where
+it was and merely spreads.
 
 ## Severity scale
 
@@ -61,28 +61,28 @@ asymmetrically and displaces the field by half a cell. In a project whose centra
 is that metrics over-punish displacement, that artefact dominates: measured on vorticity,
 calibrated widths rounding to 2, 3, 6 and 13 cells gave damages of 0.0121, 0.0041, 0.0338
 and 0.0880 -- non-monotone, because the even level carried a half-cell shift the odd one
-did not. Rounding to odd removes the artefact and the axis becomes monotone.
+did not. Rounding to odd removes the artefact and the degradation becomes monotone.
 
-The ladder runs at fractions 0.06, 0.14, 0.25 and 0.40 of the characteristic scale, spaced
-to clear the rounding on both fields.
+The strengths run at fractions 0.06, 0.14, 0.25 and 0.40 of the characteristic scale,
+spaced to clear the rounding on both fields.
 
 ## Limitations
 
-The odd-width rounding that makes this axis monotone also quantises it coarsely. On a
-field with a characteristic scale of about 29 cells, two configured fractions closer than
-roughly 0.06 resolve to the same width and produce the same experiment; a severity level
-that collapses this way is detected and excluded rather than counted as agreement, but it
-costs a level. On smoother fields the quantisation is finer and the same list gives
-better-separated levels, so the axis has different resolution on different fields.
+The odd-width rounding that makes this degradation monotone also quantises it coarsely. On
+a field with a characteristic scale of about 29 cells, two configured fractions closer
+than roughly 0.06 resolve to the same width and produce the same experiment; a severity
+level that collapses this way is detected and excluded rather than counted as agreement,
+but it costs a level. On smoother fields the quantisation is finer and the same list gives
+better-separated levels, so the degradation has different resolution on different fields.
 
-As an imitation of a real surrogate it is the least faithful of the smoothing kernels:
-nothing in a numerical scheme produces a hard square window, and the sign-changing
-transfer function is an artefact of the shape rather than a physical effect. Its purpose
-is discrimination between metrics, not realism.
+As an imitation of a real surrogate this operator is the least faithful of the smoothing
+kernels: nothing in a numerical scheme produces a hard square window, and the
+sign-changing transfer function is an artefact of the shape rather than a physical effect.
+Its purpose is discrimination between metrics, not realism.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars box_blur`, do not edit -->
 

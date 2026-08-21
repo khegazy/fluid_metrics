@@ -46,8 +46,8 @@ before                 after (gain error 0.5)
 The mean is still 0.25. The bright cells have gone further above it and the dark cells
 further below, including below zero -- which is what a pure contrast change looks like.
 
-What it leaves untouched is position, the spatial mean, and the shape of the spectrum:
-every structure is exactly where it was and exactly the shape it was.
+What this degradation leaves untouched is position, the spatial mean, and the shape of the
+spectrum: every structure is exactly where it was and exactly the shape it was.
 
 ## Severity scale
 
@@ -55,9 +55,9 @@ The severity is the relative gain error, so 0.1 means the fluctuation is multipl
 1.1. It is absolute in the sense of needing no per-field calibration: a ratio is already
 comparable between fields.
 
-The ladder is configured at 0.01, 0.05, 0.2 and 0.5. The axis is disabled by default,
-because every metric in the current panel responds to it in the same trivially monotone
-way and it discriminates between none of them.
+The strengths are configured at 0.01, 0.05, 0.2 and 0.5. The degradation is disabled by
+default, because every metric in the current panel responds to it in the same trivially
+monotone way and it discriminates between none of them.
 
 ## Limitations
 
@@ -70,12 +70,13 @@ background. Equation (1) keeps the experiment about the structure, but it means 
 operator is not simply "multiply the field", and a reader expecting the latter will
 misread the severity.
 
-As an imitation of a real failure it is very optimistic: real amplitude errors vary in
-space and with scale, and a single constant factor is the easiest possible version.
+As an imitation of a real failure this operator is very optimistic: real amplitude errors
+vary in space and with scale, and a single constant factor is the easiest possible
+version.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars gain`, do not edit -->
 

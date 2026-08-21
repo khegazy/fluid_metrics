@@ -98,10 +98,20 @@ def test_every_renderer_is_documented(doc):
     assert not missing, f"undocumented figures: {missing}"
 
 
-def test_the_document_states_that_it_does_not_decide(doc):
-    """The framing matters as much as the contents: this suite reports, we decide."""
-    assert "does not decide" in doc
-    assert "flags" in doc
+def test_the_flags_column_is_documented_as_advisory(doc):
+    """A reader meeting a populated ``flags`` cell must not read it as a verdict.
+
+    This used to assert a paragraph of framing near the top of the file -- "the suite
+    measures; it does not decide". That paragraph restated a rule for the people building
+    this repository rather than telling a reader anything about the numbers, so it was
+    removed from the published pages. The rule itself still binds, and is pinned in
+    AGENTS.md by ``test_agents_states_the_non_negotiables``. What has to survive *here* is
+    the factual half: that a flag is advisory.
+    """
+    assert "`flags`" in doc
+    section = doc.split("### `flags`", 1)[1].split("\n### ", 1)[0]
+    assert "advisory" in section.lower()
+    assert "not** that the metric is approved" in section
 
 
 def test_a_copy_is_placed_in_every_run_folder(tmp_path):

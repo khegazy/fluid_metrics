@@ -43,8 +43,8 @@ before                 after (offset 0.5 of the fluctuation)
 Every value has moved by exactly the same amount. The mean rises from 0.25 to 0.75 and
 nothing else about the field has changed at all.
 
-What it leaves untouched is everything except the mean: every gradient, every contrast,
-every structure and the entire spectrum above the zero mode.
+What this degradation leaves untouched is everything except the mean: every gradient,
+every contrast, every structure and the entire spectrum above the zero mode.
 
 ## Severity scale
 
@@ -53,13 +53,13 @@ which is what makes it comparable between fields. On density, whose fluctuations
 orders of magnitude below its mean, an offset stated in raw units would be meaningless;
 stated as a fraction of the fluctuation it means the same thing there as on vorticity.
 
-This axis is not in the default ladder at all -- it is registered and available but not
-configured, because in the current panel every metric responds to it identically and it
-separates none of them.
+This degradation is not in the default set of degradations at all -- it is registered and
+available but not configured, because in the current panel every metric responds to it
+identically and it separates none of them.
 
 ## Limitations
 
-Not in the default ladder, so it will not appear in a run unless added.
+Not in the default set of degradations, so it will not appear in a run unless added.
 
 The operator is a fair imitation of a mean drift and nothing else. Real conservation
 failures are rarely uniform: a leaking quantity usually leaks from somewhere, producing a
@@ -71,9 +71,9 @@ constant offset to density is a mass change. The operator does not know or care,
 damage it produces should be read as a metric's sensitivity to the mean rather than as a
 physical error of a defined kind.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars bias`, do not edit -->
 

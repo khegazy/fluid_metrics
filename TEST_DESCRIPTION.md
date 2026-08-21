@@ -1,70 +1,81 @@
 # What the suite measures
 
-> This file documents the **quantities the evaluation reports** and the protocol behind
-> them. What each individual metric measures, and what it did on a recorded run, is in that
-> metric's own card — see [metrics/mse/card.md](metrics/mse/card.md) for the worked example,
-> or `docs/catalog.json` for all of them at once. This file is served as the protocol page
-> of the documentation site and a copy is placed in every run folder.
+> This file explains **every quantity the evaluation reports** and the protocol behind
+> those quantities. What each individual metric measures, and what each metric did on a
+> recorded run, lives on that metric's own page — see
+> [metrics/mse/card.md](metrics/mse/card.md) for the worked example, or
+> `docs/catalog.json` for all of them at once. This file is served as one page of the
+> documentation site, and a copy is placed in every results folder.
 
-A reference for every quantity the evaluation reports, written for someone who has not read
-the code. Open this when a table column says `separability_auc_min = 0.62` and you need to
-know what that means and whether to care.
+A reference for every quantity the evaluation reports, written for someone who has not
+read the code. Open this page when a table column says `separability_auc_min = 0.62` and
+you need to know what that means and whether to care.
 
-**The suite measures; it does not decide.** Every number below is a measurement. Where a
-reference threshold appears it only populates a `flags` column so a row can be found
-quickly — it never labels a metric accepted or rejected. That judgement is ours to make.
-
-A copy of this file sits in every run folder, so a results directory explains its own
-numbers even after it has been sent to someone else.
+A copy of this file sits in every results folder, so that a folder still explains its own
+numbers after being sent to someone else.
 
 ## How the measurement works
 
-We have one trusted simulation and no model predictions, so the thing to compare against is
-manufactured. The reference field is damaged in controlled steps, and each candidate metric
-is asked to score the damaged versions against the original.
+We have one trusted simulation and no model predictions to test against, so what we
+compare against is manufactured. The reference field is damaged in controlled steps, and
+each candidate metric is asked to score the damaged versions against the original.
 
-**Severity level.** One damaged version of the reference: one degradation applied at one
-strength. Severity level 0 is the reference itself, so any
-pairwise error metric must return exactly zero there.
+Four terms are used everywhere below.
 
-**Axis.** One family of severity levels sharing a single severity knob — for instance Gaussian blur at
-sigma = 0.5, 1, 2, 4, 8. An axis is *the unit of rank correlation*. Blur at sigma = 2 and a
+**Degradation.** One way of damaging a field, together with the single knob that controls
+how hard it is applied — for instance Gaussian blur, applied at sigma = 0.5, 1, 2, 4 and 8
+cells. A degradation is *the unit of rank correlation*: the whole point is to check that a
+metric puts one degradation's own strengths in the right order. Blur at sigma = 2 and a
 4-cell translation have no order relative to one another, and neither do Gaussian blur and
-median blur even though both smooth, so correlations are never computed across axes.
+median blur even though both smooth, so a correlation is never computed across two
+different degradations.
 
-**Severity direction.** Some knobs get worse as they grow (blur sigma) and some as they
-shrink (a low-pass cutoff). Each operator declares which, and the severity levels are sorted into
-increasing-damage order before numbering, so a cutoff list written `[64, 32, 16, 8]` gets the
-right ordinal levels rather than a perfectly inverted ladder.
+In the CSV column names and in some figures a degradation is called an **axis**, and you
+will see that word in identifiers such as `n_axes`, `worst_axis` and
+`axis_detail__field-*.csv`. The two words mean the same thing. The prose uses
+"degradation", because "axis" beside a column named `field` reads as a direction in space.
 
-**Damage, written D.** Raw mean squared error and a raw transport distance are not
-comparable, so every value is also reported on a shared dimensionless scale:
+**Severity level.** One damaged copy of the reference: one degradation applied at one
+strength. Severity level 0 is the reference itself, undamaged, so any metric that compares
+two fields must return exactly zero there.
+
+**Severity direction.** Some knobs make things worse as the number grows (a blur width) and
+some as the number shrinks (a low-pass cutoff). Each operator declares which way its knob
+runs, and the severity levels are then sorted into increasing-damage order before they are
+numbered. A cutoff list written `[64, 32, 16, 8]` therefore gets sensible level numbers
+instead of a perfectly inverted sequence.
+
+**Damage, written D.** A raw mean squared error and a raw transport distance are not
+comparable numbers, so every value is also reported on one shared scale that carries no
+units:
 
     D = (value - clean) / (unrelated - clean)
 
-`clean` is the reference value and `unrelated` is *measured*, not assumed. D = 0 is a perfect
-match and D = 1 is what the metric gives two fields that share every statistic but no
-positional alignment. A ratio to the clean value would not work, because mean squared error
-is exactly zero there.
+`clean` is the value the metric gives the undamaged reference, and `unrelated` is the
+value it gives a field with the same statistics and no relationship to the truth. That
+second number is *measured*, never assumed. D = 0 is a perfect match and D = 1 is what a
+metric gives two fields that share every statistic but have no positional alignment.
+Dividing by the clean value instead would not work, because mean squared error is exactly
+zero there.
 
-**Analysis grid (IN-2).** Both fields are placed on a common grid before measurement, by
-conservative block averaging. Derived fields are **recomputed** on that grid rather than
-averaged: vorticity is the curl of velocity, so averaging it would give a field that is not
-the vorticity of the velocity beside it. Measured, the difference between recomputing and
-averaging is 5.6% / 18.3% / 25.9% at coarsening factors 2 / 4 / 8 — not a rounding detail.
+**The analysis grid.** Both fields are placed on one common grid before anything is
+measured, by averaging over blocks of cells. Fields that are computed from other fields —
+vorticity, which is the curl of velocity — are **recomputed** on that grid rather than
+averaged directly, because the average of a curl is not the curl of the average. Measured,
+the difference between recomputing and averaging is 5.6% / 18.3% / 25.9% at coarsening
+factors 2 / 4 / 8, which is not a rounding detail.
 
-**Why so many numbers per axis.** A metric can be monotone and still useless: if adjacent
-severity levels overlap across frames it cannot rank two models one step apart. It can be monotone and
-still uninformative: if it saturates at severity level 1 it has no resolution in the interesting
-regime. Each quantity below closes one of those gaps.
-
----
+**Why so many numbers per degradation.** A metric can put the strengths in the right order
+and still be useless: if neighbouring severity levels overlap from one snapshot to the next,
+the metric cannot rank two models that differ by one step. A metric can also be correctly
+ordered and still uninformative: if the metric runs out of range at severity level 1, it has
+no resolution left in the regime that matters. Each quantity below closes one of those gaps.
 
 ## Group A: does the metric respond correctly?
 
-### `rho`
+### `rho` — did the metric order the strengths correctly?
 
-**What it is.** How reliably the metric orders the severity levels of one axis from mildest to worst.
+**What it is.** How reliably the metric orders the severity levels of one degradation from mildest to worst.
 1.0 means it gets the order right every time, 0 means no relationship, -1 means it is exactly
 backwards.
 
@@ -75,15 +86,15 @@ value, computed **within each frame separately**, then the median over frames is
 the trajectory, and on this data the density perturbation grows six orders of magnitude from
 start to end. Pooling every frame together means the worst severity level early is numerically smaller
 than the mildest severity level late, so the correlation collapses even when the ordering is perfect
-inside every single frame. Measured: every density axis was perfectly ordered within every
-frame while the pooled value read between 0.10 and 0.91 depending on the axis. Per-frame is
+inside every single frame. Measured: every density degradation was perfectly ordered within every
+frame while the pooled value read between 0.10 and 0.91 depending on the degradation. Per-frame is
 the statistic that answers the question actually being asked.
 
 **Range.** -1 to 1, dimensionless.
 
-**Good and bad.** 1.0 is what a well-behaved metric gives on a well-behaved axis; most of our
-baselines achieve it on most axes. Below about 0.9, look at `rho_frame_min` and at the axis
-itself before blaming the metric — a common cause is an axis with no dynamic range rather
+**Good and bad.** 1.0 is what a well-behaved metric gives on a well-behaved degradation; most of our
+baselines achieve it on most degradations. Below about 0.9, look at `rho_frame_min` and at the degradation
+itself before blaming the metric — a common cause is a degradation with no dynamic range rather
 than a defective metric.
 
 **Why we report it.** This is the core requirement: a metric used for model selection must
@@ -97,18 +108,18 @@ changes — see `sensitivity_level` and the damage columns for that.
 **Where it appears.** `axis_detail__field-*.csv`; the heatmap figure; `rho_min` in the
 summary.
 
-### `rho_frame_min`
+### `rho_frame_min` — the worst single snapshot behind `rho`
 
 **What it is.** The worst per-frame value behind `rho`. If `rho` is 1.0 but this is -0.8, the
 metric orders the severity levels correctly on most frames and gets them badly wrong on at least one.
 
 **Why we report it.** A median hides a tail. On our data MAE on vorticity had `rho = 0.40`
-with `rho_frame_min = -0.8` on the high-pass axis, and that tail is what identified the
-problem as an unusable axis rather than a marginal one.
+with `rho_frame_min = -0.8` on the high-pass degradation, and that tail is what identified the
+problem as an unusable degradation rather than a marginal one.
 
 **Where it appears.** `axis_detail__field-*.csv`.
 
-### `rho_pooled`
+### `rho_pooled` — the same correlation computed the wrong way, kept for comparison
 
 **What it is.** The rank correlation computed by pooling every frame together, which is the
 statistic we deliberately do *not* use as primary. Kept for comparison only.
@@ -119,7 +130,7 @@ metric. If they agree, the field is roughly stationary over the frames sampled.
 
 **Where it appears.** `axis_detail__field-*.csv`; `rho_pooled_min` in the summary.
 
-### `rho_ci_lo`, `rho_ci_hi`
+### `rho_ci_lo`, `rho_ci_hi` — how much `rho` would move on a different sample of snapshots
 
 **What they are.** A 5th-95th percentile interval on `rho`, showing how much the value would
 move on a different sample of frames.
@@ -136,10 +147,10 @@ currently a configured constant, not measured from the data.
 
 **Where they appear.** `axis_detail__field-*.csv`.
 
-### `monotone_fraction`
+### `monotone_fraction` — how often the ordering was perfect, with no ties
 
 **What it is.** The fraction of frames on which the severity levels are ordered *strictly* correctly,
-with no ties or inversions anywhere in the ladder.
+with no ties or inversions anywhere in the sequence.
 
 **Range.** 0 to 1. 1.0 means every frame was perfect.
 
@@ -149,11 +160,11 @@ trend right but often muddles a neighbouring pair.
 
 **Where it appears.** `axis_detail__field-*.csv`; `monotone_fraction_min` in the summary.
 
-### `separability_auc_min`
+### `separability_auc_min` — can the metric tell neighbouring strengths apart?
 
 **What it is.** Whether the metric can actually tell two *neighbouring* severity levels apart, given how
 much its value scatters from frame to frame. The smallest such separation across all adjacent
-pairs on the axis.
+pairs on the degradation.
 
 **How it is computed.** For each adjacent pair of severity levels, the Mann-Whitney U statistic divided
 by the product of the sample sizes — the probability that a randomly chosen frame from the
@@ -172,20 +183,21 @@ models that differ by roughly one severity level's worth of quality, this number
 metric can see the difference at all.
 
 **Caveats.** **Deliberately reported without a p-value.** The metric trace is autocorrelated
-in time, so any test assuming independent samples would be strongly anti-conservative and
-would report spurious significance. Treat this purely as a descriptive overlap measure. It
-also needs a reasonable number of frames; with ten or twenty it is noisy.
+in time, so any significance test assuming independent samples would report far more
+confidence than the data supports. Treat this number purely as a description of how much
+two distributions overlap. It also needs a reasonable number of snapshots; with ten or
+twenty it is noisy.
 
 **Where it appears.** `axis_detail__field-*.csv`; `separability_auc_min` in the summary.
 
-### `sensitivity_level`
+### `sensitivity_level` — how early does the metric start complaining?
 
 **What it is.** The first severity level at which the metric has moved 10% of the way from its clean
 value to the unrelated-field value. In short: how early does it start complaining?
 
 **How it is computed.** The lowest severity level whose median value reaches `clean + 0.10 * span`,
-where `span` is the **shared** clean-to-unrelated range rather than the axis's own maximum.
-Using each axis's own range would make an axis that barely damages the field look just as
+where `span` is the **shared** clean-to-unrelated range rather than the degradation's own maximum.
+Using each degradation's own range would make a degradation that barely damages the field look just as
 sensitive as one that destroys it, so the numbers would not be comparable between rows.
 
 The 10% fraction is fixed once in the code and is never tuned per metric — otherwise the
@@ -194,19 +206,19 @@ quantity becomes something one can adjust until the answer is pleasing.
 **Range.** An integer severity level number, or `--` when the threshold is never reached.
 
 **Good and bad.** Lower is more sensitive, but earlier is not automatically better: a metric
-that fires at severity level 1 on every axis may simply be noisy. Read it against the `field_gallery`
+that fires at severity level 1 on every degradation may simply be noisy. Read it against the `field_gallery`
 figure, which shows what each severity level actually looks like — a metric that first complains only
 after the field is visibly ruined is not earning its place.
 
 **Where it appears.** `axis_detail__field-*.csv`; `sensitivity_level_median` in the summary.
 
-### `saturation_level`
+### `saturation_level` — when does the metric run out of range?
 
 **What it is.** The first severity level at which the metric has used up 90% of its range — beyond which
 it can no longer distinguish worse from much worse.
 
 **Range.** An integer severity level, or `--` if never reached, which is the common case and is
-informative in itself: it means nothing on the ladder is as damaging as full decorrelation.
+informative in itself: it means that no degradation applied here is as damaging as losing the correlation entirely.
 
 **Good and bad.** Saturating at severity level 1 is the quantitative form of the double-penalty
 complaint: the metric reports "as bad as possible" for damage that is in fact mild, so it
@@ -216,15 +228,17 @@ cannot rank anything above that point.
 
 ---
 
-## Group B: can it be fooled?
+## Group B: can the metric be fooled?
 
-Two fields are constructed specifically to mislead. They probe different weaknesses, and
-neither is a severity level on any axis, so both are excluded from every rank correlation.
+Two fields are constructed specifically to mislead a metric. These are the **trap tests**.
+Each targets a different weakness, and neither is a strength on any degradation, so both
+are excluded from every rank correlation.
 
-### `gaussian_impostor_value`, `gaussian_impostor_damage`
+### `gaussian_impostor_value`, `gaussian_impostor_damage` — the fake prediction with the right spectrum
 
 **What it is.** The metric's response to a field that has the reference's energy spectrum
-*exactly* and none of its structure. This is the IN-4 check.
+*exactly* and none of its structure — a fake prediction that is right about how much
+energy sits at each scale and wrong about where anything is.
 
 **How the field is built.** Every Fourier amplitude of the reference is kept and every phase
 is replaced with that of a white Gaussian field. Consequences, all verified: the energy
@@ -239,12 +253,15 @@ and 1 means as different as an unrelated field.
 turbulence from a Gaussian field with the same spectrum, so it is responding only to
 second-order statistics.
 
-**What it actually catches.** Not the L^p family. Measured, mean squared error gives this field
-0.51-0.80 depending on the field — it rejects it firmly, because a phase-randomised field is
-pointwise uncorrelated with the reference. The check is aimed at metrics whose entire content
-is the amplitude spectrum: an energy spectrum (BD-1) or a two-point correlation (BD-2) scores
-it as **perfect**. Until such metrics are implemented this column will look uninformative, and
-a report in which every metric passes should not be read as reassuring.
+**What this test actually catches.** Not the ordinary error norms. Measured, mean squared
+error gives this field 0.51-0.80 depending on which physical field is used, so mean squared
+error rejects the fake prediction firmly — scrambling the phases leaves a field that is
+uncorrelated with the reference cell by cell, which is exactly what an error norm looks at.
+The trap is aimed instead at metrics whose entire content is the amplitude spectrum: a
+metric comparing energy spectra, or one comparing two-point correlations, scores this fake
+prediction as **perfect**. Until such metrics are implemented this column will look
+uninformative, and a report in which every metric passes it should not be read as
+reassuring.
 
 **Caveats.** Values above 1 are possible and have been observed (MAE on vorticity, 1.38),
 meaning the metric judges the Gaussian field worse than a genuinely unrelated turbulent field.
@@ -254,7 +271,7 @@ matched variance has none — but this is conjecture and has not been tested.
 
 **Where they appear.** `deception_table.csv`; the deception figure; the summary.
 
-### `gaussian_impostor_nearest_level`
+### `gaussian_impostor_nearest_level` — the real damage the fake prediction is equivalent to
 
 **What it is.** The ordinary severity level whose damage is closest to the Gaussian field's, which is
 what makes the damage figure interpretable. An entry of `translate_x=16` reads: *this metric
@@ -262,14 +279,14 @@ considers the Gaussian field about as bad as displacing the reference by 16 cell
 
 **Where it appears.** `deception_table.csv`.
 
-### `uncorrelated_value`, `uncorrelated_damage`
+### `uncorrelated_value`, `uncorrelated_damage` — the unrelated field that anchors the damage scale
 
 **What it is.** The value the metric gives two fields with identical statistics and no
 positional alignment. This is the anchor that defines D = 1, so `uncorrelated_damage` reads
 exactly 1.000 by construction and serves as a consistency check rather than a result.
 
 **How it is measured.** The reference is translated by a large random offset, drawn from the
-middle half of each axis. On a periodic domain a translation preserves every single- and
+middle half of each spatial axis of the domain. On a periodic domain a translation preserves every single- and
 multi-point statistic *exactly*, so this is a perfect statistical twin — verified as a variance
 ratio of 1.000000 and a flatness matching the reference to three decimals. Several independent
 draws are averaged; six draws agreed within 0.96-1.03 on the real data.
@@ -289,9 +306,9 @@ diagnostic — if it is wide, do not trust the anchor for that field.
 
 ---
 
-## Group C: is it worth a panel slot?
+## Group C: is the metric worth a place on the panel?
 
-### `cost_s`, `median`, `p95`
+### `cost_s`, `median`, `p95` — how long one evaluation takes
 
 **What it is.** Wall-clock seconds for a single metric evaluation on one field and one variant.
 Times the metric call only — reading the data and building the degraded variants are excluded,
@@ -302,21 +319,21 @@ against the projection below.
 
 **Where they appear.** `cost_table.csv`; `cost_s` in the summary.
 
-### `per_frame_s`, `full_trajectory_s`
+### `per_frame_s`, `full_trajectory_s` — that cost scaled up to a whole trajectory
 
 **What it is.** The cost scaled up: `per_frame_s` is one evaluation times the number of
-variants in the ladder, and `full_trajectory_s` projects that to all 10001 frames.
+damaged copies the run produced, and `full_trajectory_s` projects that to all 10001 frames.
 
 **Why we report it.** This is the number that decides usability. A metric that takes a second
 per evaluation is fine as an occasional diagnostic and impossible inside a training loop, and
 the raw per-call figure does not make that obvious.
 
 **Caveats.** A linear projection, so it ignores any caching or vectorisation a real
-implementation might exploit, and it assumes the present ladder width.
+implementation might exploit, and it assumes the present number of damaged copies.
 
 **Where they appear.** `cost_table.csv`.
 
-### `cost_relative`, `relative`
+### `cost_relative`, `relative` — that cost against the cheapest metric in the run
 
 **What it is.** Cost divided by the cheapest metric in the same run, so 2.0 means twice the
 cost of the cheapest thing measured.
@@ -326,12 +343,12 @@ not comparable between runs with different metric sets.
 
 **Where they appear.** `cost_table.csv`; `cost_relative` in the summary.
 
-### The redundancy matrix
+### The redundancy matrix — which metrics are duplicates of each other
 
-**What it is.** Rank correlation between every pair of metrics across the whole ladder. Two
+**What it is.** Rank correlation between every pair of metrics, over every degradation. Two
 metrics that correlate near 1 are near-duplicates and one of them is a wasted panel slot.
 
-**How it is computed.** One observation per (axis, severity level), using the median over frames — which
+**How it is computed.** One observation per (degradation, severity level), using the median over frames — which
 is the level at which the panel decision is actually made. The **reference severity level is excluded**:
 every pairwise error metric is exactly zero there, so keeping it would add a point all metrics
 share by construction and pull every correlation toward +1.
@@ -340,7 +357,7 @@ share by construction and pull every correlation toward +1.
 
 **Caveats, and an important one.** High rank correlation means the metrics *order* the
 degradations the same way. It does **not** mean they weight them the same. Measured on our
-data, MAE and MSE correlate at 0.995 across the ladder, yet MAE assigns 55 times the damage
+data, MAE and MSE correlate at 0.995 over every degradation, yet MAE assigns 55 times the damage
 MSE does at an eighth of a cell of displacement, because one is linear and the other quadratic
 in the displacement. For selecting between models by ranking they are duplicates; as training
 losses they are not. Read this matrix alongside the displacement figure, never alone.
@@ -348,13 +365,13 @@ losses they are not. Read this matrix alongside the displacement figure, never a
 **Where it appears.** `redundancy_table.csv`, in the comparison folder only, since it needs at
 least two metrics.
 
-### The selectivity profile
+### The selectivity profile — what one metric detects, across everything
 
-**What it is.** One metric's `rho` across every axis, read as a row rather than a column: a
+**What it is.** One metric's `rho` across every degradation, read as a row rather than a column: a
 fingerprint of *what that metric detects*.
 
 **How to read it.** Two metrics with near-identical profiles are redundant even when their
-magnitudes differ. A profile that is uniform across every axis indicates a metric responding to
+magnitudes differ. A profile that is uniform across every degradation indicates a metric responding to
 damage in general rather than to any specific failure mode, which makes it a poor diagnostic
 even if it is perfectly monotone.
 
@@ -383,8 +400,8 @@ error metric — a nonzero entry means a bug.
 
 ### `value_min`, `value_max`
 
-The smallest and largest values the metric took on that axis, for a quick sense of its working
-range before any normalisation.
+The smallest and largest values the metric took on that degradation, for a quick sense of
+its working range before any normalisation.
 
 ### `value_uncorrelated`, `span`
 
@@ -395,12 +412,13 @@ damage score.
 ### `anchor_source`
 
 Where the unrelated-field anchor came from. `uncorrelated` means it was measured properly.
-Anything ending in `@max` means the ladder had no anchor entry and the largest configured
-translation was used instead, which **understates** it — a 16-cell displacement reaches only
-about 0.6 of the true value on this data, so damage scores would be inflated by roughly 1.6x.
-If you see `@max`, add the `uncorrelated` entry to the ladder and re-run.
+Anything ending in `@max` means the run had no anchor entry and the largest configured
+translation was used instead, which **understates** it — a 16-cell displacement reaches
+only about 0.6 of the true value on this data, so damage scores would be inflated by
+roughly 1.6x. If you see `@max`, add the `uncorrelated` entry to the configured
+degradations and re-run.
 
-### `degenerate`
+### `degenerate` — the metric has no range to work with on this field
 
 True when the metric has essentially no dynamic range on that field — its clean and unrelated
 values are indistinguishable — so damage cannot be computed and every normalised quantity is
@@ -414,88 +432,92 @@ is zero, and there is nothing to normalise against. `enstrophy` will therefore a
 summary with `rho = -1`, `no dynamic range`, and no damage figure, on its very first run.
 
 Read that as the suite telling you something true: enstrophy cannot serve as a comparison
-metric between two fields. It is a tripwire on a single field, which is how it is intended.
-`rho = -1` is also correct rather than alarming: smoothing destroys small-scale structure, so
-enstrophy *falls* monotonically as damage increases, and a rank correlation of exactly -1 is
-perfect monotonicity in the direction that quantity runs.
+metric between two fields. Enstrophy is instead a rough alarm on a single field, which is
+exactly how it is intended to be used. `rho = -1` is also correct rather than alarming:
+smoothing destroys small-scale structure, so enstrophy *falls* monotonically as damage
+increases, and a rank correlation of exactly -1 is perfect monotonicity in the direction
+that quantity runs.
 
 For a *pairwise* metric, `degenerate = True` is a genuine problem and means the metric cannot
 distinguish an unrelated field from the reference at all.
 
 ### `damage_max`
 
-The largest damage the metric reached anywhere on that axis. A convenient one-number answer to
-"how much of its range does this axis exercise?".
+The largest damage the metric reached anywhere on that degradation. A convenient
+one-number answer to "how much of its range does this degradation exercise?".
 
 ### `n_axes`, `n_levels`, `n_frames`
 
-Sample sizes: how many ladder axes contributed to a summary row, how many severity levels an axis had,
-and how many frames were evaluated. Read the statistics above against these; several of them
-are noisy below about twenty frames.
+Sample sizes: how many degradations contributed to a summary row, how many severity levels
+a degradation had, and how many frames were evaluated. Read the statistics above against
+these; several of them are noisy below about twenty frames.
 
 ### `n_levels_configured`
 
-How many severity levels the config asked for on that axis, against the `n_levels` that were usable. They
-differ when a severity level resolved to the same experiment as a milder one or to no experiment at all —
-see `severity_degenerate`. A gap here is a statement about the field's spectrum, not a mistake:
-the acceptance statistics for that axis were computed from fewer points than the config appears
-to request, and the run log names which levels were dropped.
+How many severity levels the config asked for on that degradation, against the `n_levels`
+that were usable. They differ when a severity level resolved to the same experiment as a
+milder one or to no experiment at all — see `severity_degenerate`. A gap here is a
+statement about the field's spectrum, not a mistake: the acceptance statistics for that
+degradation were computed from fewer points than the config appears to request, and the
+run log names which levels were dropped.
 
-### `is_probe`
+### `is_probe` — this row is a trap test, not an ordered degradation
 
-True for entries that are not monotone axes — the Gaussian field and the unrelated-field
-anchor. Excluded from every rank correlation.
+True for entries that are not monotone degradations — the Gaussian field and the
+unrelated-field anchor. Excluded from every rank correlation.
 
-### `worst_axis`
+### `worst_axis` — the degradation this metric handled worst
 
-The axis on which this metric's `rho` was lowest. Names the weakest point rather than averaging
-it away.
+The degradation on which this metric's `rho` was lowest. Names the weakest point rather
+than averaging it away.
 
 ### `rho_median`, `rho_min`, `rho_pooled_min`, `monotone_fraction_min`, `sensitivity_level_median`, `saturation_level_median`
 
-The per-axis quantities rolled up to one row per metric and field. `_min` takes the worst axis,
-which is the honest summary; `_median` takes the typical one. `rho_min` is the number to read
-first, alongside `worst_axis`, which says where it came from.
+The per-degradation quantities rolled up to one row per metric and field. `_min` takes the
+worst degradation, which is the honest summary; `_median` takes the typical one. `rho_min`
+is the number to read first, alongside `worst_axis`, which says where it came from.
 
 ### `degradation`, `degradation_op`, `degradation_family`
 
-The ladder-entry label, the operator behind it, and the coarse grouping. The **label** is the
-unit of rank correlation, so `translate_x` and `translate_y` are two independent axes that
-share one operator and one family. The family is used only for colour and grouping.
+The label of the configuration entry, the operator behind that entry, and the coarse
+grouping. The **label** is the unit of rank correlation, so `translate_x` and
+`translate_y` are two independent degradations that share one operator and one family. The
+family is used only for colour and grouping.
 
 ### `level`, `severity`, `severity_name`, `variant_label`
 
-`level` is the ordinal severity level, 0 being the reference; `severity` is the physical knob value
-**actually applied** and `severity_name` says what it means (sigma, cutoff, distance);
-`variant_label` is the stable identifier used in filenames.
+`level` is the severity level as a whole number counting up from 0, which is the
+reference; `severity` is the physical knob value **actually applied** and `severity_name`
+says what it means (sigma, cutoff, distance); `variant_label` is the stable identifier
+used in filenames.
 
-### `higher_is_better`
+### `higher_is_better` — which direction counts as a better match
 
 **What it is.** The metric's declared direction: `True` when a larger value means a *better*
 match, `False` for an error measure where larger is worse. Copied onto every row from the metric's
-registration, and repeated in the per-axis table so a reader can see which convention a row was
+registration, and repeated in the per-degradation table so a reader can see which convention a row was
 read under.
 
 **Why we report it.** Three of the ordering statistics are one-sided — monotonicity asks whether
 the value *rises*, the separability AUC is taken with `alternative="greater"`, and the sensitivity
 and saturation levels look for the first median to *exceed* a target. Applied blind they assume
 every metric is an error measure, so a metric where larger is better arrives flagged on three
-criteria at once while behaving perfectly. Measured on an axis falling cleanly from 1.0 to 0.2:
+criteria at once while behaving perfectly. Measured on a degradation falling cleanly from 1.0 to 0.2:
 `rho` −1.0, `monotone_fraction` 0.0, `separability_auc_min` 0.0. Every one of those trips a
 configured threshold. The analysis now multiplies the value by the declared direction before
 computing those four, so **`rho` = +1 always means "responds correctly to damage"** whichever
 convention the metric uses.
 
 **Caveats.** The declaration is trusted, not verified — a metric that declares the wrong direction
-will have all four statistics inverted, and the symptom is a clean −1 correlation on every axis.
+will have all four statistics inverted, and the symptom is a clean −1 correlation on every degradation.
 When a run does not record the column (an older result folder), the direction is instead measured
 from the anchor, which is as bad as a field can look by construction: an anchor below the clean
 value means larger is better. That inference is unavailable when the anchor is degenerate, and the
 direction then defaults to "larger is worse".
 
-**Where it appears.** A column in `results.csv` and in the per-axis table.
+**Where it appears.** A column in `results.csv` and in the per-degradation table.
 
-### `severity_nominal`, `calibration`
+### `severity_nominal`, `calibration` — strengths written relative to the field's own properties
 
 Some severities are written in the config as a *relative* quantity and converted to an absolute
 one per field before use. `calibration` names what the config number is relative to and is empty
@@ -508,25 +530,25 @@ for an operator that takes absolute units:
 | `energy_above` | the fraction of fluctuation energy to remove from *above* the cutoff (a low-pass) | a cutoff wavenumber |
 | `energy_below` | the fraction to remove from *below* the cutoff (a high-pass) | a cutoff wavenumber |
 
-`severity_nominal` is the number as written in the config and `severity` is what was applied, so
-a calibrated row carries both. They are equal on an uncalibrated axis.
+`severity_nominal` is the number as written in the config and `severity` is what was
+applied, so a calibrated row carries both. They are equal on an uncalibrated degradation.
 
 **Why this exists.** A severity in absolute units lands in a completely different place depending
 on where a field keeps its energy, and on this data those places differ by a factor of five: the
 density fluctuation varies on about 160 cells against 34 for vorticity. One fixed list of blur
 widths was therefore simultaneously far too fine for density — the harshest severity level reached 1.2% of
-the unrelated-field level, so the axis carried no signal — and about right for vorticity, while
+the unrelated-field level, so the degradation carried no signal — and about right for vorticity, while
 one fixed list of filter cutoffs saturated by the second severity level on density, making two of four
 severity levels the same experiment. Expressing them relatively and resolving against a measurement makes
 the same config number mean the same thing on every field.
 
-The calibration itself is measured once per (field, analysis grid) from frames sampled evenly
-across the selection, and then held fixed. Re-measuring per frame would make the ladder drift as
-the flow evolves, so two frames would no longer be running the same experiment and the per-frame
-rank correlation — the primary acceptance statistic — would be comparing different ladders. It is
-recorded in `data/calibration.csv`.
+The calibration itself is measured once per (field, analysis grid) from frames sampled
+evenly across the selection, and then held fixed. Re-measuring per frame would make the
+strengths drift as the flow evolves, so two frames would no longer be running the same
+experiment and the per-frame rank correlation — the primary acceptance statistic — would
+be comparing different ladders. It is recorded in `data/calibration.csv`.
 
-### `energy_removed`, `energy_changed`
+### `energy_removed`, `energy_changed` — what the degradation measurably did, not what was asked for
 
 **What they are.** What a severity level *measurably did* to the field, as opposed to what its severity
 asked for. `energy_removed` is the fraction of the reference's fluctuation energy the operator
@@ -554,7 +576,7 @@ and one that displaces or contaminates it.
 whose energy is concentrated in a few modes the two come apart. A cutoff has to land on an
 available set of modes, so the realised removal jumps rather than tracking the request: 69% of
 density's fluctuation energy is in the four diagonal modes at |k| = √2 and only 3×10⁻⁵ of it in
-the axis modes just below them, so two consecutive available cutoffs there differ by most of the
+the modes lying on the coordinate axes just below them, so two consecutive available cutoffs there differ by most of the
 field. Measured, the mildest sharp high-pass severity level on density asks to remove 45% and removes
 3×10⁻⁵, and one density low-pass severity level asks for 45% and removes 99.997%. Only these columns reveal
 that. They are also the honest way to compare a severity level across fields, since the same width or cutoff
@@ -569,11 +591,12 @@ exact decomposition.
 **Where they appear.** Columns in `results.csv`; both in the resolved-severity table in the
 reproducibility section, and `energy_removed` annotated on the `energy_spectrum` figure.
 
-### `severity_degenerate`
+### `severity_degenerate` — this strength was not a distinct experiment
 
-True when a severity level is **not a distinct experiment**: either it resolved to the same severity as a
-milder severity level on the same axis, or it resolved to a severity at which the operator does nothing at
-all. Such rows are excluded from every acceptance statistic.
+True when a severity level is **not a distinct experiment**: either it resolved to the
+same severity as a milder severity level on the same degradation, or it resolved to a
+severity at which the operator does nothing at all. Such rows are excluded from every
+acceptance statistic.
 
 This happens because a calibrated severity is a real number while many operators act on a
 quantised one — a sharp filter selects whole sets of modes, and a windowed kernel takes an odd
@@ -594,13 +617,14 @@ fractions side by side and names any severity level where they differ substantia
 density low-pass severity level asked to remove 45% removes 99.997%, because the nearest available cutoff
 below it excludes the diagonal modes that hold most of the field.
 
-Left uncounted, both cases corrupt the statistics rather than merely padding them. A repeated
-severity level makes the rank correlation score a tie as agreement and makes the adjacent-severity level separability
-compare a distribution against itself; a severity level that does nothing contributes an exactly-zero
-damage, which made one axis appear to span eleven orders of magnitude.
+Left uncounted, both cases corrupt the statistics rather than merely padding them. A
+repeated severity level makes the rank correlation score a tie as agreement and makes the
+adjacent-severity level separability compare a distribution against itself; a severity
+level that does nothing contributes an exactly-zero damage, which made one degradation
+appear to span eleven orders of magnitude.
 
-Compare `n_levels` against `n_levels_configured` to see how many severity levels an axis actually
-contributed.
+Compare `n_levels` against `n_levels_configured` to see how many severity levels a
+degradation actually contributed.
 
 ### `analysis_grid`, `remap_op`
 
@@ -625,7 +649,7 @@ and — for a metric returning a vector — which element.
 
 The run seed, and the time the metric call itself took.
 
-### `flags`
+### `flags` — advisory notes, never a verdict
 
 **Advisory only.** A semicolon-separated list of the configured reference values a row did not
 meet, for example `spearman=0.40 < 0.9; separability_auc=0.31 < 0.8`. An empty entry means
@@ -634,11 +658,11 @@ and re-flagging needs no recomputation, so changing your mind is a config edit.
 
 ---
 
-## The degradation axes
+## The degradations
 
 Twenty-one operators in seven families. `python -m degradations` lists them with their
-severity units. Which failure modes you probe determines what the measurements mean, so this
-list is as important as the metric list.
+severity units. Which failure modes you test for determines what the measurements mean, so
+this list is as important as the list of metrics.
 
 **Smoothing** — the loss of small-scale structure, the failure most expected of an
 over-regularised surrogate.
@@ -676,22 +700,22 @@ with damage, which they did not when the severity was an absolute cutoff.
 |---|---|---|
 | `lowpass_ideal` | fraction of energy removed | Sharp cutoff, removing the small scales; rings near sharp features |
 | `lowpass_butterworth` | fraction of energy removed | Smooth rolloff; the ringing-free control for the above, and it resolves severity levels a sharp filter cannot |
-| `highpass_ideal` | fraction of energy removed | Removes large scales. **Keeps the spatial mean deliberately** — deleting it removes a component four orders of magnitude larger than anything the cutoff controls, and before this was fixed every severity level gave an identical damage of 2.7e7 and the axis carried no ordering at all |
+| `highpass_ideal` | fraction of energy removed | Removes large scales. **Keeps the spatial mean deliberately** — deleting it removes a component four orders of magnitude larger than anything the cutoff controls, and before this was fixed every severity level gave an identical damage of 2.7e7 and the degradation carried no ordering at all |
 | `highpass_butterworth` | fraction of energy removed | As above, smooth |
 
-**The high-pass axis has a narrow usable window on these fields, and that is a property of the
+**The high-pass degradation has a narrow usable window on these fields, and that is a property of the
 data.** Both filters are floored at the lowest usable cutoff, |k| = 1, and on density the modes
 at that magnitude hold almost nothing while the diagonal modes just above them hold 69% of the
 fluctuation energy. A mild request therefore resolves to a filter that passes essentially every
 mode; one step harsher puts the damage already most of the way to an unrelated field.
 The configured window is the widest measured — it spans a factor 3.4 in damage on vorticity and
-gives density two usable severity levels of four — so the high-pass axis alone does not reach the factor of
-five that the other axes do. No severity list fixes this; a field with more energy at high
+gives density two usable severity levels of four — so the high-pass degradation alone does not reach the factor of
+five that the other degradations do. No severity list fixes this; a field with more energy at high
 wavenumbers would.
 | `band_attenuate` | retained fraction | Damages one wavenumber band only. The direct test of whether a metric is scale-selective |
 
-**Geometric** — the double-penalty probe. Shape and amplitude stay exactly correct; only
-position changes.
+**Geometric** — the test for the double penalty. Shape and amplitude stay exactly correct;
+only position changes.
 
 | operator | severity | notes |
 |---|---|---|
@@ -714,7 +738,8 @@ position changes.
 | `multiplicative_noise` | relative | Error proportional to the local value |
 | `gaussian_impostor` | — | Not a severity level. See Group B |
 
-**Pointwise** — the complement of displacement: correct position, wrong magnitude.
+**Pointwise** — distortion applied to each cell's value on its own; the complement of
+displacement, with correct position and wrong magnitude.
 
 | operator | severity | notes |
 |---|---|---|
@@ -728,15 +753,15 @@ position changes.
 
 | figure | section | what it shows, and how to read it |
 |---|---|---|
-| `energy_spectrum` | 3 | Cumulative fluctuation energy against wavenumber, per field, with the applied spectral cutoffs drawn on. This sets the resolution of every filter ladder: a spectral severity is a fraction of energy to remove and is converted to a cutoff using exactly this curve, so where the curve rises sharply neighbouring severity levels land on the same set of modes and become the same experiment. The density curve is almost a step — 3×10⁻⁵ of its fluctuation energy at or below |k| = 1 and 69% at |k| = √2 — which is why a sharp filter has only a couple of usable severity levels there; vorticity rises gradually, 50% by |k| = 3.2 and 99% by 51, and its cutoffs spread over more than a factor of ten. Dashed lines are cutoffs in use, dotted lines severity levels excluded for repeating a milder severity level or for doing nothing. It says nothing about phase — two fields with identical curves can look entirely different, which is the premise of the impostor test |
-| `ladder_curves` | 3 | Value against severity level for every axis, with an interquartile band over frames. The curve the correlation summarises. Flat means blind to that failure mode |
-| `monotonicity_heatmap` | 4 | `rho` for every metric against every axis. Down a column: is this metric monotone? Across a row: what does it detect? Hatched cells fall below the reference value |
+| `energy_spectrum` | 3 | Cumulative fluctuation energy against wavenumber, per field, with the applied spectral cutoffs drawn on. This sets the resolution of every filter's sequence of strengths: a spectral severity is a fraction of energy to remove and is converted to a cutoff using exactly this curve, so where the curve rises sharply neighbouring severity levels land on the same set of modes and become the same experiment. The density curve is almost a step — 3×10⁻⁵ of its fluctuation energy at or below |k| = 1 and 69% at |k| = √2 — which is why a sharp filter has only a couple of usable severity levels there; vorticity rises gradually, 50% by |k| = 3.2 and 99% by 51, and its cutoffs spread over more than a factor of ten. Dashed lines are cutoffs in use, dotted lines severity levels excluded for repeating a milder severity level or for doing nothing. It says nothing about phase — two fields with identical curves can look entirely different, which is the premise of the trap test above |
+| `ladder_curves` | 3 | Value against severity level for every degradation, with an interquartile band over frames. The curve the correlation summarises. Flat means blind to that failure mode |
+| `monotonicity_heatmap` | 4 | `rho` for every metric against every degradation. Down a column: is this metric monotone? Across a row: what does it detect? Hatched cells fall below the reference value |
 | `severity_level_separation` | 5 | The spread of each severity level across frames, as violins. Where neighbouring violins overlap, the metric cannot rank models one severity level apart |
 | `field_gallery` | 6 | The per-cell contribution to the metric, on **shared colour limits**. Autoscaling each panel would make a heavily smoothed field look identical to the reference. A displaced feature shows as two lobes — one where it should be and is not, one where it is and should not be |
-| `selectivity_profile` | 7 | Each metric's response across every axis, as grouped bars. Needs two or more metrics |
+| `selectivity_profile` | 7 | Each metric's response across every degradation, as grouped bars. Needs two or more metrics |
 | `deception_panel` | 8 | Damage assigned to the Gaussian field (star) against the ordinary severity levels (open circles). A star near zero means the metric sees only second-order statistics |
 | `displacement_response` | 9 | Damage against displacement distance, log x. Shape and amplitude are exactly correct at every point on this curve; only position changes. The project's central figure |
-| `cost_frontier` | 10 | Worst-axis correlation against cost. Upper left is useful; upper right is right-but-unaffordable, so a diagnostic rather than a loss |
+| `cost_frontier` | 10 | Worst-degradation correlation against cost. Upper left is useful; upper right is right-but-unaffordable, so a diagnostic rather than a loss |
 
 Every figure has a CSV of exactly the numbers plotted, in `data/figure_data/`. No number
 appears in the report without a machine-readable source in the same folder.
@@ -746,17 +771,19 @@ appears in the report without a machine-readable source in the same folder.
 ## Glossary
 
 **Double penalty.** A sharp feature that is correct in shape and amplitude but slightly
-displaced is penalised twice by a pointwise norm — once for being absent where it should be,
-once for being present where it should not. Named in weather verification; the same pathology
-is called cycle skipping in seismic inversion.
+displaced is penalised twice by a metric that compares fields one cell at a time: once for
+being absent where it should be, and once for being present where it should not. The name
+comes from weather forecast verification; the same problem is called cycle skipping in
+seismic imaging.
 
-**Phase-blind.** Sensitive only to Fourier amplitudes, and therefore unable to distinguish a
-structured field from a Gaussian one with the same spectrum.
+**Phase-blind.** Sensitive only to how much energy sits at each scale, and not at all to
+where anything is in the domain. A phase-blind metric cannot distinguish a structured
+turbulent field from a Gaussian one with the same energy spectrum.
 
 **Intermittency.** The tendency of turbulent quantities to have heavy-tailed distributions —
 rare, intense events. Measured here by flatness, which is 3 for a Gaussian field and about 17
 for our vorticity. It is the first property an over-smoothed surrogate destroys and the last
-one a pointwise norm notices.
+one a metric comparing fields cell by cell notices.
 
 **Flatness.** The fourth moment normalised by the square of the second,
 mean(x^4) / mean(x^2)^2. Exactly 3 for a Gaussian.

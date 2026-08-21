@@ -31,7 +31,7 @@ is quite different from the constant-magnitude error additive noise imitates.
 
 The distinction matters for metric selection because the two are separable only by a
 metric that looks at where the error sits relative to the field's own structure. A
-pointwise norm sees a bag of differences either way.
+cell-by-cell metric sees a bag of differences either way.
 
 ```
 before                 after (amplitude 0.5)
@@ -45,8 +45,8 @@ The zeros stay exactly zero and only the bright cells are perturbed. Compare thi
 the additive noise example, where every cell moved: that difference is the entire point of
 having both operators.
 
-What it leaves untouched is the location of every zero and, more generally, the support of
-the field: nothing appears where nothing was.
+What this degradation leaves untouched is the location of every zero and, more generally,
+the support of the field: nothing appears where nothing was.
 
 ## Severity scale
 
@@ -55,9 +55,9 @@ relative by construction -- 0.1 means each cell is multiplied by roughly one plu
 a tenth. No per-field calibration is needed, because a ratio is already dimensionless and
 already comparable between fields.
 
-This operator is not in the default ladder. It overlaps with additive noise on the axes
-that matter most for the current metric set, and the ladder is kept short so that every
-axis in a run earns its cost.
+This operator is not in the default set of degradations. It overlaps with additive noise
+on the degradations that matter most for the current metric set, and the set of
+degradations is kept short so that every degradation in a run earns its cost.
 
 ## Limitations
 
@@ -74,9 +74,9 @@ not calibrated against the fluctuation the way additive noise is.
 
 Being stochastic, single draws carry sampling variation.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars multiplicative_noise`, do not edit -->
 

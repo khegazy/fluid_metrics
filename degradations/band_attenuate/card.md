@@ -16,8 +16,8 @@ options rather than part of the severity, defaulting to 16 and 64.
 
 Note the direction: this operator declares ``severity_direction="decreasing"``, the only
 one in the suite that does, because a *smaller* retained fraction is a *larger*
-degradation. The ladder sorts its levels accordingly, so a configured list running from
-0.8 down to 0.0 produces levels of increasing damage.
+degradation. The configuration sorts its levels accordingly, so a configured list running
+from 0.8 down to 0.0 produces levels of increasing damage.
 
 The wavenumber magnitude $|k|$ is the single definition shared with the severity
 calibration, in ``fmeval.wavenumbers``. That sharing is not incidental: the filters and
@@ -39,10 +39,11 @@ This stands in for a surrogate that gets one range of scales wrong while handlin
 larger and smaller ones correctly -- a model with a defect at a particular scale rather
 than a general loss of resolution.
 
-That is a more specific failure than the low-pass and high-pass axes imitate, and it is
-the one that most directly tests whether a metric localises error in wavenumber. A metric
-that only reports total energy lost will score a band attenuation the same as a low-pass
-that removed the same amount, even though the two fields differ in where the loss sits.
+That is a more specific failure than the low-pass and high-pass degradations imitate, and
+it is the one that most directly tests whether a metric localises error in wavenumber. A
+metric that only reports total energy lost will score a band attenuation the same as a
+low-pass that removed the same amount, even though the two fields differ in where the loss
+sits.
 
 In a picture, structures of one particular size fade while both larger and smaller ones
 remain, which is a strange and distinctive appearance.
@@ -56,36 +57,37 @@ spatial mean    0.0625                 spatial mean    0.0625
 The mean is untouched and the peak is almost gone: the block was built almost entirely
 from the small scales the filter removed.
 
-What it leaves untouched is the spatial mean: the
-k = 0 mode is far below any cutoff this axis uses.
+What this degradation leaves untouched is the spatial mean: the
+k = 0 mode is far below any cutoff this degradation uses.
 
 ## Severity scale
 
-The severity is the **retained** fraction within the band: 0.8 keeps most of the band
-and 0.0 removes it entirely. This is the one axis where a larger severity number means a
-milder degradation, which the declared decreasing direction handles.
+The severity is the **retained** fraction within the band: 0.8 keeps most of the band and
+0.0 removes it entirely. This is the one degradation where a larger severity number means
+a milder degradation, which the declared decreasing direction handles.
 
 The band edges are absolute wavenumbers, fixed at 16 and 64 by default, and are **not**
-calibrated per field. That is a real limitation of this axis: the same band means
+calibrated per field. That is a real limitation of this degradation: the same band means
 different things on fields whose spectra differ.
 
-The axis is disabled in the default ladder.
+The degradation is disabled in the default set of degradations.
 
 ## Limitations
 
-The uncalibrated band edges are the main weakness. Every other spectral axis resolves
-its cutoff per field against a measured spectrum; this one uses fixed wavenumbers, so the
-band may sit in the energetic range on one field and in the dissipation range on another,
-and the damage is not comparable between them. That is why it is disabled by default.
+The uncalibrated band edges are the main weakness. Every other spectral degradation
+resolves its cutoff per field against a measured spectrum; this one uses fixed
+wavenumbers, so the band may sit in the energetic range on one field and in the
+dissipation range on another, and the damage is not comparable between them. That is why
+this operator is disabled by default.
 
 The decreasing direction is also a trap for anyone reading the raw configuration: a list
 that looks like it descends is in fact ascending in damage. The declared direction handles
 it, and a contract test verifies the declaration against measurement, but the raw numbers
 are misleading to the eye.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars band_attenuate`, do not edit -->
 
@@ -101,7 +103,7 @@ are misleading to the eye.
 
 <!-- END GENERATED exemplars -->
 
-The field row is the one to study, and it rewards patience: neither the largest nor
+The field row is the one to study, and that row rewards patience: neither the largest nor
 the smallest structures change, and only an intermediate band fades. That is unlike every
 other panel in this gallery.
 

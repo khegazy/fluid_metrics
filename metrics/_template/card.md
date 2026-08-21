@@ -67,7 +67,8 @@ knows. Four things must be here:
 First, what this metric measures and which way of being wrong it reveals — stated as a
 property of the metric, in a sentence or two. Write about the metric, not about its place
 in this repository: whether it is a baseline or a candidate is recorded in `card.yaml`,
-and how it compares to other metrics belongs in Assessment, where measurements back it.
+and how it compares to other metrics belongs in Results, where measurements back the
+claim.
 
 Second, the idea itself, in words, including the mechanism behind its characteristic
 behaviour.
@@ -122,8 +123,9 @@ means writing it once per metric and keeping thirty copies true.
 
 Run `python -m fmeval.cards evidence <name> --results results/<run>` to produce the
 includes. Never write the numbers yourself, and never edit anything under `_generated/`.
-Delete any subsection whose axes this metric was not run against, and add `### Canaries`
-and `### Across the ladder` only if you have measurements for them.
+Delete any subsection whose degradations this metric was not run against, and add `###
+Trap tests` and `### Compared with the other metrics` only if you have measurements for
+them.
 
 ### Smoothing
 
@@ -136,7 +138,7 @@ Not generated yet. Run `python -m fmeval.cards evidence <name>`.
 
 <!-- END GENERATED results_smoothing -->
 
-TODO(fill) What the smoothing axes found. Say what the numbers show, not what you
+TODO(fill) What the smoothing degradations found. Say what the numbers show, not what you
 expected them to show, and say it about this metric: what the run was is in the run
 summary above, and what the degradation does is in its own bundle.
 
@@ -151,7 +153,7 @@ Not generated yet. Run `python -m fmeval.cards evidence <name>`.
 
 <!-- END GENERATED results_spectral -->
 
-TODO(fill) What the spectral axes found.
+TODO(fill) What the spectral degradations found.
 
 ### Displacement
 
@@ -164,8 +166,8 @@ Not generated yet. Run `python -m fmeval.cards evidence <name>`.
 
 <!-- END GENERATED results_geometric -->
 
-TODO(fill) What the displacement axes found. This is where a
-pointwise norm is usually at its worst, so say how yours compares.
+TODO(fill) What the displacement degradations found. This is where a
+cell-by-cell metric is usually at its worst, so say how yours compares.
 
 ### Resolution loss
 
@@ -189,9 +191,9 @@ Not generated yet. Run `python -m fmeval.cards evidence <name>`.
 
 <!-- END GENERATED results_stochastic -->
 
-TODO(fill) What the noise axis found.
+TODO(fill) What the noise degradation found.
 
-### Canaries
+### Trap tests
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
@@ -202,11 +204,11 @@ Not generated yet. Run `python -m fmeval.cards evidence <name>`.
 
 <!-- END GENERATED results_canaries -->
 
-TODO(fill) The phase-randomised impostor and the unrelated-field
-anchor. State plainly what your metric does with them, including a canary it fails —
-that is information a reader needs, not a mark against the metric.
+TODO(fill) The phase-scrambled fake prediction and the unrelated-field anchor. State
+plainly what your metric does with them, including any trap test it falls for — that is
+information a reader needs, not a mark against the metric.
 
-### Across the ladder
+### Compared with the other metrics
 
 <!-- GENERATED results_summary: written by `python -m fmeval.cards evidence <name>`, do not edit -->
 
@@ -214,7 +216,7 @@ Not generated yet. Run `python -m fmeval.cards evidence <name>`.
 
 <!-- END GENERATED results_summary -->
 
-TODO(fill) What holds across every axis: how this metric correlates
+TODO(fill) What holds across every degradation: how this metric correlates
 with the controls, where it merely tracks them, and the situations in which someone
 should reach for it. Do not write a verdict; nothing in this repository passes or fails a
 metric.

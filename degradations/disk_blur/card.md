@@ -43,8 +43,8 @@ before                 after (radius = 1.5 cells)
 0 0 0 0                0.11 0.22 0.22 0.11
 ```
 
-What it leaves untouched is the spatial mean, which is preserved exactly, and the
-position of everything: features spread but do not move.
+What this degradation leaves untouched is the spatial mean, which is preserved exactly,
+and the position of everything: features spread but do not move.
 
 ## Severity scale
 
@@ -53,14 +53,17 @@ configuration as a fraction of the field's characteristic scale and resolved per
 against a measured spectrum, so the same configured number becomes a different radius on
 density than on vorticity.
 
-The ladder is configured at 0.06, 0.14 and 0.25 of the characteristic scale. This axis is
-**disabled in the default ladder**: it overlaps heavily with the Gaussian and box kernels,
-and the ladder is kept short so that every axis in a run earns its cost. Enable it when
-the question is specifically whether a metric distinguishes kernel shapes.
+The strengths are configured at 0.06, 0.14 and 0.25 of the characteristic scale. This
+degradation is **disabled in the default set of degradations**: it overlaps heavily with
+the Gaussian and box kernels, and the set of degradations is kept short so that every one
+in a run earns its cost. Enable it when the question is specifically whether a metric
+distinguishes kernel shapes.
 
 ## Limitations
 
-Disabled by default, so a run will not include it unless asked. Its transfer function is a Bessel function, which like the box kernel changes sign, so some wavenumbers return inverted.
+Disabled by default, so a run will not include this operator unless asked. Its transfer
+function is a Bessel function, which like the box kernel changes sign, so some wavenumbers
+return inverted.
 
 The radius is rounded up to whole cells when the discrete kernel is built, so two
 configured severities that differ by less than one cell of radius produce the same
@@ -71,9 +74,9 @@ counted.
 As with every kernel here, this is a uniform smoothing applied everywhere at once, which
 is not how a real surrogate loses its small scales.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars disk_blur`, do not edit -->
 
@@ -96,8 +99,8 @@ difference row, where the effect concentrates at feature edges.
 The radial spectrum row is where this kernel earns its place. Compare its curve against
 the Gaussian panel at matched severity: the roll-off has a different shape, and the
 sign-changing transfer function leaves structure the Gaussian's smooth exponential does
-not. If a metric responds identically here and on the Gaussian axis, it is measuring the
-amount of smoothing and nothing about its character.
+not. If a metric responds identically here and on the Gaussian blur, that metric is
+measuring the amount of smoothing and nothing about its character.
 
 ## References
 

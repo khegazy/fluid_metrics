@@ -97,8 +97,9 @@ one.
 
 It is also the least sensitive diagnostic in the panel to the failures this project cares
 about. Smoothing, which destroys the small scales a surrogate is most likely to lose,
-removes very little energy, so a flat kinetic energy across a smoothing ladder should be
-read as this metric being the wrong instrument rather than as the prediction being sound.
+removes very little energy, so a flat kinetic energy across the smoothing degradations
+should be read as this metric being the wrong instrument rather than as the prediction
+being sound.
 
 Finally, this is specific energy, not the conserved density-weighted quantity. At higher
 Mach number, or in a flow with real density contrast, the two separate and the conserved
@@ -114,10 +115,10 @@ Every number in this section comes from that one run. Regenerate with `python -m
 
 <!-- END GENERATED run -->
 
-Each subsection links to the degradations it reports; what those degradations do, and what
-their severity numbers mean, is documented in their own bundles. A single-field diagnostic
-is evaluated on the reference and on every degraded variant alike, so what is read here is
-the drift away from the reference value rather than an error.
+Each subsection links to the degradations that subsection reports. What those degradations
+do, and what their strength numbers mean, is documented on their own pages. A single-field
+diagnostic is evaluated on the reference and on every degraded variant alike, so what is
+read here is the drift away from the reference value rather than an error.
 
 ### Smoothing
 
@@ -168,7 +169,7 @@ the drift away from the reference value rather than an error.
 <!-- END GENERATED results_geometric -->
 
 A translation moves the field without changing any of its values, so a quantity built from
-those values alone cannot see it at all. This axis is expected to be flat, and a
+those values alone cannot see it at all. This degradation is expected to be flat, and a
 measurement showing otherwise would indicate the translation is not conserving what it
 should — which is one of the things a reference-free diagnostic is useful for.
 
@@ -196,7 +197,7 @@ should — which is one of the things a reference-free diagnostic is useful for.
 
 <!-- END GENERATED results_stochastic -->
 
-### Canaries
+### Trap tests
 
 [gaussian_impostor](../../degradations/gaussian_impostor/card.md) ·
 [uncorrelated](../../degradations/random_large_translation/card.md)
@@ -211,7 +212,7 @@ Damage of 1 is what an unrelated field scores, so the impostor column says how c
 
 <!-- END GENERATED results_canaries -->
 
-### Across the ladder
+### Compared with the other metrics
 
 <!-- GENERATED results_summary: written by `python -m fmeval.cards evidence kinetic_energy --results results/comparison_1787115827`, do not edit -->
 

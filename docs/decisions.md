@@ -1,140 +1,152 @@
-# Decisions that look like gaps
+# Things missing on purpose
 
-This repository is missing several things on purpose. Each absence below was a decision,
-made by the repository owner, and each is enforced by a test. This page exists so that you
-do not "fix" one of them.
+This repository is missing several things deliberately. Each absence listed below was a
+decision made by the repository owner, and each is enforced by an automated test. This
+page exists so that nobody "fixes" one of them.
 
-**How to use this page:** if something seems missing, look for it here before adding it.
-If a test blocks your change and the test's message points here, the answer is here. If
-you believe a decision is wrong, say so in your report and stop — do not work around the
-test, and do not change the test to let your change through.
+**How to use this page:** if something seems to be missing, look for it here before adding
+it. If a test blocks your change and the test's message points here, the answer is here.
+If you believe one of these decisions is wrong, say so in your report and stop — do not
+work around the test, and do not change the test to let your change through.
 
 ## There are no predictions
 
-A card never states how a metric is expected to behave. There is no `expectations` field,
-and the schema rejects one. Every claim about behaviour is either a measurement from a
-named run or a citation to published work.
+A metric's page never states how the metric is expected to behave. There is no field for
+recording an expectation, and the schema rejects one. Every claim about behaviour is
+either a measurement from a named evaluation run or a citation to published work.
 
-Why: an unsourced prediction is an opinion, and an opinion in structured YAML looks
-exactly like a finding. This repository must contain only evidence.
+Why: an unsourced prediction is an opinion, and an opinion written into a structured file
+looks exactly like a finding. This repository must contain only evidence.
 
-If you want to record how a metric behaves: run the evaluation and generate the evidence.
-Do not write what you think will happen.
+If you want to record how a metric behaves, run the evaluation and generate the evidence.
+Do not write down what you think will happen.
 
 ## There is no pass or fail
 
-No metric is marked good or bad. There is no `rejected` status, no score, and no ranking.
-The `status` field means only "how far has the work progressed": `candidate` (evidence
-incomplete or unreviewed), `validated` (measured and human-reviewed — says nothing about
-whether the results were good), `control` (a baseline others are read against),
-`deprecated` (superseded, kept for the record).
+No metric is marked good or bad. There is no "rejected" state, no score, and no ranking.
+The one status field records only how far the work has progressed:
 
-Why: a metric that fails one test usually catches something else. The useful record is
-what each metric sees and what it misses, so a reader can match a metric to their
-question. A pass/fail marker would erase exactly that information.
+- **candidate** — implemented, but the evidence is incomplete or nobody has reviewed it;
+- **validated** — measured, and read and signed off by a person. This says the work was
+  done, and says nothing at all about whether the results were good;
+- **control** — a familiar baseline that candidate metrics are read against;
+- **deprecated** — superseded, kept for the record.
+
+Why: a metric that fails one test usually catches something another metric misses. The
+useful record is what each metric sees and what each metric misses, so that a reader can
+match a metric to their own question. A pass/fail marker would erase exactly that
+information.
 
 ## There are no word counts
 
-No section of any card has a minimum or maximum length. What each section must *say* is
-described in the templates and the recipes; how long it takes to say it is the author's
+No section of any page has a minimum or a maximum length. What each section must *say* is
+described in the templates and the recipes; how many words that takes is the author's
 judgement, checked by a human reviewer.
 
-Why: a word count measures length, not clarity, and an author told to reach a number
-reaches it by padding. Say what the section needs and stop.
+Why: a word count measures length rather than clarity, and an author told to reach a
+number will reach that number by padding. Say what the section needs to say, then stop.
 
 ## There are no metric IDs
 
-A metric's name — the directory name, what users type in `metrics=[...]` — is its only
-identity. You may find two-letter prefixes like `NM-0` or `OT-1` in old documents such as
-`Table_of_Ideas.tex`. They are retired. Do not introduce IDs, and do not use those
-prefixes in new work. A card's `category` field carries the classification instead.
+A metric's name — which is its directory name, and exactly what users type in
+`metrics=[...]` — is its only identity. You may find two-letter prefixes such as `NM-0` or
+`OT-1` in old documents like `Table_of_Ideas.tex`. Those prefixes are retired. Do not
+introduce IDs, and do not use those prefixes in new work. Each metric's `category` field
+carries the classification instead.
 
-## Cards do not repeat what the decorator declares
+## A page never repeats what the code already declares
 
-`differentiable`, `symmetric`, `units`, `cost`, `arity`, `higher_is_better` live on the
-`@metric` decorator and nowhere else. The card holds only what the code cannot declare:
-the category, the prose, and the mathematical properties (`triangle_inequality`,
-`scale_dependent`, `resolution_dependent`, `complexity`).
+Whether a metric is differentiable, whether it is symmetric, what units its value carries,
+how expensive it is, how many fields it takes, and whether higher or lower is better all
+live on the `@metric` decorator in the code and nowhere else. The page holds only what the
+code cannot declare: the category, the prose, and the mathematical properties.
 
-Why: any fact stored in two places will eventually disagree. The catalog merges both
-sources at build time, and it takes the machine-checkable ones from the code.
+Why: any fact stored in two places will eventually disagree with itself. The catalog
+merges both sources when the site is built, taking the machine-checkable facts from the
+code.
 
-## Generated content lives inside card.md, between HTML markers
+## Generated content lives inside the page, between HTML markers
 
-Measured tables and figures sit in `card.md` between `<!-- GENERATED name: ... -->` and
-`<!-- END GENERATED name -->` markers, written by `python -m fmeval.cards evidence` or
-`exemplars`. There are no include directives.
+Measured tables and figures sit inside `card.md` between `<!-- GENERATED name: ... -->` and
+`<!-- END GENERATED name -->` markers, written there by `python -m fmeval.cards evidence`
+or `python -m fmeval.cards exemplars`. There is no mechanism for including a separate file.
 
-Why: cards are read in two places — GitHub's file view and the documentation site — and
-GitHub does not resolve includes. A card must render fully in both.
+Why: these pages are read in two places — GitHub's file view and this documentation site —
+and GitHub does not resolve include directives. A page must render completely in both.
 
-Never write anything between the markers. Your prose goes below the closing marker.
+Never write anything between the markers. Your own prose goes below the closing marker.
 
 ## Equations use only `$...$` and `$$...$$` with `\tag{n}`
 
-Never `\begin{equation}`, `\label`, `\eqref`, `\(`, or `\[`. The checker rejects them.
+Never `\begin{equation}`, `\label`, `\eqref`, `\(`, or `\[`. The checker rejects all of
+those.
 
-Why: those render on the site but appear as raw source on GitHub, silently — no error is
-shown anywhere. The dollar forms are the only subset both readers share.
+Why: they render on this site but appear as raw source on GitHub, and they do so silently,
+with no error shown anywhere. The dollar-sign forms are the only subset that both readers
+handle.
 
 ## Evidence comes only from registered datasets
 
-`python -m fmeval.cards evidence` refuses a run on any dataset not listed in
-`configs/cards/default.yaml`. In particular it refuses `kinet_re5e4_dev`, always.
+`python -m fmeval.cards evidence` refuses to run against any dataset not listed in
+`configs/cards/default.yaml`. In particular it always refuses `kinet_re5e4_dev`.
 
-Why: the dev dataset is the first 100 solver steps, before the flow develops. Its numbers
-are physically meaningless, and once written into a card they would be indistinguishable
-from meaningful ones. Use the dev dataset for smoke tests and refactor verification only.
+Why: the development dataset holds only the first 100 solver steps, before the flow has
+developed. Its numbers are physically meaningless, and once written into a page they would
+be indistinguishable from meaningful ones. Use the development dataset for quick smoke
+tests and for checking that a refactor changed nothing, and for nothing else.
 
 ## Agents never sign, and never set `validated`
 
-`python -m fmeval.cards sign` records that a **human** read the prose and stands behind
-it. Never run it, not even to test it — it writes the user's name. It also refuses to run
-until the bundle has measurements, because most of a card's claims are measured ones and
-an earlier signature would attest to nothing.
+`python -m fmeval.cards sign` records that a **person** read the prose and stands behind
+it. Never run that command, not even to test it — it writes the user's name. The command
+also refuses to run until the bundle has measurements, because most of a page's claims are
+claims about measurements, and a signature recorded before them would attest to nothing.
 
-## Card validation happens at `get()`, not at import
+## A page is validated at `get()`, not at import
 
-A broken or missing card makes `registry.get(<name>)` fail with the fix command. It does
-not make `import metrics` fail.
+A broken or missing page makes `registry.get(<name>)` fail, with the command that fixes
+it. A broken page does not make `import metrics` fail.
 
-Why: one colleague's half-edited card must not break every other metric's runs. Do not
-"strengthen" this into import-time validation; it was placed deliberately.
+Why: one colleague's half-edited page must not break every other metric's runs. Do not
+"strengthen" this into validation at import time; it was placed here deliberately.
 
-## A broken operator stops the run; an unsupported severity does not
+## A broken operator stops the run; an unsupported strength does not
 
 If a degradation raises `NameError`, `AttributeError`, `ImportError` or `TypeError`, the
-run stops and names the operator — that is a code defect. If it fails any other way, that
-severity level is dropped with a warning and the run continues — that is a limit of the
-configured grid.
+run stops and names the operator, because that is a defect in the code. If a degradation
+fails in any other way, that one strength is dropped with a warning and the run continues,
+because that is a limit of the configured range rather than a bug.
 
-Why: these were once treated the same, and a run once completed missing 630 rows with only
-a misleading warning. Do not catch exceptions around operators to keep a run alive.
+Why: these two cases were once treated the same way, and a run once completed with 630
+rows silently missing and only a misleading warning to show for it. Do not wrap operators
+in exception handlers to keep a run alive.
 
-## Figures are committed, and only fingerprints must be byte-stable
+## Figures are committed, and only the numbers behind them must be byte-stable
 
-Exemplar panels (PNGs) are committed so cards render on GitHub without a build step.
-Regenerating with the same matplotlib version must produce byte-identical files; across
-versions the PNGs may differ, and that is acceptable. The numbers in
-`exemplars.json` and `fingerprint.json` are the stable record — never the pixels.
+The example panels (PNG files) are committed so that pages render on GitHub with no build
+step. Regenerating a panel with the same matplotlib version must produce a byte-identical
+file; across different matplotlib versions the PNGs may differ, and that is acceptable.
+The numbers in `exemplars.json` and `fingerprint.json` are the stable record — never the
+pixels.
 
-One canonical frame (`configs/cards/default.yaml`, `exemplar_frame`) is used for every
-panel in the repository, so panels can be compared. Do not illustrate a degradation on a
-different snapshot.
+One fixed snapshot (`configs/cards/default.yaml`, `exemplar_frame`) is used for every
+panel in the repository, so that panels can be compared with one another. Do not
+illustrate a degradation on a different snapshot.
 
 ## The instructions live in docs/recipes/, not in AGENTS.md
 
-`AGENTS.md` is a summary. The canonical instructions are the recipe files, each pinned by
-its own test. Where they disagree, the recipe wins.
+`AGENTS.md` is a summary. The canonical instructions are the recipe files, each one pinned
+by its own test. Where the two disagree, the recipe wins.
 
-## Known accepted risks
+## Known risks, accepted for now
 
-- `metrics` is a generic top-level import name; the collision risk is accepted for now
-  (`issues/020`).
-- Numbers typed into card prose are not yet checked against the fingerprints beside them
-  (`issues/032`). Until that check exists, reconciling them after a new run is a manual
-  step in `docs/recipes/refresh-the-evidence.md`.
-- Committed figures currently total about 6 MB. If the repository trends past roughly
-  50 MB, the fallback is Git LFS — raise it, do not delete panels.
-- The local checkout may be in a directory named `fluid_metrics`. The repository is
-  `pde_metrics`; the directory name is historical and means nothing.
+- `metrics` is a generic name for a top-level Python package; the risk of colliding with
+  another package is accepted for now (`issues/020`).
+- Numbers typed into the prose of a page are not yet checked against the generated tables
+  beside them (`issues/032`). Until that check exists, reconciling them after a new
+  evaluation run is a manual step, described in
+  `docs/recipes/refresh-the-evidence.md`.
+- The committed figures currently total about 6 MB. If the repository grows past roughly
+  50 MB, the fallback is Git LFS — raise the question, do not delete panels.
+- Your local copy of the repository may sit in a directory named `fluid_metrics`. The
+  repository is `pde_metrics`; the directory name is historical and means nothing.

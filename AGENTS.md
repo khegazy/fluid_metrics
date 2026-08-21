@@ -292,8 +292,9 @@ mechanism — a blur is legible in `radial_spectrum`, a translation is not, beca
 spectral phase rather than amplitude, so use `spectral_phase` or `difference` there; noise
 shows up in `pdf`. For an operator with no ordered severity, use `mode: draws`. And
 `card.md` replaces Reading the output with **`## Severity scale`**, which must say whether
-the severity is absolute or calibrated per field, and Results with **`## Exemplars`**,
-whose generated block holds the panel and whose prose says what to look at in it.
+the severity is absolute or calibrated per field, and Results with
+**`## What the degradation looks like`** (formerly `## Exemplars`), whose generated block
+holds the example panel and whose prose says what to look at in that panel.
 
 Then generate the panel, from the one canonical frame every figure in the repository
 shares:
@@ -302,8 +303,8 @@ shares:
 python -m fmeval.cards exemplars <name>
 ```
 
-Never draw those figures yourself and never edit them. If a metric card links to your axis,
-regenerate that metric's evidence after yours.
+Never draw those figures yourself and never edit them. If a metric card links to your
+degradation, regenerate that metric's evidence after yours.
 
 ```python
 from degradations.registry import degradation

@@ -24,8 +24,8 @@ GitHub as raw source with no error reported, so the checker refuses them.
 
 TODO(fill) Required. This domain is doubly periodic, and whether your operator respects
 that changes what it measures — a convolution that wraps and one that pads with zeros
-disagree along every edge. Say which yours does. If the operator is pointwise and never
-looks beyond a single cell, write `None.` and say so.
+disagree along every edge. Say which yours does. If the operator works one cell at a time
+and never looks beyond a single cell, write `None.` and say so.
 
 ## Intuition
 
@@ -51,7 +51,7 @@ usually what makes it a useful test.
 ## Severity scale
 
 TODO(fill) What are the physical units of the severity number, and
-what does each step of the ladder correspond to? If the severity is calibrated rather
+what does each step of the sequence correspond to? If the severity is calibrated rather
 than absolute — a fraction of the field's characteristic scale, or of the energy a filter
 removes — say so, and say what that means for comparing it across fields, because the
 number applied to density and the number applied to vorticity will differ.
@@ -60,12 +60,12 @@ number applied to density and the number applied to vorticity will differ.
 
 TODO(fill) Where this degradation is not a fair stand-in for the
 failure it imitates, where its severities stop being distinguishable, and any field whose
-spectrum cannot resolve the whole ladder. If a severity level can collapse onto a milder
-one or onto a no-op, say under what conditions.
+spectrum cannot resolve the whole sequence. If a severity level can collapse onto a milder
+one or onto an operation that does nothing, say under what conditions.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars <name>`, do not edit -->
 

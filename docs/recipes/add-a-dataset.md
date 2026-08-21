@@ -1,11 +1,12 @@
 # Adding a dataset
 
-A dataset enters this repository in two distinct capacities, and the second is the one
-easy to forget. First it must be **readable**: a config and, if the format is new, a
-reader. Then it must become **citable evidence**: registered with the card system, given a
-developed-flow window, evaluated, and calibrated. A dataset that is readable but not
-registered can be experimented on but no card may cite it, which is the correct state for
-scratch data and the wrong one for a regime the cards should cover.
+A dataset enters this repository in two distinct capacities, and the second one is easy to
+forget. First the dataset must be **readable**: a configuration file and, if the file
+format is new, a reader. Then the dataset must become **citable evidence**: registered
+with the card system, given a window of time over which the flow is properly developed,
+evaluated, and calibrated. A dataset that is readable but not registered can be
+experimented on freely, but no metric's page may cite it. That is the correct state for
+scratch data and the wrong one for a physical regime the pages ought to cover.
 
 ## 1. Make it readable
 
@@ -37,20 +38,22 @@ the smoke evaluation and read the calibration table it writes:
 python evaluate.py metrics=[mse] dataset=<name> degradation=quick
 ```
 
-Look at `data/calibration.csv` in the run folder: the characteristic scales should be
-resolved (not NaN), the scale spread should be small, and the configured severity lists
-should produce distinct levels — collapsed or no-op levels are flagged
-`severity_degenerate`. If a whole axis degenerates on the new data, its severity list
-needs a dataset-appropriate range, and that is a finding worth recording, not routing
-around.
+Look at `data/calibration.csv` in the results folder. The characteristic length scale of
+each field should have resolved to a real number rather than NaN, the spread of those
+scales should be small, and the configured list of strengths should produce genuinely
+distinct experiments. A strength that collapses onto a milder one, or onto an operation
+that does nothing at all, is flagged `severity_degenerate`. If a whole degradation
+collapses on the new data, its list of strengths needs a range suited to that dataset —
+and that is a finding worth recording rather than routing around.
 
 ## 3. Decide the developed-flow window
 
-Cards may only cite physically meaningful data. Decide from the physics where the
-trajectory is developed — for the kinet run that was `start=2000` — and how densely to
-sample it (`reduction`). Record the decision and the reasoning in the dataset YAML as
-comments. This is a human decision; if you are an agent, propose a window with your
-reasoning and stop.
+A metric's page may only cite physically meaningful data. Decide from the physics where
+along the trajectory the flow has become properly developed — for the kinet run that was
+`start=2000` — and how densely to sample that window (`reduction`). Record both the
+decision and the reasoning as comments in the dataset's YAML file. This is a person's
+decision to make; if you are an agent, propose a window with your reasoning and stop
+there.
 
 ## 4. Register it as citable evidence
 
@@ -59,9 +62,10 @@ Edit `configs/cards/default.yaml`:
 - add the dataset to `evidence_datasets` — until then, `fmeval.cards evidence` refuses
   runs on it by name;
 - record its window under `evidence_window`;
-- decide whether the **canonical exemplar frame** stays where it is. All exemplar panels
-  share one frame so the gallery is comparable; a second regime does not change that frame
-  unless the panels should now illustrate the new regime, which is a human decision.
+- decide whether the **one fixed snapshot every example panel is drawn from** stays where
+  it is. All the panels share a single snapshot so that the gallery can be compared
+  side by side. Adding a second physical regime does not move that snapshot unless the
+  panels should now illustrate the new regime, which is a person's decision.
 
 ## 5. Produce the evidence
 
@@ -74,11 +78,12 @@ python -m fmeval.cards evidence --all --results results/comparison_<stamp>
 python -m fmeval.cards catalog
 ```
 
-Fingerprints record their dataset, so per-dataset evidence accumulates rather than
-overwrites conceptually — but note the current limitation: a card renders **one** run's
-numbers, so regenerating against the new dataset replaces the displayed tables. If the
-intent is side-by-side regimes, that is an extension to `evidence.py` to propose, not a
-reason to hand-edit anything.
+Each fingerprint file records which dataset it came from, so measurements from different
+datasets accumulate rather than overwrite one another in principle. Note the current
+limitation, though: a page displays **one** run's numbers, so regenerating against the new
+dataset replaces the tables that were shown before. If you want two regimes shown side by
+side, that is an extension to `evidence.py` to propose — never a reason to hand-edit
+anything.
 
 ## 6. Finish
 
@@ -87,5 +92,5 @@ pytest                      # includes the reader contract and card checks
 pytest -m data              # on a machine with the data mounted
 ```
 
-Report: the window chosen and why, any degenerate severity levels on the new data, and any
-field the canonical vocabulary lacked.
+Report the time window you chose and why, any strengths that collapsed on the new data,
+and any physical field the fixed vocabulary did not already have.

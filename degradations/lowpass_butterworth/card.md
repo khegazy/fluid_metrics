@@ -38,11 +38,12 @@ This stands in for the same failure as the ideal low-pass -- a surrogate that ha
 its fine structure -- with a gradual roll-off instead of a cliff. It sits between the
 Gaussian kernel and the ideal filter: smoother than the cut, sharper than the blur.
 
-Its real purpose in the ladder is practical. A sharp filter cannot resolve four distinct
-severity levels on a field whose energy is concentrated in a handful of low modes, because
-the available cutoffs are too far apart. A smooth roll-off can: the transfer function is
-continuous in the cutoff, so a small change in the requested energy fraction produces a
-small change in the field even when no new mode has crossed the boundary.
+Its real purpose in the default set is practical. A sharp filter cannot resolve four
+distinct severity levels on a field whose energy is concentrated in a handful of low
+modes, because the available cutoffs are too far apart. A smooth roll-off can: the
+transfer function is continuous in the cutoff, so a small change in the requested energy
+fraction produces a small change in the field even when no new mode has crossed the
+boundary.
 
 In a picture, the ringing that the ideal filter produces is largely absent, and the result
 looks closer to a blur than to a cut.
@@ -56,15 +57,16 @@ spatial mean    0.0625                 spatial mean    0.0625
 The mean is untouched and the peak is almost gone: the block was built almost entirely
 from the small scales the filter removed.
 
-What it leaves untouched is the spatial mean: the
-k = 0 mode is far below any cutoff this axis uses.
+What this degradation leaves untouched is the spatial mean: the
+k = 0 mode is far below any cutoff this degradation uses.
 
 ## Severity scale
 
-The severity is the fraction of spectral energy removed, resolved per field to a
-cutoff wavenumber exactly as for the ideal filter, and the ladder asks for the same 5%,
-15%, 30% and 45%. The filter order is a separate option, fixed at 4, and is not part of
-the severity: changing it changes the character of the axis rather than its strength.
+The severity is the fraction of spectral energy removed, resolved per field to a cutoff
+wavenumber exactly as for the ideal filter, and the configured strengths ask for the same
+5%, 15%, 30% and 45%. The filter order is a separate option, fixed at 4, and is not part
+of the severity: changing it changes the character of the degradation rather than its
+strength.
 
 ## Limitations
 
@@ -74,13 +76,13 @@ given severity is a nominal centre rather than a boundary, and a metric that est
 cut-off wavenumber from the filtered field will not recover it exactly.
 
 Being smoother, it is also more similar to the Gaussian kernel than the ideal filter is,
-so it discriminates less sharply between metrics. The two variants are both in the ladder
-because each is better than the other at a different job: the ideal one discriminates, the
-Butterworth one resolves levels.
+so it discriminates less sharply between metrics. The two variants are both in the default
+set because each is better than the other at a different job: the ideal one discriminates,
+the Butterworth one resolves levels.
 
-## Exemplars
+## What the degradation looks like
 
-### The panel
+### The picture
 
 <!-- GENERATED exemplars: written by `python -m fmeval.cards exemplars lowpass_butterworth`, do not edit -->
 
@@ -102,8 +104,8 @@ dropping off a cliff, and there is no sharp edge to read a cutoff from.
 
 The field row shows softening without the ringing the ideal filter leaves, so it looks
 much like a blur. That resemblance is worth checking against the Gaussian panel: if a
-metric cannot separate this axis from the smoothing axes, it is responding only to lost
-energy.
+metric cannot separate this degradation from the smoothing degradations, that metric is
+responding only to lost energy.
 
 ## References
 
