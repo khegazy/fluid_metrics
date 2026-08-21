@@ -204,6 +204,62 @@ def test_setup_check_runs_and_reports():
 
 
 # --------------------------------------------------------------------------------------
+# The maths on the site
+# --------------------------------------------------------------------------------------
+
+
+def test_mathjax_is_configured_for_the_delimiters_arithmatex_emits():
+    """MathJax must be told to look for what arithmatex wrote, not for what an author typed.
+
+    Authors write ``$...$`` and ``$$...$$`` in ``card.md``, and ``prose.py`` enforces that
+    subset because it is what GitHub also renders. But ``pymdownx.arithmatex`` in
+    ``generic`` mode consumes those dollars at build time and re-emits every equation as
+    ``\\(...\\)`` or ``\\[...\\]`` inside an element of class ``arithmatex``. MathJax 3
+    treats ``inlineMath``/``displayMath`` as a *replacement* for its defaults, so a
+    configuration naming the dollar forms silently drops the backslash forms, matches
+    nothing, and leaves the raw LaTeX on the page.
+
+    That is exactly what shipped, and nothing caught it: the build succeeded, ``--strict``
+    was satisfied, no console error appeared, and every equation on the site rendered as
+    its own source. This test closes the gap by asking arithmatex what it actually emits
+    for the configuration in ``mkdocs.yml``, then checking the MathJax config declares
+    those same delimiters.
+    """
+    import markdown
+    import yaml
+
+    config = yaml.safe_load((REPO / "mkdocs.yml").read_text())
+    options = next(
+        entry["pymdownx.arithmatex"]
+        for entry in config["markdown_extensions"]
+        if isinstance(entry, dict) and "pymdownx.arithmatex" in entry
+    )
+    html = markdown.markdown(
+        "Inline $a$ and a display equation:\n\n$$\nb = c \\tag{1}\n$$\n",
+        extensions=["pymdownx.arithmatex"],
+        extension_configs={"pymdownx.arithmatex": options},
+    )
+    assert 'class="arithmatex"' in html, (
+        "arithmatex produced no wrapper element; the extension configuration in "
+        "mkdocs.yml is not what this test assumes"
+    )
+
+    # As written in the JavaScript source, where each backslash is escaped.
+    emitted = {opening: rf"\\{opening[-1]}"
+               for opening in (r"\(", r"\[") if opening in html}
+    assert emitted, f"arithmatex emitted no recognised delimiter; got: {html!r}"
+
+    js = (REPO / "docs" / "javascripts" / "mathjax.js").read_text()
+    missing = sorted(rendered for rendered in emitted.values() if rendered not in js)
+    assert not missing, (
+        f"docs/javascripts/mathjax.js does not declare {missing}, which is what "
+        "arithmatex emits. Every equation on the site will render as raw LaTeX, and "
+        "nothing else will report a problem. Set tex.inlineMath and tex.displayMath to "
+        "the delimiters listed above."
+    )
+
+
+# --------------------------------------------------------------------------------------
 # The human file guide
 # --------------------------------------------------------------------------------------
 
