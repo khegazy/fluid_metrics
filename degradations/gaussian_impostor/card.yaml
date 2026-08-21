@@ -8,7 +8,7 @@ summary: >-
   Replaces the field with a Gaussian random field that has the same amplitude spectrum and
   the same low-order moments, but random phases.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

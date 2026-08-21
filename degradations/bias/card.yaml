@@ -8,7 +8,7 @@ summary: >-
   Adds a constant offset to every cell, shifting the whole field up or down without
   changing any spatial structure.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

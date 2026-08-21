@@ -8,7 +8,7 @@ summary: >-
   Replaces each cell with the median of a square neighbourhood, a nonlinear smoother that
   removes small features while leaving sharp edges in place.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

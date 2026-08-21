@@ -8,7 +8,7 @@ summary: >-
   Weakens one chosen band of scales and leaves every larger and smaller scale untouched,
   by scaling down the Fourier modes between two fixed wavenumbers.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

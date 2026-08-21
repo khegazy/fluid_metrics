@@ -118,14 +118,20 @@ direction all live on the decorator. None of them appear in `card.yaml`, because
 of one fact drift apart and a reader cannot tell which copy is stale. The catalog merges
 both sources when the catalog is built.
 
-**`status` is not a quality rating.** `candidate` means implemented but not yet measured
-and reviewed. `validated` means the evaluation was run on the reference data *and* a person
-read and signed the description — so `validated` says the work was done, not that the
-results were good. `control` marks a familiar baseline that candidates are read against.
-There is no `rejected`, and nothing in this repository passes or fails a metric: a metric
-that misses one thing usually catches another, and that nuance lives in the measurements
-and the prose. Leave new bundles as `candidate`; only a person moves a bundle to
-`validated`.
+**`status` is not a quality rating.** It records only how far the work has got.
+`candidate` means implemented but not yet measured and reviewed. `validated` means the
+evaluation was run on the reference data *and* a person read and signed the description —
+so `validated` says the work was done, not that the results were good. There is no
+`rejected`, and nothing in this repository passes or fails a metric: a metric that misses
+one thing usually catches another, and that nuance lives in the measurements and the
+prose. Leave new bundles as `candidate`; only a person moves a bundle to `validated`.
+
+**`category` is the metric's type**, and is the separate question of what kind of
+measurement it makes: `pointwise`, `physical`, `spectral`, `statistical`, `probabilistic`,
+`transport`, `functional`, `geometric` or `topological`. The site groups metrics by it, so
+it is what a reader browsing the sidebar navigates with. There was once a `control` status
+for the familiar baselines; it is gone, because it forced one field to answer two
+unrelated questions and a metric could not be both a baseline and unreviewed.
 
 Notice what `card.yaml` does **not** contain: anywhere to say how you think the metric
 will behave. That absence is deliberate. Every statement about behaviour in this

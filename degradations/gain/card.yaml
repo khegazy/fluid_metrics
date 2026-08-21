@@ -8,7 +8,7 @@ summary: >-
   Multiplies the field's fluctuation about its spatial mean by a constant factor, leaving
   the mean itself unchanged.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

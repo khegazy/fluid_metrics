@@ -8,7 +8,7 @@ summary: >-
   Returns the field unchanged. The level-zero reference against which every degradation is
   measured.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

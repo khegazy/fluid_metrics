@@ -8,7 +8,7 @@ summary: >-
   Removes the small scales from the field by multiplying its Fourier transform by a hard
   low-pass transfer function.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

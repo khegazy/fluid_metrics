@@ -8,7 +8,7 @@ summary: >-
   Adds independent Gaussian noise to every cell, with an amplitude set as a fraction of
   the reference field's fluctuation.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

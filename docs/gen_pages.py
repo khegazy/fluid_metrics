@@ -30,6 +30,7 @@ sys.path.insert(0, str(REPO))
 
 from fmeval.cards.catalog import build as build_catalog  # noqa: E402
 from fmeval.cards.loader import iter_bundles, load_card  # noqa: E402
+from fmeval.cards.schema import CATEGORIES  # noqa: E402
 
 #: Cards link to each other by repository-relative path so GitHub resolves them. On the
 #: site, pages are flat under metrics/ and degradations/, so those links are rewritten.
@@ -42,22 +43,28 @@ _ROOT_CARD_LINK = re.compile(r"\]\((metrics|degradations)/([a-z0-9_]+)/card\.md\
 
 #: What a degradation's severity number is measured against, said in words. The card
 #: stores a short code; a first-time reader needs the sentence, not the code.
-#: The card stores a short code for a metric's category. These are the same categories
-#: said in words, because "pointwise_norms" is only meaningful to someone already told
-#: what it means. The codes stay in `card.yaml` and in `catalog.json`.
-_CATEGORY = {
-    "pointwise_norms": "error measured cell by cell",
-    "function_space_norms": "norms that weight the scales differently",
-    "optimal_transport": "cost of moving one field onto the other",
-    "spectral_decomposition": "comparison scale by scale",
-    "physics_invariants": "conserved physical quantities",
-    "shock_geometry": "where the shocks are, and what shape they have",
+#: A metric's type -- what kind of measurement it makes -- said in words. The card stores
+#: a short code and `catalog.json` carries it; a reader needs the sentence. Keys are
+#: `fmeval.cards.schema.CATEGORIES`, and a test holds the two in step.
+_METRIC_CATEGORY = {
+    "pointwise": "compares the fields cell by cell",
+    "physical": "a physical quantity of the flow",
+    "spectral": "compares the fields scale by scale",
+    "statistical": "compares distributions or moments of the field",
+    "probabilistic": "compares whole ensembles",
+    "transport": "the cost of moving one field onto the other",
+    "functional": "a norm that weights the scales differently",
+    "geometric": "where features are, and what shape they have",
     "topological": "which features exist, and how they connect",
-    "probabilistic": "comparison of whole distributions or ensembles",
-    "pattern_detection": "recognisable structures in the field",
-    "curvature": "how the field bends",
-    # A degradation reuses the family its registry entry declares, so those appear here
-    # too. The words are the same ones the metric pages use as subsection headings.
+}
+
+#: A degradation reuses the `family` its registry entry declares rather than the metric
+#: vocabulary above. The two overlap in spelling and not in meaning -- `pointwise` is
+#: cell-by-cell *comparison* for a metric and cell-by-cell *distortion* for a degradation,
+#: and `spectral` and `geometric` diverge the same way -- so they are separate maps and the
+#: kind of the bundle chooses between them. One shared map silently mislabelled whichever
+#: sense was written second.
+_DEGRADATION_FAMILY = {
     "smoothing": "smoothing away fine detail",
     "spectral": "filtering out chosen scales",
     "geometric": "moving features to the wrong place",
@@ -102,9 +109,11 @@ def _header(entry: dict) -> str:
     author, so the summary a reader sees cannot disagree with what the code declares.
     """
     declared = entry["declared"]
+    kind_row = ("what kind of metric" if entry["kind"] == "metric"
+                else "what kind of damage")
     rows = [f"| | |", "|---|---|",
-            f"| **how far the work has got** | `{entry['status']}` |",
-            f"| **what kind of metric** | {_category(entry)} |"]
+            f"| **{kind_row}** | {_category(entry)} |",
+            f"| **how far the work has got** | `{entry['status']}` |"]
     if entry["kind"] == "metric":
         inputs = {"pairwise": "two fields: a prediction and the reference to compare it against",
                   "single": "one field on its own, which it characterises rather than compares",
@@ -166,13 +175,15 @@ _ORIENTATION = {
 
 
 def _category(entry: dict) -> str:
-    """The category said in words, with the stored code beside it.
+    """The bundle's type said in words, with the stored code beside it.
 
     Both are shown: the words are for a reader, and the code is what a contributor types
-    into ``card.yaml`` and what ``catalog.json`` carries.
+    into ``card.yaml`` and what ``catalog.json`` carries. Which vocabulary applies depends
+    on the kind of bundle -- see the note on ``_DEGRADATION_FAMILY``.
     """
     code = entry["category"]
-    said = _CATEGORY.get(code)
+    words = _METRIC_CATEGORY if entry["kind"] == "metric" else _DEGRADATION_FAMILY
+    said = words.get(code)
     return f"{said} (`{code}`)" if said else str(code)
 
 
@@ -206,8 +217,9 @@ def main() -> None:
             with mkdocs_gen_files.open(target, "wb") as f:
                 f.write(asset.read_bytes())
 
+        # Metrics are grouped in the navigation by type, degradations by nothing.
         (nav_metrics if bundle.kind == "metric" else nav_degradations).append(
-            (bundle.name, entry["status"], f"{bundle.path.parent.name}/{bundle.name}.md")
+            (bundle.name, entry["category"], f"{bundle.path.parent.name}/{bundle.name}.md")
         )
 
     _write_catalogue_page(catalog)
@@ -301,22 +313,22 @@ def _write_protocol() -> None:
 
 
 def _write_nav(metrics: list, degradations: list) -> None:
-    """The navigation tree, grouped by how far each metric's work has got.
+    """The navigation tree, with the metrics grouped by what kind of measurement they make.
 
-    The group labels spell the status out. ``control`` and ``candidate`` are this
-    repository's own vocabulary, and a reader meeting them in a sidebar has been told
-    nothing.
+    Grouping used to be by ``status``, which answered "how far has the work got" -- a
+    question about this repository's progress rather than about metrics, and one that gave
+    a reader scanning the sidebar no way to find the metric they wanted. Type answers
+    "what does this thing look at", which is the question someone browsing actually has.
+    The group label is the type said in words for the same reason.
+
+    Groups follow the order of ``CATEGORIES`` rather than the alphabet, so the ordering is
+    declared in one place and adding a type does not silently reshuffle the sidebar. A type
+    with no metrics in it is skipped.
 
     The recipes and the deliberate-absences page are absent on purpose. They instruct
     somebody extending this repository, which is a different job from understanding a
     metric, and ``exclude_docs`` in ``mkdocs.yml`` keeps them out of the build entirely.
     """
-    status_labels = {
-        "validated": "validated — measured, and read by a person",
-        "candidate": "candidate — implemented, not yet measured or reviewed",
-        "control": "control — a familiar baseline the candidates are read against",
-        "deprecated": "deprecated — superseded, kept for the record",
-    }
     with mkdocs_gen_files.open("SUMMARY.md", "w") as f:
         print("- [Home](index.md)", file=f)
         print("- [How to read a metric page](reading-guide.md)", file=f)
@@ -324,12 +336,18 @@ def _write_nav(metrics: list, degradations: list) -> None:
         print("- [Working in the repository](working-with-the-repo.md)", file=f)
         print("- [Catalogue](catalogue.md)", file=f)
         print("- Metrics", file=f)
-        for status in ("validated", "candidate", "control", "deprecated"):
-            named = [m for m in metrics if m[1] == status]
+        for category in CATEGORIES:
+            named = [m for m in metrics if m[1] == category]
             if named:
-                print(f"    - {status_labels[status]}", file=f)
+                said = _METRIC_CATEGORY.get(category, category)
+                print(f"    - {category} — {said}", file=f)
                 for name, _, page in sorted(named):
                     print(f"        - [{name}]({page})", file=f)
+        # Anything whose type is not in CATEGORIES would vanish from the sidebar without
+        # failing anything, so it is listed rather than dropped. The schema rejects such a
+        # value, so reaching this is a sign the two have come apart.
+        for name, category, page in sorted(m for m in metrics if m[1] not in CATEGORIES):
+            print(f"    - [{name}]({page})", file=f)
         print("- Degradations", file=f)
         print("    - [Gallery: what each one does](degradations/gallery.md)", file=f)
         for name, _, page in sorted(degradations):

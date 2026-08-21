@@ -34,7 +34,7 @@ VALID_METRIC_CARD = {
     "schema_version": SCHEMA_VERSION,
     "name": "example",
     "kind": "metric",
-    "category": "pointwise_norms",
+    "category": "pointwise",
     "summary": "An example card used by the tests, long enough to satisfy the floor.",
     "status": "candidate",
     "owners": ["khegazy"],
@@ -89,13 +89,51 @@ def test_an_unknown_key_is_rejected():
 
 
 def test_status_vocabulary_is_closed_and_has_no_rejected_value():
-    """`rejected` is absent on purpose: nothing here reduces a metric to pass or fail."""
+    """`rejected` is absent on purpose: nothing here reduces a metric to pass or fail.
+
+    `control` is absent too, and for a different reason. It answered "what kind of thing is
+    this" while the other values answer "how far has the work got", so a metric could not be
+    both a familiar baseline and unreviewed -- the field had to pick one. What kind of
+    measurement a metric makes is `category`, which is orthogonal to this and is what the
+    navigation groups by.
+    """
     from fmeval.cards.schema import STATUSES
 
     assert "rejected" not in STATUSES
-    assert set(STATUSES) == {"candidate", "validated", "control", "deprecated"}
+    assert "control" not in STATUSES
+    assert set(STATUSES) == {"candidate", "validated", "deprecated"}
     with pytest.raises(CardError, match="status"):
         parse(card(status="rejected"))
+
+
+def test_every_metric_type_can_be_said_in_words_on_the_site():
+    """A type with no plain-language rendering reaches the reader as a bare code.
+
+    `docs/gen_pages.py` prints the type in words in three places -- the header table on
+    every metric page, the catalogue, and the navigation group label -- falling back to the
+    raw code when it has no entry. That fallback is silent, so adding a value to CATEGORIES
+    and forgetting the wording ships `functional` to a reader who has been told nothing.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO / "docs"))
+    try:
+        import gen_pages
+    finally:
+        sys.path.pop(0)
+
+    from fmeval.cards.schema import CATEGORIES
+
+    missing = sorted(set(CATEGORIES) - set(gen_pages._METRIC_CATEGORY))
+    assert not missing, (
+        f"docs/gen_pages.py:_METRIC_CATEGORY has no wording for {missing}; those types "
+        "would appear on the site as their bare code"
+    )
+    unknown = sorted(set(gen_pages._METRIC_CATEGORY) - set(CATEGORIES))
+    assert not unknown, (
+        f"docs/gen_pages.py:_METRIC_CATEGORY describes {unknown}, which no card may "
+        "declare; the schema and the site have come apart"
+    )
 
 
 def test_a_metric_needs_a_category_from_the_vocabulary():

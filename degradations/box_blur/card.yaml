@@ -8,7 +8,7 @@ summary: >-
   Convolves the field with a square kernel of uniform weight, averaging every cell with
   its neighbours out to a fixed width.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-

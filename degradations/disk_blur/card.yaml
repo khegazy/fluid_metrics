@@ -8,7 +8,7 @@ summary: >-
   Convolves the field with an isotropic disk kernel of a given radius, removing structure
   below that scale.
 
-status: control
+status: candidate
 owners: [khegazy]
 
 failure_mode: >-
