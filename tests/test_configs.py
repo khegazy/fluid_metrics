@@ -63,8 +63,10 @@ def test_hydra_output_dirs_resolve_without_a_live_hydra_context():
     ("dataset", "kinet_re5e4_dev"),
     ("dataset", "kinet_re5e4"),
     ("dataset", "well_re5e4"),
+    ("dataset", "synthetic_ensemble_dev"),
     ("degradation", "default"),
     ("degradation", "quick"),
+    ("degradation", "ensemble_miscalibration"),
     ("report", "default"),
     ("report", "none"),
 ])
@@ -89,8 +91,10 @@ NOT_HYDRA_GROUPS = {"dataset_family", "cards"}
 def test_every_group_option_on_disk_is_tested(group_files=None):
     """A new config file must be added to the parametrisation above."""
     tested = {("dataset", "kinet_re5e4_dev"), ("dataset", "kinet_re5e4"),
-              ("dataset", "well_re5e4"), ("degradation", "default"),
-              ("degradation", "quick"), ("report", "default"), ("report", "none")}
+              ("dataset", "well_re5e4"), ("dataset", "synthetic_ensemble_dev"),
+              ("degradation", "default"), ("degradation", "quick"),
+              ("degradation", "ensemble_miscalibration"),
+              ("report", "default"), ("report", "none")}
     on_disk = {
         (d.name, f.stem)
         for d in Path(CONFIGS).iterdir() if d.is_dir() and d.name not in NOT_HYDRA_GROUPS

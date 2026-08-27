@@ -80,6 +80,11 @@ RESULT_DTYPES: dict[str, str] = {
     "value": "float64",
     "seed": "int64",
     "wall_time_s": "float64",
+    # probabilistic evaluation; null on rows a deterministic metric produced
+    "n_members": "Int16",            # ensemble size actually read, since spread and CRPS
+                                     # both depend on it and a run may vary it
+    "target_value": "float64",       # the value a calibrated prediction attains, when that
+                                     # is not zero: 1 for the spread-to-skill ratio
 }
 
 
@@ -156,6 +161,7 @@ def _emit(
     degenerate: bool,
     energy_removed: float,
     energy_changed: float,
+    n_members: int | None = None,
 ) -> list[dict[str, Any]]:
     """Expand one metric evaluation into result rows (several if it returns a vector)."""
     base = {
@@ -182,6 +188,8 @@ def _emit(
         "variant_label": severity_level.variant_label,
         "seed": seed,
         "wall_time_s": wall,
+        "n_members": n_members,
+        "target_value": spec.target if spec.target is not None else np.nan,
     }
     if spec.returns == "scalar":
         return [{**base, "component": "", "value": float(value)}]
@@ -264,6 +272,7 @@ def run(
 
     rows: list[dict[str, Any]] = []
     stored_maps: dict[str, np.ndarray] = {}
+    skipped_ensemble: set[str] = set()
     t_io = t_deg = t_metric = 0.0
 
     for index in indices:
@@ -284,6 +293,12 @@ def run(
         t_deg += time.perf_counter() - t0
 
         for spec in metrics:
+            if spec.arity == "ensemble" and not frame.has_members:
+                # Nothing to measure. Skipped rather than recorded, because a column of
+                # zeros or NaNs is indistinguishable from a metric that ran and found
+                # nothing wrong. Reported once per run, below.
+                skipped_ensemble.add(spec.name)
+                continue
             for field in _fields_for(spec, available):
                 reference = frame.fields[field]
                 n_channels = reference.shape[0]
@@ -300,9 +315,15 @@ def run(
                 for label, (severity_level, applied) in variants.items():
                     candidate = applied.fields[field]
                     severity = applied.resolved.get(field, severity_level.severity)
-                    args = (
-                        (reference, candidate) if spec.arity == "pairwise" else (candidate,)
-                    )
+                    n_members = None
+                    if spec.arity == "ensemble":
+                        members = (applied.members or frame.members)[field]
+                        n_members = int(members.shape[0])
+                        args = (reference, members)
+                    elif spec.arity == "pairwise":
+                        args = (reference, candidate)
+                    else:
+                        args = (candidate,)
                     t1 = time.perf_counter()
                     value = spec.fn(*args, **kwargs)
                     wall = time.perf_counter() - t1
@@ -312,7 +333,8 @@ def run(
                               remap_method, seed, value, wall, severity,
                               field in applied.unchanged and not severity_level.is_reference,
                               applied.energy_removed.get(field, float("nan")),
-                              applied.energy_changed.get(field, float("nan")))
+                              applied.energy_changed.get(field, float("nan")),
+                              n_members=n_members)
                     )
 
                     if (
@@ -326,6 +348,13 @@ def run(
                         stored_maps[_map_key(f"{spec.name}:{field}", label, frame.index)] = (
                             np.asarray(m, dtype=np.float64)
                         )
+
+    if skipped_ensemble:
+        log.info(
+            "%s need an ensemble and dataset %r provides one realization per frame; "
+            "no rows were produced for them",
+            ", ".join(sorted(skipped_ensemble)), dataset.name,
+        )
 
     # A metric may accept none of the available fields, which is a legitimate no-op
     # rather than an error -- but pd.DataFrame([]) has no columns to coerce.

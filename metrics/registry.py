@@ -4,10 +4,20 @@ A metric is an ordinary function decorated with :func:`metric`. The decorator re
 metadata and returns the function *unwrapped*, so metrics stay directly importable and
 testable without the harness and carry no per-call indirection.
 
-Two arities are supported:
+Three arities are supported:
 
 * ``arity="pairwise"`` -- ``fn(reference, candidate)``, both ``(C, *spatial)``
 * ``arity="single"``   -- ``fn(x)``, ``(C, *spatial)``
+* ``arity="ensemble"`` -- ``fn(reference, members)``, ``(C, *spatial)`` and
+  ``(N, C, *spatial)``: one reference realization and the ensemble standing in for a
+  predictive distribution over it. Same positional count as ``pairwise``, so the arity
+  rather than the signature is what distinguishes them.
+
+Most metrics are best at zero. A metric whose best value is elsewhere -- the spread-to-
+skill ratio, which is calibrated at one and wrong in both directions -- declares
+``target=``, and the analysis layer orients its ordering statistics by distance from that
+target instead of assuming monotone damage. The metric keeps reporting the quantity the
+literature reports.
 
 If a function additionally declares a keyword-only parameter named ``ctx``, the pipeline
 passes a :class:`~fmeval.context.MetricContext` carrying grid spacing, periodicity, the
@@ -31,9 +41,13 @@ from typing import Any, Literal
 
 import numpy as np
 
-Arity = Literal["pairwise", "single"]
+Arity = Literal["pairwise", "single", "ensemble"]
+
+#: Positional arguments each arity's function must declare.
+ARITY_POSITIONAL: dict[str, int] = {"pairwise": 2, "single": 1, "ensemble": 2}
 Cost = Literal["cheap", "moderate", "expensive"]
 Returns = Literal["scalar", "vector"]
+Measures = Literal["error", "calibration"]
 
 #: How a pointwise map reduces to the metric's scalar value. ``C`` is the channel count of
 #: the *input* field, because maps are summed over channels before reduction.
@@ -64,6 +78,22 @@ class MetricSpec:
     reduction: str
     pointwise: Callable[..., np.ndarray] | None = None
     defaults: dict[str, Any] = dc_field(default_factory=dict)
+    target: float | None = None
+    """The value a perfectly calibrated prediction attains, if it is not zero.
+
+    ``None`` for the usual case, where the metric is an error and zero is best. Set to
+    ``1.0`` by the spread-to-skill ratio, whose response to damage is U-shaped rather
+    than monotone.
+    """
+    measures: Measures = "error"
+    """What kind of wrongness this metric sees.
+
+    ``"error"`` metrics fall to zero as the prediction approaches the reference.
+    ``"calibration"`` metrics judge whether an ensemble's *dispersion* is honest, and do
+    not: an ensemble collapsed onto the exact truth is maximally overconfident, so a
+    calibration metric is right to score it badly. The contract tests use this to decide
+    which generic assumptions apply.
+    """
 
     @property
     def has_pointwise(self) -> bool:
@@ -103,6 +133,8 @@ def metric(
     units: str = "field",
     reduction: str = "mean",
     defaults: dict[str, Any] | None = None,
+    target: float | None = None,
+    measures: Measures = "error",
 ) -> Callable[[Callable], Callable]:
     """Register a metric function under ``name`` (defaults to the function name).
 
@@ -110,7 +142,9 @@ def metric(
         name: Registry key, and the metric's identity everywhere: the directory name of
             its bundle, the key in its card, and what users type in ``metrics=[...]``.
             Defaults to ``fn.__name__``.
-        arity: ``"pairwise"`` for ``fn(reference, candidate)``, ``"single"`` for ``fn(x)``.
+        arity: ``"pairwise"`` for ``fn(reference, candidate)``, ``"single"`` for
+            ``fn(x)``, ``"ensemble"`` for ``fn(reference, members)`` with members
+            ``(N, C, *spatial)``.
         fields: Canonical field names this metric accepts; ``("*",)`` means any.
         returns: ``"scalar"`` for a float, ``"vector"`` for a 1-D array.
         differentiable: Whether it could serve as a training loss. Declared, not inferred.
@@ -120,12 +154,20 @@ def metric(
         units: Free text, e.g. ``"field"``, ``"field^2"``, ``"dimensionless"``.
         reduction: How a pointwise map reduces to the scalar. Key of :data:`REDUCTIONS`.
         defaults: Default keyword arguments, overridable from config.
+        target: The value a perfectly calibrated prediction attains, when that is not
+            zero. Mutually exclusive with ``higher_is_better``: they are two different
+            models of what "better" means.
+        measures: ``"error"`` (default) if the metric falls to zero as the prediction
+            approaches the reference, ``"calibration"`` if it judges the honesty of an
+            ensemble's dispersion instead, where a collapsed ensemble is the worst case
+            rather than the best.
 
     Returns:
         The undecorated function, so it stays a plain callable.
 
     Raises:
-        ValueError: On a duplicate name or an unknown reduction.
+        ValueError: On a duplicate name, an unknown reduction, or a contradictory or
+            non-finite target.
         TypeError: If the positional-argument count does not match ``arity``.
     """
 
@@ -139,6 +181,17 @@ def metric(
             raise ValueError(
                 f"{key}: unknown reduction {reduction!r}; expected one of {sorted(REDUCTIONS)}"
             )
+        if target is not None:
+            if not np.isfinite(target):
+                raise ValueError(
+                    f"{key}: target must be finite, got {target!r}; a non-finite target "
+                    "would silently disable the orientation it exists for"
+                )
+            if higher_is_better:
+                raise ValueError(
+                    f"{key}: declares both target={target!r} and higher_is_better; these "
+                    "are different models of what 'better' means, so pick one"
+                )
 
         params = inspect.signature(fn).parameters
         takes_ctx = "ctx" in params
@@ -146,7 +199,7 @@ def metric(
             p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
             for p in params.values()
         )
-        expected = 2 if arity == "pairwise" else 1
+        expected = ARITY_POSITIONAL[arity]
         if n_pos != expected:
             raise TypeError(
                 f"{key}: arity={arity!r} needs {expected} positional argument(s), "
@@ -169,6 +222,8 @@ def metric(
             takes_ctx=takes_ctx,
             reduction=reduction,
             defaults=dict(defaults or {}),
+            target=None if target is None else float(target),
+            measures=measures,
         )
         return fn
 

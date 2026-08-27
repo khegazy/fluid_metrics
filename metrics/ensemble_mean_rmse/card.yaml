@@ -1,0 +1,33 @@
+# The typed half of this bundle's card. Every field is documented, with the reasoning
+# behind it, in fmeval/cards/schema.py -- read that rather than copying another card
+# blindly. Run `python -m fmeval.cards check <name>` after editing; it names the fix for
+# anything wrong.
+schema_version: 1
+
+name: ensemble_mean_rmse
+kind: metric
+
+category: probabilistic
+
+summary: Root mean squared error of the ensemble mean, the deterministic control that
+  says how good an ensemble's consensus is while ignoring its uncertainty entirely.
+
+status: candidate
+
+owners: [khegazy]
+
+output:
+  description: Root mean squared error between the member-wise mean and the reference, in
+    the field's own units. Zero when the ensemble mean is exact.
+  bounds:
+    lower: 0.0
+    upper: null
+
+math:
+  triangle_inequality: true    # inherits the L2 triangle inequality through the mean
+  scale_dependent: true
+  resolution_dependent: true
+  complexity: "O(N M)"         # N cells, M members, from forming the mean
+references: []
+
+review: null

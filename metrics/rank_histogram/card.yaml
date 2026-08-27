@@ -1,0 +1,33 @@
+# The typed half of this bundle's card. Every field is documented, with the reasoning
+# behind it, in fmeval/cards/schema.py -- read that rather than copying another card
+# blindly. Run `python -m fmeval.cards check <name>` after editing; it names the fix for
+# anything wrong.
+schema_version: 1
+
+name: rank_histogram
+kind: metric
+
+category: probabilistic
+
+summary: Reliability index of the rank histogram, measuring how far an ensemble's shape
+  departs from the flat histogram a calibrated prediction produces.
+
+status: candidate
+
+owners: [khegazy]
+
+output:
+  description: Total absolute deviation of the rank histogram from uniform, dimensionless.
+    Zero for a flat histogram; at most 2M/(M+1) when every draw lands in one bin.
+  bounds:
+    lower: 0.0
+    upper: 2.0     # the supremum of 2M/(M+1) as the ensemble size grows
+
+math:
+  triangle_inequality: false
+  scale_dependent: false      # ranks are invariant to any monotone rescaling of the field
+  resolution_dependent: true  # the number of cells sets the sampling floor
+  complexity: "O(N M)"        # N cells, M members
+references: []
+
+review: null

@@ -1,0 +1,33 @@
+# The typed half of this bundle's card. Every field is documented, with the reasoning
+# behind it, in fmeval/cards/schema.py -- read that rather than copying another card
+# blindly. Run `python -m fmeval.cards check <name>` after editing; it names the fix for
+# anything wrong.
+schema_version: 1
+
+name: crps
+kind: metric
+
+category: probabilistic
+
+summary: Continuous ranked probability score in its fair ensemble form, the proper scoring
+  rule that generalises mean absolute error to a prediction that is a distribution.
+
+status: candidate
+
+owners: [khegazy]
+
+output:
+  description: The score in the field's own units, averaged over channels and cells. Zero
+    when every member equals the reference; larger is worse.
+  bounds:
+    lower: 0.0
+    upper: null
+
+math:
+  triangle_inequality: false
+  scale_dependent: true
+  resolution_dependent: true
+  complexity: "O(N M log M)"   # N cells, M ensemble members, from the per-cell member sort
+references: []
+
+review: null
