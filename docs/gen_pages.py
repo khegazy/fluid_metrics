@@ -71,6 +71,7 @@ _DEGRADATION_FAMILY = {
     "resolution": "losing grid resolution",
     "stochastic": "adding noise",
     "pointwise": "distorting each cell's value",
+    "ensemble": "making the ensemble the wrong width",
 }
 
 _CALIBRATION = {

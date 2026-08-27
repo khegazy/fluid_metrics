@@ -746,7 +746,7 @@
     },
     {
       "card": "degradations/spread_deflate/card.md",
-      "category": "probabilistic",
+      "category": "ensemble",
       "declared": {
         "calibration": null,
         "ensemble": true,
@@ -787,7 +787,7 @@
     },
     {
       "card": "degradations/spread_inflate/card.md",
-      "category": "probabilistic",
+      "category": "ensemble",
       "declared": {
         "calibration": null,
         "ensemble": true,

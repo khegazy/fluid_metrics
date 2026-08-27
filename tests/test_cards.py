@@ -142,6 +142,59 @@ def test_every_metric_type_can_be_said_in_words_on_the_site():
     )
 
 
+def test_every_degradation_family_can_be_said_in_words_on_the_site():
+    """The same silent fallback, for the vocabulary degradations use.
+
+    Degradations are labelled by their registry `family`, not by the metric category
+    vocabulary, and the two maps are separate on purpose. A family added to the registry
+    without wording here reaches the reader as a bare code on the gallery and on every
+    page of that family.
+    """
+    import sys
+
+    pytest.importorskip("mkdocs_gen_files", reason="the docs toolchain is not installed")
+
+    sys.path.insert(0, str(REPO / "docs"))
+    try:
+        import gen_pages
+    finally:
+        sys.path.pop(0)
+
+    from degradations.registry import FAMILIES
+
+    # `identity` labels the reference severity level rather than a kind of damage, and no
+    # bundle is grouped under it on the site.
+    missing = sorted(set(FAMILIES) - set(gen_pages._DEGRADATION_FAMILY) - {"identity"})
+    assert not missing, (
+        f"docs/gen_pages.py:_DEGRADATION_FAMILY has no wording for {missing}; those "
+        "families would appear on the site as their bare code"
+    )
+    unknown = sorted(set(gen_pages._DEGRADATION_FAMILY) - set(FAMILIES))
+    assert not unknown, (
+        f"docs/gen_pages.py:_DEGRADATION_FAMILY describes {unknown}, which the registry "
+        "does not define; the registry and the site have come apart"
+    )
+
+
+def test_a_degradation_card_category_is_its_registry_family():
+    """The card's `category` and the operator's `family` are one fact, stored twice.
+
+    The site labels a degradation page from its card and groups the gallery from the
+    registry, so a bundle whose two disagree is filed under one name and described by
+    another. Every degradation predating this test already agreed; the check keeps it so.
+    """
+    from degradations import registry as deg
+
+    deg.discover()
+    wrong = []
+    for bundle in (b for b in loader.iter_bundles() if b.kind == "degradation"):
+        card = loader.load_card(bundle)
+        family = deg.REGISTRY[bundle.name].family
+        if card.category != family:
+            wrong.append(f"{bundle.name}: card says {card.category!r}, registry says {family!r}")
+    assert not wrong, "\n".join(wrong)
+
+
 def test_a_metric_needs_a_category_from_the_vocabulary():
     with pytest.raises(CardError, match="category"):
         parse(card(category="fluids"))

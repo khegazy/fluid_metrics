@@ -172,7 +172,7 @@ coherent structure, so nothing here says how this metric behaves on the flows th
 repository exists to evaluate. The degradation families a physical run would exercise —
 smoothing, spectral filtering, displacement, resolution loss — are absent from these
 tables for that reason, and so are the trap tests. When an ensemble of real runs exists
-([issue 004](../../issues/004-independent-realizations.md)), this card should be
+([issue 004](https://github.com/khegazy/pde_metrics/blob/main/issues/004-independent-realizations.md)), this card should be
 regenerated against it and this section will say something different.
 
 ### Ensemble dispersion

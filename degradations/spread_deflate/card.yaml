@@ -6,7 +6,7 @@ schema_version: 1
 
 name: spread_deflate
 kind: degradation
-category: probabilistic
+category: ensemble
 
 summary: >-
   Narrows an ensemble about its own mean, leaving that mean exactly where it was, so the

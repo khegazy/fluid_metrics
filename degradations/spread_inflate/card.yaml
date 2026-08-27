@@ -6,7 +6,7 @@ schema_version: 1
 
 name: spread_inflate
 kind: degradation
-category: probabilistic
+category: ensemble
 
 summary: >-
   Widens an ensemble about its own mean, leaving that mean exactly where it was, so the
