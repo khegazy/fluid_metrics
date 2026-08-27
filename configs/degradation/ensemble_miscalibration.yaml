@@ -1,0 +1,39 @@
+# The miscalibration ladder: an ensemble that is the wrong WIDTH, while its central
+# prediction is untouched.
+#
+# Every other ladder in this directory damages the field. These axes damage the
+# prediction's honesty about its own uncertainty, which is a different failure and needs a
+# different experiment. Both operators scale the members about their own mean, so the
+# ensemble mean is preserved exactly and any metric built on it alone is flat here by
+# construction -- which is what makes this a clean test of whether a metric sees
+# calibration at all.
+#
+# Only usable with a dataset whose reader provides an ensemble; see
+# configs/dataset/synthetic_ensemble.yaml.
+seed: ${seed}
+include_reference: true   # level 0; the ensemble is calibrated here, so spread_skill ~ 1
+only: []
+skip: []
+
+ladder:
+  # --- ensemble dispersion ------------------------------------------------------
+  # Two operators rather than one signed severity: the ladder sorts each operator's
+  # severities into a single order of increasing damage, and dispersion error is LEAST
+  # damaging in the middle. A signed axis would put its mildest case in the interior of
+  # the list and invert the rank correlation across half of it.
+  #
+  # Severities are fractions of the calibrated spread, so they mean the same thing on any
+  # field and need no calibration against a measured spectrum.
+  spread_inflate: {enabled: true, severities: [0.25, 0.75, 1.5, 3.0]}
+
+  # Stops at 0.8 deliberately. At severity 1 the ensemble is exactly degenerate, and two
+  # metrics are then defined rather than measured there: spread_skill returns 0 by its
+  # zero-spread rule and rank_histogram sees nothing but ties. That is the edge case, not
+  # the axis.
+  spread_deflate: {enabled: true, severities: [0.25, 0.5, 0.7, 0.8]}
+
+  # --- accuracy, for contrast ---------------------------------------------------
+  # An ordinary per-field operator, applied to each member independently. Included so a run
+  # carries one axis that moves the ensemble MEAN beside the two that do not: it is what
+  # distinguishes a metric that is blind to dispersion from one that is blind to everything.
+  bias: {enabled: true, severities: [0.05, 0.15, 0.3, 0.6]}

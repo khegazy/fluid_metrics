@@ -142,6 +142,59 @@ def test_every_metric_type_can_be_said_in_words_on_the_site():
     )
 
 
+def test_every_degradation_family_can_be_said_in_words_on_the_site():
+    """The same silent fallback, for the vocabulary degradations use.
+
+    Degradations are labelled by their registry `family`, not by the metric category
+    vocabulary, and the two maps are separate on purpose. A family added to the registry
+    without wording here reaches the reader as a bare code on the gallery and on every
+    page of that family.
+    """
+    import sys
+
+    pytest.importorskip("mkdocs_gen_files", reason="the docs toolchain is not installed")
+
+    sys.path.insert(0, str(REPO / "docs"))
+    try:
+        import gen_pages
+    finally:
+        sys.path.pop(0)
+
+    from degradations.registry import FAMILIES
+
+    # `identity` labels the reference severity level rather than a kind of damage, and no
+    # bundle is grouped under it on the site.
+    missing = sorted(set(FAMILIES) - set(gen_pages._DEGRADATION_FAMILY) - {"identity"})
+    assert not missing, (
+        f"docs/gen_pages.py:_DEGRADATION_FAMILY has no wording for {missing}; those "
+        "families would appear on the site as their bare code"
+    )
+    unknown = sorted(set(gen_pages._DEGRADATION_FAMILY) - set(FAMILIES))
+    assert not unknown, (
+        f"docs/gen_pages.py:_DEGRADATION_FAMILY describes {unknown}, which the registry "
+        "does not define; the registry and the site have come apart"
+    )
+
+
+def test_a_degradation_card_category_is_its_registry_family():
+    """The card's `category` and the operator's `family` are one fact, stored twice.
+
+    The site labels a degradation page from its card and groups the gallery from the
+    registry, so a bundle whose two disagree is filed under one name and described by
+    another. Every degradation predating this test already agreed; the check keeps it so.
+    """
+    from degradations import registry as deg
+
+    deg.discover()
+    wrong = []
+    for bundle in (b for b in loader.iter_bundles() if b.kind == "degradation"):
+        card = loader.load_card(bundle)
+        family = deg.REGISTRY[bundle.name].family
+        if card.category != family:
+            wrong.append(f"{bundle.name}: card says {card.category!r}, registry says {family!r}")
+    assert not wrong, "\n".join(wrong)
+
+
 def test_a_metric_needs_a_category_from_the_vocabulary():
     with pytest.raises(CardError, match="category"):
         parse(card(category="fluids"))
@@ -303,6 +356,29 @@ def test_sections_must_be_in_the_fixed_order():
     a, b, c = (text.index(f"## {s}") for s in (first, second, third))
     swapped = text[:a] + text[b:c] + text[a:b] + text[c:]
     assert any("out of order" in p.message for p in problems_for(swapped))
+
+
+def test_every_degradation_family_can_have_its_results_generated():
+    """Every family a card can head a subsection with must have a block to fill it.
+
+    These were two hand-maintained lists of the same families. A family added to the
+    headings but not to the blocks produced a card that named the subsection, passed the
+    prose check, and kept its "Not generated yet" placeholder while `cards evidence`
+    reported success -- a card that looks finished and cites nothing.
+    """
+    from fmeval.cards.evidence import FAMILY_BLOCKS
+
+    missing = sorted(set(prose.FAMILY_HEADINGS) - set(FAMILY_BLOCKS))
+    assert not missing, f"families with a heading but no generated block: {missing}"
+
+
+def test_every_registered_degradation_family_is_documented():
+    """A family in the registry that no card can report is a family nobody will read."""
+    from degradations.registry import FAMILIES
+
+    # `identity` is the reference severity level, not a test family: it heads no subsection.
+    missing = sorted(set(FAMILIES) - set(prose.FAMILY_HEADINGS) - {"identity"})
+    assert not missing, f"registered families with no card heading: {missing}"
 
 
 def test_the_declared_order_is_the_one_the_cards_use():
@@ -836,7 +912,14 @@ def test_the_catalog_supports_the_query_it_exists_for():
         and e["declared"]["cost"] == "cheap"
         and e["evidence"]["measured"]
     ]
-    assert set(answer) == {"mae", "mse", "rmse", "nrmse", "enstrophy", "kinetic_energy"}
+    # crps and ensemble_mean_rmse qualify on the same terms as the pointwise family: both
+    # are piecewise-differentiable and cheap, and both now carry measurements. The two
+    # calibration metrics are absent because they declare differentiable=False -- a rank
+    # is integer-valued and a ratio of square roots is not a loss.
+    assert set(answer) == {
+        "mae", "mse", "rmse", "nrmse", "enstrophy", "kinetic_energy",
+        "crps", "ensemble_mean_rmse",
+    }
 
 
 # --------------------------------------------------------------------------------------

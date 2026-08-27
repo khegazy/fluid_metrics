@@ -160,6 +160,40 @@ def add_damage(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
     return out.drop(columns=["value_clean", "span", "degenerate"])
 
 
+def _declared_target(g: pd.DataFrame) -> float | None:
+    """The value a calibrated prediction attains, when the metric declares one.
+
+    ``None`` for the ordinary case, where the metric is an error and zero is best.
+    """
+    if "target_value" not in g.columns:
+        return None
+    values = g["target_value"].dropna().unique()
+    if len(values) == 0:
+        return None
+    target = float(values[0])
+    return target if np.isfinite(target) and target > 0 else None
+
+
+def _target_distance(values: pd.Series, target: float) -> pd.Series:
+    """How far each value sits from ``target``, on a scale where the ratio is symmetric.
+
+    A ratio lives on a multiplicative scale: half the calibrated spread and twice it are
+    equally wrong, and a difference from the target would call the second one four times
+    worse than the first. The log ratio makes them equal, which is the whole reason the
+    spread-to-skill literature reads this quantity multiplicatively.
+
+    Zero and negative values are real and reachable -- an ensemble collapsed onto its
+    mean has exactly no spread -- and a log cannot take them. They are the furthest thing
+    from calibrated there is, so they map to positive infinity rather than to NaN: a NaN
+    would drop the severity level from the rank correlation and quietly shrink the axis
+    it is meant to be the worst point of.
+    """
+    v = values.to_numpy(dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        out = np.abs(np.log(v / target))
+    return pd.Series(np.where(v > 0, out, np.inf), index=values.index)
+
+
 def response_direction(df: pd.DataFrame,
                        norm: pd.DataFrame | None = None) -> dict[tuple, int]:
     """Which way each metric's value moves as damage rises: ``+1`` up, ``-1`` down.
@@ -260,13 +294,28 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
         # "rises with damage" holds by construction and the four of them need no direction
         # argument. The reported values stay in the metric's own units.
         sign = directions.get((dataset, metric, field), 1)
-        oriented = g.assign(value=sign * g["value"])
+        target = _declared_target(g)
+        if target is None:
+            oriented = g.assign(value=sign * g["value"])
+        else:
+            # A metric calibrated at an interior point is not monotone in damage: it is
+            # wrong above the target and equally wrong below it. Ordering by distance
+            # from the target is what makes the one-sided statistics mean what they say.
+            oriented = g.assign(value=_target_distance(g["value"], target))
+            sign = 1
         clean = float(
             reference[
                 (reference["dataset"] == dataset)
                 & (reference["metric"] == metric)
                 & (reference["field"] == field)
             ]["value"].median()
+        )
+        # The clean value on the same scale the ordering statistics run on. For an
+        # ordinary metric that is just the sign applied; for a target-valued one it is
+        # the distance from the target, which is near zero for a calibrated prediction.
+        oriented_clean = (
+            sign * clean if target is None
+            else float(_target_distance(pd.Series([clean]), target).iloc[0])
         )
 
         record: dict[str, object] = {
@@ -310,17 +359,24 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
                 rho_frame_min=rho_worst,
                 rho_pooled=(
                     np.nan if _is_round_off(values)
-                    else float(sign * spearmanr(levels, values).statistic)
+                    else float(
+                        spearmanr(levels, oriented["value"].to_numpy()).statistic
+                        if target is not None
+                        else sign * spearmanr(levels, values).statistic
+                    )
                 ),
                 rho_ci_lo=lo,
                 rho_ci_hi=hi,
                 monotone_fraction=_monotone_fraction(oriented),
                 separability_auc_min=_min_adjacent_auc(oriented),
+                # Thresholds compare against the clean severity level on whatever scale the
+                # ordering statistics run on, so a target-valued metric measures its
+                # departure from *calibration* rather than from a raw ratio.
                 sensitivity_level=_threshold_level(
-                    oriented, sign * clean, SENSITIVITY_FRACTION,
+                    oriented, oriented_clean, SENSITIVITY_FRACTION,
                     _signed(spans.get((dataset, metric, field)), sign)),
                 saturation_level=_threshold_level(
-                    oriented, sign * clean, SATURATION_FRACTION,
+                    oriented, oriented_clean, SATURATION_FRACTION,
                     _signed(spans.get((dataset, metric, field)), sign)),
             )
         if "damage" in g.columns:
@@ -494,6 +550,13 @@ def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
 
     Reports the IN-4 damage score alongside the ladder severity level whose damage is closest, which
     is what makes it interpretable: "the Gaussian field looks as bad as coarsening to 64".
+
+    A group that ran no probe contributes no row. The probes are ordinary ladder entries
+    and a custom ladder may omit them -- the ensemble miscalibration ladder does, since a
+    phase-scrambled field says nothing about whether an ensemble is honestly dispersed.
+    Emitting a row carrying only the group keys made the card generator write a trap-test
+    line with an em dash for its score, which a reader cannot distinguish from a trap test
+    that ran and could not be scored.
     """
     scored = add_damage(df, norm)
     rows = []
@@ -501,7 +564,10 @@ def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
         ["dataset", "metric", "field"], observed=True
     ):
         record = {"dataset": dataset, "metric": metric, "field": field}
-        for label in sorted(PROBE_LABELS & set(g["degradation"].unique())):
+        present = sorted(PROBE_LABELS & set(g["degradation"].unique()))
+        if not present:
+            continue
+        for label in present:
             sub = g[g["degradation"] == label]
             damage = float(sub["damage"].median())
             record[f"{label}_value"] = float(sub["value"].median())
@@ -511,6 +577,11 @@ def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
                 # so reporting it would add a column that carries no information.
                 record[f"{label}_nearest_level"] = _nearest_level(g, damage, exclude=label)
         rows.append(record)
+    if not rows:
+        # Empty, but still carrying the group keys: every consumer filters this frame by
+        # metric or field before reading it, and a frame with no columns at all raises a
+        # KeyError on that filter rather than returning nothing.
+        return pd.DataFrame(columns=["dataset", "metric", "field"])
     return pd.DataFrame(rows)
 
 

@@ -1,0 +1,46 @@
+# The typed half of this bundle's card. Every field is documented, with the reasoning
+# behind it, in fmeval/cards/schema.py -- read that rather than copying another card
+# blindly. Run `python -m fmeval.cards check <name>` after editing; it names the fix for
+# anything wrong.
+schema_version: 1
+
+name: spread_deflate
+kind: degradation
+category: ensemble
+
+summary: >-
+  Narrows an ensemble about its own mean, leaving that mean exactly where it was, so the
+  prediction becomes overconfident — claiming less uncertainty than its error warrants.
+
+status: candidate
+
+owners: [khegazy]
+
+failure_mode: >-
+  An ensemble whose members agree with each other far more than they agree with reality.
+  This is the dangerous direction of miscalibration, because a confident wrong answer
+  invites a user to act on it and the stated uncertainty gives no warning.
+
+output:
+  description: >-
+    The fraction of the calibrated spread removed. Severity 1 collapses every member onto
+    the ensemble mean, a forecast claiming certainty.
+  bounds:
+    lower: 0.0
+    upper: 1.0
+
+exemplars:
+  mode: severity
+  levels: [0.25, 0.5, 0.9]
+  field_name: vorticity
+  diagnostics: [difference]
+  rationale: >-
+    One member of a synthetic eight-member ensemble built around the canonical field,
+    before and after deflation. The ensemble mean is unchanged by construction, so what
+    shrinks across the columns is how far a single member departs from the consensus. By
+    the last column the member has nearly become the consensus, which is what an
+    overconfident ensemble looks like: every member telling the same story.
+
+references: []
+
+review: null

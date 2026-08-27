@@ -1,9 +1,9 @@
 {
   "counts": {
-    "degradations": 21,
-    "metrics": 6,
+    "degradations": 23,
+    "metrics": 10,
     "reviewed": 0,
-    "with_measurements": 6
+    "with_measurements": 10
   },
   "entries": [
     {
@@ -11,6 +11,7 @@
       "category": "stochastic",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "stochastic",
         "fields": [
           "*"
@@ -51,6 +52,7 @@
       "category": "spectral",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "spectral",
         "fields": [
           "*"
@@ -91,6 +93,7 @@
       "category": "pointwise",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "pointwise",
         "fields": [
           "*"
@@ -131,6 +134,7 @@
       "category": "smoothing",
       "declared": {
         "calibration": "scale",
+        "ensemble": false,
         "family": "smoothing",
         "fields": [
           "*"
@@ -171,6 +175,7 @@
       "category": "resolution",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "resolution",
         "fields": [
           "*"
@@ -211,6 +216,7 @@
       "category": "smoothing",
       "declared": {
         "calibration": "scale",
+        "ensemble": false,
         "family": "smoothing",
         "fields": [
           "*"
@@ -251,6 +257,7 @@
       "category": "smoothing",
       "declared": {
         "calibration": "scale",
+        "ensemble": false,
         "family": "smoothing",
         "fields": [
           "*"
@@ -291,6 +298,7 @@
       "category": "pointwise",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "pointwise",
         "fields": [
           "*"
@@ -331,6 +339,7 @@
       "category": "smoothing",
       "declared": {
         "calibration": "scale",
+        "ensemble": false,
         "family": "smoothing",
         "fields": [
           "*"
@@ -371,6 +380,7 @@
       "category": "stochastic",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "stochastic",
         "fields": [
           "*"
@@ -411,6 +421,7 @@
       "category": "spectral",
       "declared": {
         "calibration": "energy_below",
+        "ensemble": false,
         "family": "spectral",
         "fields": [
           "*"
@@ -451,6 +462,7 @@
       "category": "spectral",
       "declared": {
         "calibration": "energy_below",
+        "ensemble": false,
         "family": "spectral",
         "fields": [
           "*"
@@ -491,6 +503,7 @@
       "category": "identity",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "identity",
         "fields": [
           "*"
@@ -531,6 +544,7 @@
       "category": "spectral",
       "declared": {
         "calibration": "energy_above",
+        "ensemble": false,
         "family": "spectral",
         "fields": [
           "*"
@@ -571,6 +585,7 @@
       "category": "spectral",
       "declared": {
         "calibration": "energy_above",
+        "ensemble": false,
         "family": "spectral",
         "fields": [
           "*"
@@ -611,6 +626,7 @@
       "category": "smoothing",
       "declared": {
         "calibration": "scale",
+        "ensemble": false,
         "family": "smoothing",
         "fields": [
           "*"
@@ -651,6 +667,7 @@
       "category": "stochastic",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "stochastic",
         "fields": [
           "*"
@@ -691,6 +708,7 @@
       "category": "geometric",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "geometric",
         "fields": [
           "*"
@@ -727,10 +745,93 @@
       "summary": "Shifts the field by a large random displacement, producing a field that is statistically identical to the reference but positionally unrelated to it."
     },
     {
+      "card": "degradations/spread_deflate/card.md",
+      "category": "ensemble",
+      "declared": {
+        "calibration": null,
+        "ensemble": true,
+        "family": "ensemble",
+        "fields": [
+          "*"
+        ],
+        "ordinal": true,
+        "severity_direction": "increasing",
+        "severity_name": "lost dispersion",
+        "severity_units": "fraction of the calibrated spread",
+        "stochastic": false
+      },
+      "evidence": {
+        "axes": [],
+        "dataset": null,
+        "measured": false,
+        "probes": [],
+        "run": null
+      },
+      "kind": "degradation",
+      "math": null,
+      "name": "spread_deflate",
+      "output": {
+        "description": "The fraction of the calibrated spread removed. Severity 1 collapses every member onto the ensemble mean, a forecast claiming certainty.",
+        "lower_bound": 0.0,
+        "upper_bound": 1.0
+      },
+      "owners": [
+        "khegazy"
+      ],
+      "path": "degradations/spread_deflate",
+      "reviewed": false,
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "status": "candidate",
+      "summary": "Narrows an ensemble about its own mean, leaving that mean exactly where it was, so the prediction becomes overconfident \u2014 claiming less uncertainty than its error warrants."
+    },
+    {
+      "card": "degradations/spread_inflate/card.md",
+      "category": "ensemble",
+      "declared": {
+        "calibration": null,
+        "ensemble": true,
+        "family": "ensemble",
+        "fields": [
+          "*"
+        ],
+        "ordinal": true,
+        "severity_direction": "increasing",
+        "severity_name": "excess dispersion",
+        "severity_units": "fraction of the calibrated spread",
+        "stochastic": false
+      },
+      "evidence": {
+        "axes": [],
+        "dataset": null,
+        "measured": false,
+        "probes": [],
+        "run": null
+      },
+      "kind": "degradation",
+      "math": null,
+      "name": "spread_inflate",
+      "output": {
+        "description": "The excess dispersion, as a fraction of the calibrated spread. Severity 1 doubles the distance of every member from the ensemble mean.",
+        "lower_bound": 0.0,
+        "upper_bound": null
+      },
+      "owners": [
+        "khegazy"
+      ],
+      "path": "degradations/spread_inflate",
+      "reviewed": false,
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "status": "candidate",
+      "summary": "Widens an ensemble about its own mean, leaving that mean exactly where it was, so the prediction hedges \u2014 claiming more uncertainty than its error warrants."
+    },
+    {
       "card": "degradations/subsample/card.md",
       "category": "resolution",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "resolution",
         "fields": [
           "*"
@@ -771,6 +872,7 @@
       "category": "geometric",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "geometric",
         "fields": [
           "*"
@@ -811,6 +913,7 @@
       "category": "geometric",
       "declared": {
         "calibration": null,
+        "ensemble": false,
         "family": "geometric",
         "fields": [
           "*"
@@ -847,6 +950,174 @@
       "summary": "Shifts the field by a fractional number of cells using a Fourier phase ramp, resolving displacements smaller than the grid spacing."
     },
     {
+      "card": "metrics/crps/card.md",
+      "category": "probabilistic",
+      "declared": {
+        "arity": "ensemble",
+        "cost": "cheap",
+        "differentiable": true,
+        "fields": [
+          "*"
+        ],
+        "has_pointwise_map": false,
+        "higher_is_better": false,
+        "measures": "error",
+        "reduction": "mean",
+        "returns": "scalar",
+        "symmetric": false,
+        "target": null,
+        "units": "field"
+      },
+      "evidence": {
+        "axes": [
+          {
+            "axis": "bias",
+            "family": "pointwise",
+            "field": "density",
+            "first_detected_level": 3.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_deflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 4.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_inflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 4.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          }
+        ],
+        "dataset": "synthetic_ensemble",
+        "frames": 12,
+        "measured": true,
+        "probes": [],
+        "run": "crps_1787800137"
+      },
+      "kind": "metric",
+      "math": {
+        "complexity": "O(N M log M)",
+        "resolution_dependent": true,
+        "scale_dependent": true,
+        "triangle_inequality": false
+      },
+      "name": "crps",
+      "output": {
+        "description": "The score in the field's own units, averaged over channels and cells. Zero when every member equals the reference; larger is worse.",
+        "lower_bound": 0.0,
+        "upper_bound": null
+      },
+      "owners": [
+        "khegazy"
+      ],
+      "path": "metrics/crps",
+      "reviewed": false,
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "status": "candidate",
+      "summary": "Continuous ranked probability score in its fair ensemble form, the proper scoring rule that generalises mean absolute error to a prediction that is a distribution."
+    },
+    {
+      "card": "metrics/ensemble_mean_rmse/card.md",
+      "category": "probabilistic",
+      "declared": {
+        "arity": "ensemble",
+        "cost": "cheap",
+        "differentiable": true,
+        "fields": [
+          "*"
+        ],
+        "has_pointwise_map": false,
+        "higher_is_better": false,
+        "measures": "error",
+        "reduction": "sqrt_mean",
+        "returns": "scalar",
+        "symmetric": false,
+        "target": null,
+        "units": "field"
+      },
+      "evidence": {
+        "axes": [
+          {
+            "axis": "bias",
+            "family": "pointwise",
+            "field": "density",
+            "first_detected_level": 2.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_deflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": null,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 0.0,
+            "rank_correlation": null,
+            "weakest_separation": 0.5
+          },
+          {
+            "axis": "spread_inflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": null,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 0.0,
+            "rank_correlation": null,
+            "weakest_separation": 0.5
+          }
+        ],
+        "dataset": "synthetic_ensemble",
+        "frames": 12,
+        "measured": true,
+        "probes": [],
+        "run": "ensemble_mean_rmse_1787800137"
+      },
+      "kind": "metric",
+      "math": {
+        "complexity": "O(N M)",
+        "resolution_dependent": true,
+        "scale_dependent": true,
+        "triangle_inequality": true
+      },
+      "name": "ensemble_mean_rmse",
+      "output": {
+        "description": "Root mean squared error between the member-wise mean and the reference, in the field's own units. Zero when the ensemble mean is exact.",
+        "lower_bound": 0.0,
+        "upper_bound": null
+      },
+      "owners": [
+        "khegazy"
+      ],
+      "path": "metrics/ensemble_mean_rmse",
+      "reviewed": false,
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "status": "candidate",
+      "summary": "Root mean squared error of the ensemble mean, the deterministic control that says how good an ensemble's consensus is while ignoring its uncertainty entirely."
+    },
+    {
       "card": "metrics/enstrophy/card.md",
       "category": "physical",
       "declared": {
@@ -858,9 +1129,11 @@
         ],
         "has_pointwise_map": false,
         "higher_is_better": false,
+        "measures": "error",
         "reduction": "mean",
         "returns": "scalar",
         "symmetric": false,
+        "target": null,
         "units": "field^2"
       },
       "evidence": {
@@ -1057,9 +1330,11 @@
         ],
         "has_pointwise_map": false,
         "higher_is_better": false,
+        "measures": "error",
         "reduction": "mean",
         "returns": "scalar",
         "symmetric": false,
+        "target": null,
         "units": "field^2"
       },
       "evidence": {
@@ -1256,9 +1531,11 @@
         ],
         "has_pointwise_map": true,
         "higher_is_better": false,
+        "measures": "error",
         "reduction": "mean",
         "returns": "scalar",
         "symmetric": true,
+        "target": null,
         "units": "field"
       },
       "evidence": {
@@ -1753,9 +2030,11 @@
         ],
         "has_pointwise_map": true,
         "higher_is_better": false,
+        "measures": "error",
         "reduction": "mean",
         "returns": "scalar",
         "symmetric": true,
+        "target": null,
         "units": "field^2"
       },
       "evidence": {
@@ -2250,9 +2529,11 @@
         ],
         "has_pointwise_map": false,
         "higher_is_better": false,
+        "measures": "error",
         "reduction": "mean",
         "returns": "scalar",
         "symmetric": false,
+        "target": null,
         "units": "dimensionless"
       },
       "evidence": {
@@ -2736,6 +3017,90 @@
       "summary": "Root mean squared error divided by the root-mean-square fluctuation of the reference, giving a dimensionless error that can be read across fields."
     },
     {
+      "card": "metrics/rank_histogram/card.md",
+      "category": "probabilistic",
+      "declared": {
+        "arity": "ensemble",
+        "cost": "cheap",
+        "differentiable": false,
+        "fields": [
+          "*"
+        ],
+        "has_pointwise_map": false,
+        "higher_is_better": false,
+        "measures": "calibration",
+        "reduction": "mean",
+        "returns": "scalar",
+        "symmetric": false,
+        "target": null,
+        "units": "dimensionless"
+      },
+      "evidence": {
+        "axes": [
+          {
+            "axis": "bias",
+            "family": "pointwise",
+            "field": "density",
+            "first_detected_level": 2.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_deflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 1.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_inflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 1.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          }
+        ],
+        "dataset": "synthetic_ensemble",
+        "frames": 12,
+        "measured": true,
+        "probes": [],
+        "run": "rank_histogram_1787800137"
+      },
+      "kind": "metric",
+      "math": {
+        "complexity": "O(N M)",
+        "resolution_dependent": true,
+        "scale_dependent": false,
+        "triangle_inequality": false
+      },
+      "name": "rank_histogram",
+      "output": {
+        "description": "Total absolute deviation of the rank histogram from uniform, dimensionless. Zero for a flat histogram; at most 2M/(M+1) when every draw lands in one bin.",
+        "lower_bound": 0.0,
+        "upper_bound": 2.0
+      },
+      "owners": [
+        "khegazy"
+      ],
+      "path": "metrics/rank_histogram",
+      "reviewed": false,
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "status": "candidate",
+      "summary": "Reliability index of the rank histogram, measuring how far an ensemble's shape departs from the flat histogram a calibrated prediction produces."
+    },
+    {
       "card": "metrics/rmse/card.md",
       "category": "pointwise",
       "declared": {
@@ -2747,9 +3112,11 @@
         ],
         "has_pointwise_map": true,
         "higher_is_better": false,
+        "measures": "error",
         "reduction": "sqrt_mean",
         "returns": "scalar",
         "symmetric": true,
+        "target": null,
         "units": "field"
       },
       "evidence": {
@@ -3231,6 +3598,90 @@
       "reviewed_by": null,
       "status": "candidate",
       "summary": "Square root of the mean squared difference between the candidate and reference fields, carrying the error back into the field's own units."
+    },
+    {
+      "card": "metrics/spread_skill/card.md",
+      "category": "probabilistic",
+      "declared": {
+        "arity": "ensemble",
+        "cost": "cheap",
+        "differentiable": false,
+        "fields": [
+          "*"
+        ],
+        "has_pointwise_map": false,
+        "higher_is_better": false,
+        "measures": "calibration",
+        "reduction": "mean",
+        "returns": "scalar",
+        "symmetric": false,
+        "target": 1.0,
+        "units": "dimensionless"
+      },
+      "evidence": {
+        "axes": [
+          {
+            "axis": "bias",
+            "family": "pointwise",
+            "field": "density",
+            "first_detected_level": 3.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_deflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 2.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_inflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 2.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          }
+        ],
+        "dataset": "synthetic_ensemble",
+        "frames": 12,
+        "measured": true,
+        "probes": [],
+        "run": "spread_skill_1787800137"
+      },
+      "kind": "metric",
+      "math": {
+        "complexity": "O(N M)",
+        "resolution_dependent": true,
+        "scale_dependent": false,
+        "triangle_inequality": false
+      },
+      "name": "spread_skill",
+      "output": {
+        "description": "Dimensionless ratio of RMS ensemble spread to ensemble-mean RMSE, with the finite-ensemble correction applied. One is calibrated; below one is overconfident and above one hedges, so distance from one is what counts rather than size.",
+        "lower_bound": 0.0,
+        "upper_bound": null
+      },
+      "owners": [
+        "khegazy"
+      ],
+      "path": "metrics/spread_skill",
+      "reviewed": false,
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "status": "candidate",
+      "summary": "Ratio of the ensemble's own spread to the error of its mean, the standard check for whether a prediction's stated uncertainty is honest. Calibrated at one."
     }
   ],
   "schema_version": 1

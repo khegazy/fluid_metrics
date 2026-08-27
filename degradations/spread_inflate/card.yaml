@@ -1,0 +1,46 @@
+# The typed half of this bundle's card. Every field is documented, with the reasoning
+# behind it, in fmeval/cards/schema.py -- read that rather than copying another card
+# blindly. Run `python -m fmeval.cards check <name>` after editing; it names the fix for
+# anything wrong.
+schema_version: 1
+
+name: spread_inflate
+kind: degradation
+category: ensemble
+
+summary: >-
+  Widens an ensemble about its own mean, leaving that mean exactly where it was, so the
+  prediction hedges — claiming more uncertainty than its error warrants.
+
+status: candidate
+
+owners: [khegazy]
+
+failure_mode: >-
+  An ensemble whose members disagree more than the model's actual error justifies. The
+  prediction is not wrong, only uninformative, and a downstream user who sizes a safety
+  margin from the spread pays for uncertainty that is not there.
+
+output:
+  description: >-
+    The excess dispersion, as a fraction of the calibrated spread. Severity 1 doubles the
+    distance of every member from the ensemble mean.
+  bounds:
+    lower: 0.0
+    upper: null
+
+exemplars:
+  mode: severity
+  levels: [0.25, 1.0, 3.0]
+  field_name: vorticity
+  diagnostics: [difference]
+  rationale: >-
+    One member of a synthetic eight-member ensemble built around the canonical field,
+    before and after inflation. The ensemble mean is unchanged by construction, so what
+    grows across the columns is how far a single member strays from the consensus -- the
+    quantity this operator scales. The difference row shows that departure directly, and
+    its amplitude should scale linearly with the severity.
+
+references: []
+
+review: null

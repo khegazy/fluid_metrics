@@ -1,0 +1,71 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      0.25,
+      1.0,
+      3.0
+    ],
+    "severities": [
+      0.25,
+      1.0,
+      3.0
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "spread_inflate",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "excess dispersion = 0.25 fraction of the calibrated spread": {
+        "max_abs": 0.003958443054422896,
+        "mean": 1.2779935094883121e-06,
+        "rms": 0.0009396405954113433
+      },
+      "excess dispersion = 1 fraction of the calibrated spread": {
+        "max_abs": 0.006355345101646504,
+        "mean": 1.8338822573029539e-06,
+        "rms": 0.001465528401109248
+      },
+      "excess dispersion = 3 fraction of the calibrated spread": {
+        "max_abs": 0.01274708389424279,
+        "mean": 3.3162522514753274e-06,
+        "rms": 0.002894596915178794
+      },
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      }
+    },
+    "field": {
+      "excess dispersion = 0.25 fraction of the calibrated spread": {
+        "max": 0.018416977291471973,
+        "mean": 1.2779935094883775e-06,
+        "min": -0.018685357613891018,
+        "rms": 0.0027433431415085615
+      },
+      "excess dispersion = 1 fraction of the calibrated spread": {
+        "max": 0.019697675810444036,
+        "mean": 1.8338822573029886e-06,
+        "min": -0.020493067355445028,
+        "rms": 0.0029671377021952003
+      },
+      "excess dispersion = 3 fraction of the calibrated spread": {
+        "max": 0.023112871861036208,
+        "mean": 3.316252251475303e-06,
+        "min": -0.02531362666625572,
+        "rms": 0.003881987287399129
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

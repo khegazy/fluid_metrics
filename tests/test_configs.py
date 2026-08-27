@@ -63,8 +63,10 @@ def test_hydra_output_dirs_resolve_without_a_live_hydra_context():
     ("dataset", "kinet_re5e4_dev"),
     ("dataset", "kinet_re5e4"),
     ("dataset", "well_re5e4"),
+    ("dataset", "synthetic_ensemble"),
     ("degradation", "default"),
     ("degradation", "quick"),
+    ("degradation", "ensemble_miscalibration"),
     ("report", "default"),
     ("report", "none"),
 ])
@@ -89,8 +91,10 @@ NOT_HYDRA_GROUPS = {"dataset_family", "cards"}
 def test_every_group_option_on_disk_is_tested(group_files=None):
     """A new config file must be added to the parametrisation above."""
     tested = {("dataset", "kinet_re5e4_dev"), ("dataset", "kinet_re5e4"),
-              ("dataset", "well_re5e4"), ("degradation", "default"),
-              ("degradation", "quick"), ("report", "default"), ("report", "none")}
+              ("dataset", "well_re5e4"), ("dataset", "synthetic_ensemble"),
+              ("degradation", "default"), ("degradation", "quick"),
+              ("degradation", "ensemble_miscalibration"),
+              ("report", "default"), ("report", "none")}
     on_disk = {
         (d.name, f.stem)
         for d in Path(CONFIGS).iterdir() if d.is_dir() and d.name not in NOT_HYDRA_GROUPS
@@ -207,6 +211,43 @@ def test_the_card_settings_are_readable_without_hydra():
         "solver steps, before the flow develops"
     )
     assert cfg.exemplar_frame.dataset in list(cfg.evidence_datasets)
+
+
+def test_every_evidence_dataset_is_a_real_config():
+    """A card may only cite a dataset someone can actually rerun.
+
+    An entry naming a dataset that no longer exists would let a card keep its numbers
+    while the run behind them became unreproducible.
+    """
+    from omegaconf import OmegaConf
+
+    cfg = OmegaConf.load(Path(CONFIGS) / "cards" / "default.yaml")
+    on_disk = {f.stem for f in (Path(CONFIGS) / "dataset").glob("*.yaml")}
+    missing = [d for d in cfg.evidence_datasets if d not in on_disk]
+    assert not missing, f"evidence_datasets names datasets with no config: {missing}"
+
+
+def test_a_generated_dataset_declares_itself_non_physical():
+    """Any generated dataset admitted as evidence must rank below every physical one.
+
+    `synthetic_ensemble` is allowed as card evidence because it validates estimators
+    against closed-form answers, which is a claim about arithmetic rather than about a
+    flow. That is only safe while the dataset says so about itself: a negative complexity
+    rank is what keeps it from being read, or plotted, as if it sat on the physical
+    ladder. A generated dataset that ranked alongside the real ones could have its
+    numbers quoted as evidence about turbulence.
+    """
+    from omegaconf import OmegaConf
+
+    cfg = OmegaConf.load(Path(CONFIGS) / "cards" / "default.yaml")
+    for name in cfg.evidence_datasets:
+        dataset = OmegaConf.load(Path(CONFIGS) / "dataset" / f"{name}.yaml")
+        if dataset.get("format") != "synthetic_ensemble":
+            continue
+        assert int(dataset.complexity.rank) < 0, (
+            f"{name} is generated and cited as evidence, so its complexity rank must be "
+            "negative to keep it off the physical ladder"
+        )
     assert int(cfg.exemplar_frame.index) >= int(cfg.evidence_window.start), (
         "the exemplar frame must lie inside the developed-flow window"
     )

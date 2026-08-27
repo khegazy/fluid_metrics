@@ -148,10 +148,39 @@ def build_columns(name: str, card: Any, frame: CanonicalFrame, *, seed: int) -> 
         )
         resolved = resolve_severity(level, field_name, calibration)
         ctx = _context(field_name, frame, data, seed=seed, label=f"{name}_{severity}")
-        columns.append(Column(title=_title(spec, resolved), data=spec.fn(data, resolved, ctx=ctx)))
+        if spec.ensemble:
+            shown = _ensemble_member(spec, data, resolved, seed=seed)
+        else:
+            shown = spec.fn(data, resolved, ctx=ctx)
+        columns.append(Column(title=_title(spec, resolved), data=shown))
         applied["severities"].append(float(severity))
         applied["resolved"].append(float(resolved))
     return columns, applied
+
+
+#: Ensemble size for the exemplar panel of an operator that acts on a member stack.
+EXEMPLAR_MEMBERS = 8
+
+
+def _ensemble_member(spec: Any, data: np.ndarray, severity: float, *, seed: int
+                     ) -> np.ndarray:
+    """One member of a synthetic ensemble, before and after a dispersion operator.
+
+    An ensemble operator has nothing to show on a single field: the canonical frame is one
+    realization, and these operators change how a *set* of them is scattered. A small
+    ensemble is therefore built around the canonical field -- members are it plus noise at
+    a fixed fraction of its fluctuation -- the operator is applied to the whole stack, and
+    the panel shows one member of the result.
+
+    That is an honest picture of what a reader would see: the ensemble mean is unchanged
+    by construction, so what visibly moves between the columns is how far an individual
+    member strays from it, which is exactly the quantity these operators scale.
+    """
+    rng = np.random.default_rng(seed)
+    fluctuation = data - data.mean(axis=tuple(range(1, data.ndim)), keepdims=True)
+    scale = 0.3 * float(np.sqrt((fluctuation**2).mean()))
+    members = data[None] + scale * rng.standard_normal((EXEMPLAR_MEMBERS, *data.shape))
+    return np.asarray(spec.fn(members, severity))[0]
 
 
 def _title(spec: Any, resolved: float) -> str:

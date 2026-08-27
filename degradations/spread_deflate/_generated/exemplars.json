@@ -1,0 +1,71 @@
+{
+  "applied": {
+    "mode": "severity",
+    "resolved": [
+      0.25,
+      0.5,
+      0.9
+    ],
+    "severities": [
+      0.25,
+      0.5,
+      0.9
+    ]
+  },
+  "dataset": "kinet_re5e4",
+  "degradation": "spread_deflate",
+  "field": "vorticity",
+  "frame_index": 5000,
+  "panels": {
+    "difference": {
+      "lost dispersion = 0.25 fraction of the calibrated spread": {
+        "max_abs": 0.002547839023745325,
+        "mean": 9.074010109452207e-07,
+        "rms": 0.0006037077134615037
+      },
+      "lost dispersion = 0.5 fraction of the calibrated spread": {
+        "max_abs": 0.001913921873487347,
+        "mean": 7.221047616736736e-07,
+        "rms": 0.00045018180357921263
+      },
+      "lost dispersion = 0.9 fraction of the calibrated spread": {
+        "max_abs": 0.0012610801504664426,
+        "mean": 4.256307628391993e-07,
+        "rms": 0.00028087282154906705
+      },
+      "original": {
+        "max_abs": 0.0,
+        "mean": 0.0,
+        "rms": 0.0
+      }
+    },
+    "field": {
+      "lost dispersion = 0.25 fraction of the calibrated spread": {
+        "max": 0.017563178278823928,
+        "mean": 9.074010109452312e-07,
+        "min": -0.017480217786188346,
+        "rms": 0.0026455093667573973
+      },
+      "lost dispersion = 0.5 fraction of the calibrated spread": {
+        "max": 0.01713627877249991,
+        "mean": 7.221047616736581e-07,
+        "min": -0.017002342697579054,
+        "rms": 0.0026139137885511084
+      },
+      "lost dispersion = 0.9 fraction of the calibrated spread": {
+        "max": 0.016721459473129193,
+        "mean": 4.2563076283917353e-07,
+        "min": -0.016770051208435312,
+        "rms": 0.002588777879583649
+      },
+      "original": {
+        "max": 0.016398680732182837,
+        "mean": 0.0,
+        "min": -0.016423012740206674,
+        "rms": 0.0025733478577632486
+      }
+    }
+  },
+  "seed": 20260807,
+  "time": 1.1276372445109877
+}

@@ -184,7 +184,8 @@ from metrics.registry import metric, pointwise_map
 @metric(
     name="h_minus_one",          # the metric's identity: bundle directory, card key,
                                  # and what users type in metrics=[...]. Defaults to fn.__name__
-    arity="pairwise",            # "pairwise" -> fn(reference, candidate); "single" -> fn(x)
+    arity="pairwise",            # "pairwise" -> fn(reference, candidate); "single" -> fn(x);
+                                 # "ensemble" -> fn(reference, members)
     fields=("vorticity",),       # canonical fields it accepts; ("*",) for any
     returns="scalar",            # "scalar" -> float; "vector" -> 1-D array
     differentiable=True,         # declared, never inferred. Could this be a training loss?
@@ -193,6 +194,8 @@ from metrics.registry import metric, pointwise_map
     symmetric=True,              # enables an automatic symmetry check
     units="field",               # free text: "field", "field^2", "dimensionless"
     reduction="mean",            # how a pointwise map reduces; see below
+    target=None,                 # the value a calibrated prediction attains, if not zero
+    measures="error",            # "error" | "calibration"; see below
 )
 def h_minus_one(reference, candidate, *, ctx):
     """One-line summary; it becomes the caption fallback and the registry listing.
@@ -206,6 +209,25 @@ def h_minus_one(reference, candidate, *, ctx):
 **Arity.** `pairwise` takes `(reference, candidate)`; `single` takes `(x)` and characterises one
 field. Both receive `(C, *spatial)` float64 arrays. The decorator checks the positional
 argument count against the declared arity and raises at import time if they disagree.
+
+`ensemble` takes `(reference, members)`, where the reference is `(C, *spatial)` and the
+members are `(N, C, *spatial)` with the **member axis leading**. It has the same positional
+count as `pairwise`, so the declared arity is what distinguishes them — and validating the
+member axis matters: a stack passed as `(C, N, *spatial)` has the same size and dtype, so a
+metric that does not check would reduce over channels and return a plausible wrong number.
+Use `metrics._ensemble.as_ensemble` for that check rather than writing it again. An ensemble
+metric is skipped, with no rows emitted, on a dataset that provides a single realization
+per frame.
+
+**`target` and `measures`.** Declare `target=` when a calibrated prediction lands on some
+value other than zero — the spread-to-skill ratio sets `target=1.0`. Report the quantity the
+literature reports and let the analysis order by distance from the target; do not transform
+the metric into a monotone error to make it fit, because then the number in the table is no
+longer the number the name promises. It is mutually exclusive with `higher_is_better`, which
+is a different model of what "better" means. Set `measures="calibration"` if what the metric
+judges is the honesty of an ensemble's dispersion rather than its distance from the truth:
+an ensemble collapsed onto the exact reference is *maximally* overconfident, so the generic
+contract test that expects a perfect prediction to score zero does not apply to it.
 
 A single-field metric will be reported as `no dynamic range`, and **that is correct, not a bug you
 should try to fix**. The normalised damage scale is anchored between the reference and a
@@ -330,6 +352,13 @@ def my_blur(x, severity, *, ctx):
 each requested field with a generator derived from `(seed, label, frame_index, field)`, so
 deterministic operators stay consistent across fields and stochastic ones draw independently.
 If you genuinely need cross-field access, declare `whole_frame=True`.
+
+**On an ensemble dataset your operator is applied to each member**, with an independent
+draw per member if it is stochastic, and the reference is left undamaged — the ladder
+degrades the prediction, not the truth. That happens without any change to your operator.
+Declare `ensemble=True` only if what you change is a property the ensemble has and a single
+member does not, such as its dispersion; you then receive the whole `(N, C, *spatial)` stack
+and return one. It is mutually exclusive with `whole_frame`.
 
 **`severity_direction` is not cosmetic.** The ladder builder sorts severities into
 increasing-damage order before numbering the severity levels. Get this wrong and a low-pass cutoff list

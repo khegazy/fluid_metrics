@@ -70,6 +70,7 @@ FAMILIES = (
     "resolution",
     "stochastic",
     "pointwise",
+    "ensemble",
 )
 
 
@@ -92,6 +93,15 @@ class DegradationSpec:
     module: str
     takes_ctx: bool
     defaults: dict[str, Any] = dc_field(default_factory=dict)
+    ensemble: bool = False
+    """Whether the operator acts on the whole ``(N, C, *spatial)`` member stack.
+
+    An ordinary operator is applied to each member independently, which is the right
+    thing for anything that models a per-member fault -- bias, noise, smoothing. An
+    operator that changes the ensemble's *dispersion* cannot work that way, because
+    scaling one member about its own value is meaningless; it needs to see the members
+    together, and declares this.
+    """
 
     def sort_severities(self, severities: Sequence[float]) -> list[float]:
         """Order a severity list by increasing damage.
@@ -130,6 +140,7 @@ def degradation(
     stochastic: bool = False,
     fields: Sequence[str] = ("*",),
     whole_frame: bool = False,
+    ensemble: bool = False,
     defaults: dict[str, Any] | None = None,
 ) -> Callable[[Callable], Callable]:
     """Register a degradation operator.
@@ -153,6 +164,11 @@ def degradation(
         fields: Canonical field names it can act on; ``("*",)`` means any.
         whole_frame: Receive the whole ``dict[str, ndarray]`` instead of one array. For
             the rare operator needing cross-field access.
+        ensemble: Receive one field's ``(N, C, *spatial)`` member stack instead of a
+            single array. For an operator that changes the ensemble's dispersion, which
+            cannot be expressed member by member. Mutually exclusive with
+            ``whole_frame``. Operators that do not declare it are applied to each member
+            independently when the frame carries an ensemble.
         defaults: Default keyword options, overridable per ladder entry in config.
 
     Returns:
@@ -168,6 +184,11 @@ def degradation(
         if family not in FAMILIES:
             raise ValueError(
                 f"{key}: unknown family {family!r}; expected one of {FAMILIES}"
+            )
+        if ensemble and whole_frame:
+            raise ValueError(
+                f"{key}: declares both ensemble and whole_frame; one receives the member "
+                "stack of a single field, the other the field mapping of a whole frame"
             )
 
         params = inspect.signature(fn).parameters
@@ -197,6 +218,7 @@ def degradation(
             module=fn.__module__,
             takes_ctx="ctx" in params,
             defaults=dict(defaults or {}),
+            ensemble=ensemble,
         )
         return fn
 

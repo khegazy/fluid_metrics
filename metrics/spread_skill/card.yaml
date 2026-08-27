@@ -1,0 +1,34 @@
+# The typed half of this bundle's card. Every field is documented, with the reasoning
+# behind it, in fmeval/cards/schema.py -- read that rather than copying another card
+# blindly. Run `python -m fmeval.cards check <name>` after editing; it names the fix for
+# anything wrong.
+schema_version: 1
+
+name: spread_skill
+kind: metric
+
+category: probabilistic
+
+summary: Ratio of the ensemble's own spread to the error of its mean, the standard check
+  for whether a prediction's stated uncertainty is honest. Calibrated at one.
+
+status: candidate
+
+owners: [khegazy]
+
+output:
+  description: Dimensionless ratio of RMS ensemble spread to ensemble-mean RMSE, with the
+    finite-ensemble correction applied. One is calibrated; below one is overconfident and
+    above one hedges, so distance from one is what counts rather than size.
+  bounds:
+    lower: 0.0
+    upper: null
+
+math:
+  triangle_inequality: false
+  scale_dependent: false      # a ratio of two quantities in the same units
+  resolution_dependent: true  # both spread and error change with the analysis grid
+  complexity: "O(N M)"        # N cells, M members
+references: []
+
+review: null

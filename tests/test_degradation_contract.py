@@ -83,17 +83,44 @@ def call(spec: deg.DegradationSpec, x: np.ndarray, severity: float, **kw) -> np.
     return call_absolute(spec, x, resolve_for(spec, x, severity), **kw)
 
 
+#: Ensemble size for the operators that act on a member stack.
+N_MEMBERS = 6
+
+
+def as_members(x: np.ndarray, *, n_members: int = N_MEMBERS, seed: int = 0) -> np.ndarray:
+    """Scatter a field into an ``(N, C, *spatial)`` ensemble centred on it.
+
+    Ensemble operators change dispersion, so they need something to disperse: handing
+    them N identical copies would make every severity a no-op and every direction test
+    pass vacuously.
+    """
+    rng = np.random.default_rng(seed)
+    scale = 0.3 * fluctuation_rms(x)
+    return x[None] + scale * rng.standard_normal((n_members, *x.shape))
+
+
 def call_absolute(spec: deg.DegradationSpec, x: np.ndarray, severity: float,
                   **kw) -> np.ndarray:
     """Apply an operator at a severity already in its own units.
 
     Used by the tests that are about a filter's spectral behaviour rather than about the
     ladder, where a wavenumber is the meaningful thing to state.
+
+    An operator declaring ``ensemble=True`` is handed a member stack built from ``x`` and
+    returns one; the caller sees the same shape it passed in, so the generic contract
+    tests below need no special case. Where a *field* is the meaningful thing to compare
+    -- shape, dtype, damage -- the ensemble mean stands in for it.
     """
     kwargs = dict(spec.defaults)
     kwargs.update(kw)
     if spec.takes_ctx:
         kwargs["ctx"] = ctx_for(x)
+    if spec.ensemble:
+        out = spec.fn(as_members(x), severity, **kwargs)
+        # Collapse back to a field so the shared assertions still read as they were
+        # written. Dispersion changes leave the mean fixed, so damage is measured
+        # against the ensemble's *spread*, which `damage_of` handles.
+        return np.asarray(out, dtype=np.float64)
     return spec.fn(x, severity, **kwargs)
 
 
@@ -131,6 +158,10 @@ LADDERS: dict[str, list[float]] = {
     "random_large_translation": [0, 1, 2],   # draw indices, not damage levels
     "gain": [0.05, 0.2, 0.5],
     "bias": [0.05, 0.2, 0.5],
+    # Ensemble dispersion. Severities are fractions of the calibrated spread: excess for
+    # inflate, removed for deflate, so zero is a no-op on both and neither exceeds one.
+    "spread_inflate": [0.25, 1.0, 3.0],
+    "spread_deflate": [0.25, 0.5, 0.9],
 }
 
 
@@ -150,8 +181,9 @@ def test_every_operator_has_a_test_ladder(spec):
 
 def test_preserves_shape_and_dtype(spec):
     x = synthetic_field(SHAPE, 2, seed=0)
+    want = as_members(x).shape if spec.ensemble else x.shape
     out = call(spec, x, LADDERS[spec.name][-1])
-    assert out.shape == x.shape
+    assert out.shape == want
     assert np.asarray(out).dtype == np.float64
     assert np.isfinite(out).all(), f"{spec.name} produced non-finite values"
 
@@ -163,7 +195,8 @@ def test_zero_severity_is_a_passthrough(spec):
                      "highpass_butterworth", "median_blur"}:
         pytest.skip("severity 0 is not a no-op for this operator")
     x = synthetic_field(SHAPE, 1, seed=0)
-    assert np.allclose(call(spec, x, 0), x, rtol=0, atol=1e-15)
+    want = as_members(x) if spec.ensemble else x
+    assert np.allclose(call(spec, x, 0), want, rtol=0, atol=1e-15)
 
 
 def test_declared_direction_is_true(spec):
@@ -176,7 +209,15 @@ def test_declared_direction_is_true(spec):
     x = (smooth_field() if spec.calibration
          else synthetic_field(SHAPE, 1, seed=0, noise=0.02))
     severities = spec.sort_severities(LADDERS[spec.name])
-    damage = [float(((x - call(spec, x, s)) ** 2).mean()) for s in severities]
+    if spec.ensemble:
+        # An ensemble operator is judged by how far it moves the *members* from the
+        # calibrated ensemble, not by how far it moves a field: dispersion scaling
+        # leaves the ensemble mean exactly where it was, so a mean-based damage measure
+        # would read zero at every severity and the direction test would prove nothing.
+        clean = as_members(x)
+        damage = [float(((clean - call(spec, x, s)) ** 2).mean()) for s in severities]
+    else:
+        damage = [float(((x - call(spec, x, s)) ** 2).mean()) for s in severities]
     assert damage[-1] > 0, (
         f"{spec.name}: the harshest test severity does nothing, so this test proves nothing; "
         "the entry in LADDERS is too mild for the field it is applied to"

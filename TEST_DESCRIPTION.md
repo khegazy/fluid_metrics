@@ -649,6 +649,41 @@ and — for a metric returning a vector — which element.
 
 The run seed, and the time the metric call itself took.
 
+### `n_members`, `target_value` — the probabilistic columns
+
+Both are empty on every row a deterministic metric produced, which is most of them.
+
+`n_members` is the ensemble size the metric actually saw. It is recorded because both CRPS
+and the spread-to-skill ratio depend on it: the fair CRPS estimator is unbiased at any
+ensemble size but noisier at small ones, and the spread carries a finite-ensemble
+correction of sqrt((N+1)/N) that is 12% at four members and under 1% at fifty. Two runs of
+the same model at different ensemble sizes are comparable only with this column in view.
+
+`target_value` is the value a perfectly calibrated prediction attains, when that value is
+not zero. Almost every metric here is an error and leaves this empty; the spread-to-skill
+ratio sets it to 1. It is what tells the analysis that a metric is wrong in **two**
+directions rather than one — see "Metrics with a target value" below.
+
+### Metrics with a target value
+
+Every ordering statistic in this suite — the rank correlation, the monotone fraction, the
+adjacent-severity separability, the sensitivity and saturation levels — assumes that damage
+moves a metric one way. The spread-to-skill ratio breaks that assumption honestly: it is
+calibrated at 1, reads low when an ensemble is overconfident and high when it hedges, and
+both are failures.
+
+The suite adapts rather than the metric. The reported value stays the raw ratio, as the
+forecast-verification literature reports it, so a reader who sees 0.4 knows immediately
+that the ensemble is too narrow. The **ordering** statistics are computed on the distance
+from the target, |log(value / target)|, which is zero when calibrated and rises in either
+direction. The log makes the scale symmetric, since half the calibrated spread and twice it
+are equally wrong. A value of zero — an ensemble collapsed onto its mean, claiming
+certainty it has not earned — is the furthest point from calibration there is, and is
+ranked as such rather than dropped.
+
+Without this the axis would arrive flagged on three criteria at once, and the flags would
+be describing the analysis rather than the metric.
+
 ### `flags` — advisory notes, never a verdict
 
 **Advisory only.** A semicolon-separated list of the configured reference values a row did not
@@ -660,7 +695,7 @@ and re-flagging needs no recomputation, so changing your mind is a config edit.
 
 ## The degradations
 
-Twenty-one operators in seven families. `python -m degradations` lists them with their
+Twenty-three operators in eight families. `python -m degradations` lists them with their
 severity units. Which failure modes you test for determines what the measurements mean, so
 this list is as important as the list of metrics.
 
@@ -746,6 +781,27 @@ displacement, with correct position and wrong magnitude.
 | `gain` | relative | Scales the fluctuation, leaving the mean and every gradient's sign intact |
 | `bias` | fraction of fluctuation RMS | A uniform offset, invisible to any metric built on fluctuations or gradients |
 | `identity` | — | severity level 0 |
+
+**Ensemble** — the ensemble is the wrong *width*, while its central prediction is
+untouched. These apply only to a dataset that provides an ensemble, and they act on the
+members: the reference the metrics are scored against is never degraded. Both scale the
+members about their own mean, so the ensemble mean is preserved exactly and any metric
+built on it alone is blind to this axis by construction — which is what makes these a
+clean test of whether a metric sees calibration at all.
+
+| operator | severity | notes |
+|---|---|---|
+| `spread_inflate` | fraction of the calibrated spread | Excess dispersion: the hedging forecast. Severity 1 doubles the spread |
+| `spread_deflate` | fraction of the calibrated spread | Lost dispersion: the overconfident forecast. Severity 1 collapses the ensemble onto its mean |
+
+They are two operators rather than one signed axis because the ladder sorts each
+operator's severities into one order of increasing damage, and dispersion error is least
+damaging in the middle. Each axis is mildest at zero and worsens outward.
+
+Any *other* operator — noise, bias, blur — applied to an ensemble dataset is applied to
+each member independently, with an independent random draw per member where the operator
+is stochastic. A single shared noise field would shift every member alike, which
+translates the ensemble rather than perturbing it, and would leave the spread untouched.
 
 ---
 

@@ -1,0 +1,55 @@
+# A generated ensemble, for exercising the probabilistic metrics against a case whose right
+# answer is known in closed form.
+#
+# NOT PHYSICAL EVIDENCE. Nothing here is a simulation: the fields are a deterministic
+# two-scale pattern plus Gaussian noise. What it provides is a *calibrated null* -- the
+# reference is drawn from the same process as the members, with the same sigma, so the
+# ensemble is exchangeable with it and every probabilistic metric has an analytic target:
+# rank histograms are flat, the spread-to-skill ratio is one, and CRPS matches the closed
+# form for a normal predictive distribution. A metric that disagrees here is wrong.
+#
+# No ensemble of real flow realizations exists yet (issues/004-independent-realizations.md);
+# when one does, these metrics will already have been validated where there are no unknowns.
+# Use kinet_re5e4 for any physical conclusion.
+# The name carries no `_dev` suffix on purpose. In this repository that suffix means "a
+# reduced version of a real dataset, for exercising the code path quickly", and a card
+# citing such a run fails its tests. This is not a reduced version of anything: it is the
+# full and only form of a calibrated null, and a card may cite it.
+name: synthetic_ensemble
+format: synthetic_ensemble
+
+# Unused: the reader generates its frames rather than reading them. Declared because every
+# dataset config carries one; evaluate.py skips the existence check for this format.
+path: ${paths.data}
+trajectory: synthetic_ensemble
+
+fields: [density]
+
+time:
+  start: 0
+  stop: null
+  reduction: 1
+  max_frames: null
+
+reader:
+  n_members: 16     # large enough that the sampling floor of the rank histogram is not the
+                    # dominant signal, small enough that a full run stays under a second
+  n_frames: 12      # per-frame rank correlation needs several genuinely different frames
+  grid: [64, 64]
+  sigma: 0.15       # dispersion of BOTH the members and the reference; equal by
+                    # construction, which is what makes them exchangeable
+  omega: 0.35       # temporal phase advance, so frames differ in more than their noise
+  nan_policy: error
+
+# No velocity, so there is no vorticity to recompute. Stated rather than defaulted.
+recompute_derived: false
+
+complexity:
+  family: synthetic_ensemble
+  rank: -1          # below every physical dataset: this exercises a code path and validates
+                    # estimators, and must never be read as evidence about a flow
+  params: {}
+  label: "Synthetic exchangeable ensemble"
+
+notes: "Generated, not measured. Reference and members are independent draws from one
+  N(base, sigma^2) process, hence exchangeable. See fmeval/data/synthetic_ensemble.py."

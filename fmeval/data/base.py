@@ -171,13 +171,39 @@ class Frame:
     fields: dict[str, np.ndarray]
     """Canonical name -> ``(C, *spatial)`` float64."""
     grid: GridSpec
+    members: dict[str, np.ndarray] | None = None
+    """Canonical name -> ``(N, C, *spatial)`` float64, or None on a deterministic frame.
+
+    ``fields[name]`` is the reference realization -- the truth a metric is scored
+    against -- and ``members[name]`` is the predictive ensemble standing in for a
+    distribution over it. The two are deliberately *not* required to agree in any way:
+    the reference is not the member mean, and for an exchangeable ensemble it is simply
+    one more draw from the same process. A probabilistic metric consumes both.
+    """
+
+    @property
+    def has_members(self) -> bool:
+        return self.members is not None
 
     def __getitem__(self, name: str) -> np.ndarray:
         return self.fields[name]
 
-    def with_fields(self, fields: dict[str, np.ndarray], grid: GridSpec) -> Frame:
-        """A copy carrying different field arrays, e.g. after a remap or a degradation."""
-        return Frame(index=self.index, time=self.time, fields=fields, grid=grid)
+    def with_fields(
+        self,
+        fields: dict[str, np.ndarray],
+        grid: GridSpec,
+        members: dict[str, np.ndarray] | None = None,
+    ) -> Frame:
+        """A copy carrying different field arrays, e.g. after a remap or a degradation.
+
+        Members are dropped unless passed explicitly. Silently carrying them would
+        outlive the operation that invalidated them: after a remap the stored stack is
+        still on the old grid, and after a degradation it no longer matches the field
+        beside it. Every caller that means to keep members says so.
+        """
+        return Frame(
+            index=self.index, time=self.time, fields=fields, grid=grid, members=members
+        )
 
 
 @dataclass(frozen=True)
@@ -221,6 +247,14 @@ class Trajectory(ABC):
     """
 
     nan_policy: NanPolicy = "error"
+
+    is_ensemble: bool = False
+    """Whether :meth:`read_frame` also returns ``f"{name}__members"`` member stacks.
+
+    Defaults False, so every reader that predates ensembles takes exactly the code path
+    it took before: the validation below is skipped entirely and the frame it yields
+    carries ``members=None``.
+    """
 
     # --- to implement -------------------------------------------------------------
 
@@ -290,7 +324,48 @@ class Trajectory(ABC):
                 )
             self._check_finite(name, arr, t)
             out[name] = arr
-        return Frame(index=int(t), time=float(self.times[t]), fields=out, grid=grid)
+
+        members = self._read_members(raw, requested, grid, t) if self.is_ensemble else None
+        return Frame(
+            index=int(t), time=float(self.times[t]), fields=out, grid=grid, members=members
+        )
+
+    def _read_members(
+        self,
+        raw: dict[str, np.ndarray],
+        requested: Sequence[str],
+        grid: GridSpec,
+        t: int,
+    ) -> dict[str, np.ndarray]:
+        """Validate and collect the ``(N, C, *spatial)`` member stacks of one frame.
+
+        The member axis leads. Checking it explicitly matters more than the usual shape
+        guard: a stack handed over as ``(C, N, *spatial)`` has the right size and the
+        right dtype, so every probabilistic metric would happily reduce over the channel
+        axis instead of the ensemble and return a plausible wrong number.
+        """
+        members: dict[str, np.ndarray] = {}
+        for name in requested:
+            key = f"{name}__members"
+            if key not in raw:
+                raise ValueError(
+                    f"{name} members at t={t}: reader declares is_ensemble but returned "
+                    f"no {key!r} key"
+                )
+            arr = np.ascontiguousarray(raw[key], dtype=np.float64)
+            want_c = FIELDS[name].n_channels(grid.n_spatial)
+            if arr.ndim != 2 + grid.n_spatial or arr.shape[1:] != (want_c, *grid.shape):
+                raise ValueError(
+                    f"{name} members at t={t}: reader returned {arr.shape}, expected "
+                    f"(N, {want_c}, *{grid.shape}) with the member axis leading"
+                )
+            if arr.shape[0] < 1:
+                raise ValueError(
+                    f"{name} members at t={t}: empty ensemble, expected at least one member"
+                )
+            self._check_finite(f"{name} members", arr, t)
+            members[name] = arr
+        return members
 
     def _check_finite(self, name: str, arr: np.ndarray, t: int) -> None:
         if self.nan_policy == "ignore" or np.isfinite(arr).all():

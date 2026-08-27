@@ -11,8 +11,22 @@
 # the first 100 solver steps, before the flow develops, where a 16-cell translation costs
 # about 1e-4 of an unrelated field against 0.51 at t=5000 -- numbers that mean nothing
 # physically and would be indistinguishable, once written into a card, from ones that do.
+#
+# `synthetic_ensemble` is admitted for a different reason than kinet_re5e4, and the
+# two must not be read the same way. It is not a flow at all and makes no claim to be one:
+# it is a calibrated null, built so that the reference is exchangeable with the members and
+# every probabilistic metric therefore has a value known in closed form. Evidence from it
+# says "this estimator computes what it claims to compute", which is exactly what a first
+# implementation needs to demonstrate and is checkable against arithmetic rather than
+# opinion. It says nothing about turbulence.
+#
+# That distinction has to survive into the artifact, so a card citing it must say which
+# kind of claim it is making. The probabilistic metrics are the only ones that can use it,
+# because they are the only ones with no physical ensemble to run on (issue 004); when one
+# exists their cards should be regenerated against it and this entry reconsidered.
 evidence_datasets:
   - kinet_re5e4
+  - synthetic_ensemble
 
 # The window within those datasets that counts as developed flow. Recorded in every
 # fingerprint so a reader can never mistake one run's numbers for another's.
