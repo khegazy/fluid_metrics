@@ -10,8 +10,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from fmeval.analysis import UNCORRELATED_LABEL
-
 from .context import TableResult
 from .registry import table
 
@@ -167,9 +165,9 @@ def cost_table(ctx, df, opts) -> TableResult:
 def redundancy_table(ctx, df, opts) -> TableResult:
     """Rank correlation between metrics across the ladder, for pruning the panel.
 
-    One observation per axis and severity level, using the median over frames. The reference severity level is
-    excluded: every pairwise error metric is exactly zero there, so keeping it would add a
-    point all metrics share by construction.
+    One observation per axis and severity level, using the median over frames. The reference
+    severity level is excluded: every pairwise error metric is exactly zero there, so keeping it
+    would add a point all metrics share by construction.
     """
     from fmeval.analysis import cross_metric_correlation
 
@@ -226,8 +224,8 @@ def provenance_table(ctx, df, opts) -> TableResult:
 
 
 #: Absolute gap between a requested energy fraction and the realised one, above which the report
-#: says so. Not a threshold on acceptance -- the severity level is a real experiment either way -- only on
-#: whether its nominal severity describes it honestly.
+#: says so. Not a threshold on acceptance -- the severity level is a real experiment either way --
+#: only on whether its nominal severity describes it honestly.
 MISSED_REQUEST = 0.15
 
 
@@ -246,7 +244,8 @@ def calibrated_severities_table(ctx, df, opts) -> TableResult:
     cutoff on a smooth field than on a broadband one. That is the point of calibrating, and it
     means the absolute numbers in the rest of the report belong to this table.
 
-    The last two columns are what the severity level *measurably did*, which is not the same as what it asked
+    The last two columns are what the severity level *measurably did*, which is not the same as what
+    it asked
     for. A cutoff must land on an available set of modes, so where a field's energy is concentrated
     the realised removal jumps rather than following the request: 69% of density's fluctuation
     energy is in the four diagonal modes at |k| = sqrt(2) and 3e-5 of it below them, so two
@@ -273,7 +272,8 @@ def calibrated_severities_table(ctx, df, opts) -> TableResult:
         })
     frame = pd.DataFrame(rows).sort_values(["field", "axis", "level"])
 
-    # A severity level can be a perfectly valid experiment and still not be the one that was requested.
+    # A severity level can be a perfectly valid experiment and still not be the one that was
+    # requested.
     # A cutoff selects whole sets of modes, so where a field's energy is concentrated the nearest
     # available cutoff can remove far more or far less than the fraction asked for. That is worth
     # naming, because the nominal severity is what appears on every axis label in the report.
@@ -285,7 +285,8 @@ def calibrated_severities_table(ctx, df, opts) -> TableResult:
     dropped = frame[frame["used"] == "no"]
     if len(dropped):
         note = (
-            f"{len(dropped)} of {len(frame)} severity_levels resolved either onto a milder severity_level's "
+            f"{len(dropped)} of {len(frame)} severity_levels resolved either onto a "
+            "milder severity_level's "
             "severity or onto a severity at which the operator does nothing, and are excluded "
             "from the acceptance statistics. That is a limit of the field rather than a "
             "misconfiguration: a sharp filter acts on whole wavenumber shells and a windowed "
@@ -302,7 +303,8 @@ def calibrated_severities_table(ctx, df, opts) -> TableResult:
             for _, r in missed.sort_values("level").iterrows()
         )
         note += (
-            f" {len(missed)} spectral severity_level(s) removed a fraction differing from the request by "
+            f" {len(missed)} spectral severity_level(s) removed a fraction differing "
+            "from the request by "
             f"more than {MISSED_REQUEST:g}, because a cutoff selects whole sets of modes and the "
             "nearest available one was not close: " + worst + ". These are still valid "
             "experiments, but their nominal severity understates or overstates what they did."

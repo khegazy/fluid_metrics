@@ -22,8 +22,8 @@ from __future__ import annotations
 
 import logging
 import warnings
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping
+from itertools import pairwise
 
 import numpy as np
 import pandas as pd
@@ -58,8 +58,8 @@ SATURATION_FRACTION: float = 0.90
 #: 1.6e-16. Both are round-off presented as measurement.
 #:
 #: 1e-9 rather than something nearer the float64 epsilon: accumulated round-off over a 256^2
-#: reduction is several orders of magnitude above 2.2e-16, while the mildest severity level that does
-#: real work on this data moves the value by 1e-4 of its range. Nothing measured falls in the
+#: reduction is several orders of magnitude above 2.2e-16, while the mildest severity level that
+#: does real work on this data moves the value by 1e-4 of its range. Nothing measured falls in the
 #: gap between.
 DEGENERATE_SPAN: float = 1e-9
 
@@ -86,9 +86,9 @@ def normalisation(df: pd.DataFrame,
     badly: on the real data a 16-cell displacement only reaches about 0.6 of the true
     uncorrelated value, so every damage score would be inflated by roughly 1.6x.
 
-    A ratio to the clean value is not usable here: mean squared error on the reference severity level
-    is exactly zero. Per-figure min-max scaling is not usable either, because the figure
-    would change whenever a severity level is added.
+    A ratio to the clean value is not usable here: mean squared error on the reference severity
+    level is exactly zero. Per-figure min-max scaling is not usable either, because the figure would
+    change whenever a severity level is added.
 
     Returns:
         One row per (dataset, metric, field) with ``value_clean``, ``value_uncorrelated``,
@@ -268,8 +268,8 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
     )
     rows = []
 
-    # Severity levels that resolved to the same experiment as a milder one are not independent points.
-    # Scoring a tie would read as agreement in the rank correlation and would compare a
+    # Severity levels that resolved to the same experiment as a milder one are not independent
+    # points. Scoring a tie would read as agreement in the rank correlation and would compare a
     # distribution against itself in the separability, so they are dropped and counted.
     ladder = df[df["level"] > 0]
     n_dropped = 0
@@ -279,7 +279,8 @@ def summarise_axes(df: pd.DataFrame, *, norm: pd.DataFrame | None = None,
         ladder = ladder[~degenerate]
         if n_dropped:
             log.info(
-                "excluded %d rows on severity levels that resolved to a milder severity level's severity; "
+                "excluded %d rows on severity levels that resolved to a milder "
+                "severity level's severity; "
                 "n_levels below is what was measured, n_levels_configured what was asked for",
                 n_dropped,
             )
@@ -424,8 +425,8 @@ def _is_round_off(values: np.ndarray) -> bool:
 
     A rank correlation is defined for any values that are not exactly tied, and float64
     arithmetic almost never ties exactly: ``np.roll`` cannot change a translation-invariant
-    quantity, but it does change the summation order inside ``np.mean``, so the severity levels come out
-    differing in the last bits and in an arbitrary order. Ranking that gives a number.
+    quantity, but it does change the summation order inside ``np.mean``, so the severity levels come
+    out differing in the last bits and in an arbitrary order. Ranking that gives a number.
 
     Reproduced end to end -- ``evaluate.py metrics=[enstrophy]`` with a translation-only ladder
     reported ``rho_min = 0.707`` on ``translate_x`` from values spanning a relative 1.6e-16,
@@ -468,7 +469,7 @@ def _min_adjacent_auc(g: pd.DataFrame) -> float:
     if len(levels) < 2:
         return float("nan")
     aucs = []
-    for a, b in zip(levels, levels[1:]):
+    for a, b in pairwise(levels):
         xa = g.loc[g["level"] == a, "value"].to_numpy()
         xb = g.loc[g["level"] == b, "value"].to_numpy()
         if len(xa) < 2 or len(xb) < 2:
@@ -491,11 +492,10 @@ def _threshold_level(g: pd.DataFrame, clean: float, fraction: float,
         return float("nan")
     if _is_round_off(medians.to_numpy()):
         # The level at which a metric "first departs from clean" is not defined when it never
-        # departs. Without this the answer is always severity level 1, because any target built from a
-        # round-off span is cleared by round-off: measured on enstrophy against a
-        # translation-only ladder, both the sensitivity and saturation levels read 1.0 for a
-        # quantity translation cannot change at all. Same principle as the rank-correlation
-        # guard.
+        # departs. Without this the answer is always severity level 1, because any target built from
+        # a round-off span is cleared by round-off: measured on enstrophy against a translation-only
+        # ladder, both the sensitivity and saturation levels read 1.0 for a quantity translation
+        # cannot change at all. Same principle as the rank-correlation guard.
         return float("nan")
     span = shared_span if shared_span is not None else float(medians.iloc[-1]) - clean
     if span is None or not np.isfinite(span) or span == 0:
@@ -595,7 +595,7 @@ def _nearest_level(g: pd.DataFrame, damage: float, exclude: str) -> str:
     ].median()
     if medians.empty:
         return ""
-    label, level, severity = medians.sub(damage).abs().idxmin()
+    label, _level, severity = medians.sub(damage).abs().idxmin()
     return f"{label}={severity:g}"
 
 

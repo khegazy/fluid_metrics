@@ -14,16 +14,17 @@ sorted unique values, so a metric is the same colour in every figure and in ever
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from typing import Any, Literal
 
 import matplotlib
 
 matplotlib.use("Agg")  # compute nodes have no display; must precede the pyplot import
 
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
-from matplotlib.colors import LinearSegmentedColormap, to_rgb  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import LinearSegmentedColormap, to_rgb
 
 Theme = Literal["notebook", "paper"]
 

@@ -51,7 +51,6 @@ def gaussian_impostor(
     what it preserves. Read the canary column alongside the displacement column: L2 passes
     the canary and fails on displacement, and a spectral metric does the reverse.
     """
-    spatial = tuple(range(1, x.ndim))
     shape = x.shape[1:]
     out = np.empty_like(x)
     for c in range(x.shape[0]):

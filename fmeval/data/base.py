@@ -25,7 +25,7 @@ from __future__ import annotations
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
 from typing import Any, Literal
 
 import numpy as np
@@ -386,8 +386,13 @@ class Trajectory(ABC):
         for t in selection.resolve(len(self)):
             yield self.frame(int(t), fields)
 
-    def close(self) -> None:
-        """Release any file handles. Idempotent."""
+    def close(self) -> None:  # noqa: B027 - optional by design, see below
+        """Release any file handles. Idempotent.
+
+        Deliberately concrete and empty rather than abstract: a reader with nothing to
+        release -- the synthetic generator, or any future in-memory source -- should not
+        have to write an empty override to satisfy the base class.
+        """
 
     def __enter__(self) -> Trajectory:
         return self

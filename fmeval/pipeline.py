@@ -23,7 +23,8 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from typing import Any
 
 import numpy as np
@@ -33,7 +34,7 @@ from metrics.registry import MetricSpec
 
 from .calibration import Calibration, calibrate
 from .context import FieldContext, derive_rng
-from .data.base import FIELDS, Frame, Trajectory, TimeSelection
+from .data.base import Frame, TimeSelection, Trajectory
 from .ladder import SeverityLevel, apply_severity_level, reference_fluctuation_rms
 from .remap import coarsen_factor, remap_frame
 
@@ -69,9 +70,11 @@ RESULT_DTYPES: dict[str, str] = {
     "severity": "float64",           # the absolute value actually applied
     "severity_nominal": "float64",   # as written in config; differs for a calibrated operator
     "calibration": "category",
-    "severity_degenerate": "bool",   # not a distinct experiment: repeats a milder severity level, or
-                                     # resolved to a severity at which the operator is a no-op
-    "energy_removed": "float64",     # what the severity level MEASURABLY did, as opposed to what it asked
+    "severity_degenerate": "bool",   # not a distinct experiment: repeats a milder
+                                     # severity level, or resolved to a severity at
+                                     # which the operator is a no-op
+    "energy_removed": "float64",     # what the severity level MEASURABLY did, as
+                                     # opposed to what it asked
     "energy_changed": "float64",     # for: both are fractions of the reference fluctuation
     "severity_name": "category",
     "variant_label": "category",
@@ -267,8 +270,10 @@ def run(
 
     probe = remap_frame(trajectory.frame(int(indices[0]), fields), factor,
                         method=remap_method)
-    severity_levels = _runnable_levels(severity_levels, probe, fields, seed=seed, calibration=calibration,
-                            analysis_grid=grid_size)
+    severity_levels = _runnable_levels(
+        severity_levels, probe, fields, seed=seed, calibration=calibration,
+        analysis_grid=grid_size,
+    )
 
     rows: list[dict[str, Any]] = []
     stored_maps: dict[str, np.ndarray] = {}
@@ -285,9 +290,13 @@ def run(
         available = [f for f in fields if f in frame.fields]
         ref_rms = reference_fluctuation_rms(frame, available)
         variants = {
-            severity_level.variant_label: (severity_level, apply_severity_level(severity_level, frame, available, seed=seed,
-                                                  reference_rms=ref_rms,
-                                                  calibration=calibration))
+            severity_level.variant_label: (
+                severity_level,
+                apply_severity_level(
+                    severity_level, frame, available, seed=seed,
+                    reference_rms=ref_rms, calibration=calibration,
+                ),
+            )
             for severity_level in severity_levels
         }
         t_deg += time.perf_counter() - t0
@@ -301,7 +310,6 @@ def run(
                 continue
             for field in _fields_for(spec, available):
                 reference = frame.fields[field]
-                n_channels = reference.shape[0]
                 ctx = FieldContext(
                     field=field,
                     grid=frame.grid,
@@ -372,17 +380,19 @@ def run(
 
 
 def _flag_repeated_levels(df: pd.DataFrame) -> pd.DataFrame:
-    """Mark severity levels that turn out to be the same experiment as a milder severity level, and log them.
+    """Mark severity levels that repeat a milder one as the same experiment, and log them.
 
-    Detected by measurement rather than by declaration: two severity levels whose severities resolve to the
-    same quantised operation produce a bitwise identical field, hence an exactly equal
+    Detected by measurement rather than by declaration: two severity levels whose
+    severities resolve to the same quantised operation produce a bitwise identical field,
+    hence an exactly equal
     ``energy_changed``. That is a stronger test than asking each operator to describe how it
     rounds, and it needs no such description -- it catches a sharp filter landing twice on the same
     set of modes, and a windowed kernel landing twice on the same odd width, alike.
 
-    Such a severity level is not padding, it is corruption: the rank correlation would score the tie as
-    agreement and the adjacent-severity level separability would compare a distribution against itself. It is
-    also not a misconfiguration: 69% of density's fluctuation energy is in the four diagonal modes
+    Such a severity level is not padding, it is corruption: the rank correlation would
+    score the tie as agreement and the adjacent-severity level separability would compare
+    a distribution against itself. It is also not a misconfiguration: 69% of density's
+    fluctuation energy is in the four diagonal modes
     at |k| = sqrt(2), so the available cutoffs there are few and far apart and a sharp ladder has
     only a couple of distinct severity levels however it is written.
     """
@@ -501,8 +511,9 @@ def _runnable_levels(
     trajectory that is a slow way to learn about a typo.
 
     The check is a trial application on one already-remapped frame, so it needs no per-operator
-    declaration of what it can support and stays correct as operators are added. Severity levels that fail
-    are dropped with a warning naming the knob, and the run proceeds on the rest: an unsupported
+    declaration of what it can support and stays correct as operators are added. Severity
+    levels that fail are dropped with a warning naming the knob, and the run proceeds on
+    the rest: an unsupported
     severity level is one missing experiment, not a reason to discard the others.
 
     Raises:
@@ -525,7 +536,8 @@ def _runnable_levels(
             log.warning(
                 "dropping %s level %d (%s = %g): it cannot run on the %d-cell analysis grid "
                 "(%s). Raise analysis_grid.resolution or lower this severity.",
-                severity_level.label, severity_level.level, severity_level.severity_name, severity_level.severity,
+                severity_level.label, severity_level.level,
+                severity_level.severity_name, severity_level.severity,
                 analysis_grid, exc,
             )
             dropped.append(f"{severity_level.label} level {severity_level.level}")

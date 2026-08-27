@@ -83,10 +83,10 @@ def subsample(x: np.ndarray, factor: int) -> np.ndarray:
         raise ValueError(f"factor must be >= 1, got {factor}")
     if factor == 1:
         return x
-    n_channels, *spatial = x.shape
+    _, *spatial = x.shape
     if any(n % factor for n in spatial):
         raise ValueError(f"factor {factor} does not divide grid {tuple(spatial)}")
-    slicer = (slice(None),) + tuple(slice(None, None, factor) for _ in spatial)
+    slicer = (slice(None), *(slice(None, None, factor) for _ in spatial))
     return x[slicer]
 
 
@@ -148,7 +148,7 @@ def remap_frame(
     """
     if factor == 1:
         return frame
-    from .derived import recompute, recomputable
+    from .derived import recomputable, recompute
 
     op = _METHODS[method]
     grid = frame.grid.coarsened(factor)

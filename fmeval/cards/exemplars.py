@@ -25,7 +25,7 @@ from omegaconf import OmegaConf
 from degradations import registry as deg_registry
 from fmeval.calibration import calibrate
 from fmeval.context import FieldContext, derive_rng
-from fmeval.ladder import resolve_severity, SeverityLevel
+from fmeval.ladder import SeverityLevel, resolve_severity
 
 REPO = Path(__file__).resolve().parent.parent.parent
 
@@ -135,7 +135,9 @@ def build_columns(name: str, card: Any, frame: CanonicalFrame, *, seed: int) -> 
     if card.exemplars.mode == "draws":
         for draw in range(card.exemplars.n_draws):
             ctx = _context(field_name, frame, data, seed=seed, label=f"{name}_draw{draw}")
-            columns.append(Column(title=f"draw {draw + 1}", data=spec.fn(data, float(draw), ctx=ctx)))
+            columns.append(
+                Column(title=f"draw {draw + 1}", data=spec.fn(data, float(draw), ctx=ctx))
+            )
             applied["severities"].append(draw)
         return columns, applied
 

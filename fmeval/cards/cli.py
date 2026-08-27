@@ -25,7 +25,8 @@ from .loader import (
     load_card,
 )
 from .prose import check_prose
-from .review import review_state, sign as build_signature
+from .review import review_state
+from .review import sign as build_signature
 from .schema import CardError
 
 TEMPLATE_DIR = "_template"
@@ -195,7 +196,8 @@ def cmd_sign(args: argparse.Namespace) -> int:
 
 def cmd_evidence(args: argparse.Namespace) -> int:
     """Fill in the measured half of one metric card, or of every one."""
-    from .evidence import generate as generate_evidence, load_run
+    from .evidence import generate as generate_evidence
+    from .evidence import load_run
 
     try:
         run = load_run(Path(args.results))

@@ -26,7 +26,7 @@ import pytest
 from degradations import registry as deg_registry
 from fmeval import analysis as an
 from fmeval.data.base import GridSpec, Trajectory
-from fmeval.ladder import SeverityLevel, apply_severity_level, build_ladder
+from fmeval.ladder import apply_severity_level, build_ladder
 from fmeval.pipeline import DatasetInfo, MapRequest, run
 from metrics import registry as metric_registry
 from tests.conftest import synthetic_field
@@ -201,7 +201,8 @@ def test_rank_correlation_is_withheld_when_the_variation_is_round_off():
 
     Reproduced end to end: ``evaluate.py metrics=[enstrophy]`` with a translation-only
     ladder on the dev trajectory. ``np.roll`` cannot change enstrophy, but it does change
-    the pairwise-summation order inside ``np.mean``, so the five severity levels differ by a relative
+    the pairwise-summation order inside ``np.mean``, so the five severity levels differ by a
+    relative
     1.6e-16. The run folder then reports ``rho_min = 0.707`` on ``worst_axis =
     translate_x`` -- a number that is entirely round-off, printed in the monotonicity
     heatmap next to genuine correlations and indistinguishable from them.
@@ -505,7 +506,7 @@ def test_a_map_frame_position_outside_the_selection_is_reported_clearly():
     deg_registry.discover()
     ladder = build_ladder({"gaussian_blur": {"severities": [1.0, 2.0]}})
 
-    with pytest.raises(ValueError, match="error_map|frames"):
+    with pytest.raises(ValueError, match=r"error_map|frames"):
         run(
             SyntheticTrajectory(n_frames=4), [metric_registry.get("mse")], ladder,
             fields=["density"], dataset=DatasetInfo(name="synthetic"), seed=0,
@@ -533,11 +534,11 @@ def test_the_displacement_figure_declines_rather_than_crashes_without_damage():
     contract in AGENTS.md section 6 is explicit that unavailability is declared with
     ``ctx.require`` rather than raised.
     """
-    from fmeval.io import RunFolder, write_config, write_results, write_run_meta
-    from fmeval.report.driver import build_context, render
-
     import tempfile
     from pathlib import Path
+
+    from fmeval.io import RunFolder, write_config, write_results, write_run_meta
+    from fmeval.report.driver import build_context, render
 
     # A metric that cannot tell the anchor from clean: span = 0, so damage is all NaN.
     df = _frame_with_anchor(

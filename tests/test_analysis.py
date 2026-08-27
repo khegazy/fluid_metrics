@@ -132,7 +132,8 @@ def test_overlapping_severity_levels_lower_the_separability_without_hurting_rho(
 
 
 def test_probe_axes_get_no_rank_correlation():
-    """The IN-4 field and the anchor are not severity levels; correlating them would be meaningless."""
+    """The IN-4 field and the anchor are not severity levels; correlating them would be
+    meaningless."""
     df = make_frame(axes={"a": [1.0, 2.0], "gaussian_impostor": [9.0],
                           "uncorrelated": [10.0, 10.0]})
     axes = an.summarise_axes(df, n_bootstrap=0)
@@ -277,9 +278,9 @@ def test_per_frame_correlation_survives_a_trend_in_the_field():
     """The defect this statistic exists to avoid.
 
     A field whose amplitude grows along the trajectory makes the pooled correlation
-    meaningless: the worst severity level early is smaller than the mildest severity level late. Measured on
-    the real density field, every axis was perfectly ordered within every frame while the
-    pooled value read between 0.10 and 0.91.
+    meaningless: the worst severity level early is smaller than the mildest severity level late.
+    Measured on the real density field, every axis was perfectly ordered within every frame while
+    the pooled value read between 0.10 and 0.91.
     """
     rows = []
     for frame in range(10):

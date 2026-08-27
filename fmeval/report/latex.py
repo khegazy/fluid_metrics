@@ -88,7 +88,8 @@ def slug(name: str, **keys: object) -> str:
         if key in keys and keys[key] not in (None, ""):
             parts.append(f"{key}-{_clean(keys[key])}")
     for key, value in keys.items():
-        if key not in ("dataset", "metric", "field", "degradation", "t") and value not in (None, ""):
+        if (key not in ("dataset", "metric", "field", "degradation", "t")
+                and value not in (None, "")):
             parts.append(f"{key}-{_clean(value)}")
     return "__".join(parts)
 

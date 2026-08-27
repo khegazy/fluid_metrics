@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "tqdm", "rich"]
+dev = ["pytest>=8", "tqdm", "rich", "ruff>=0.16"]
 # The documentation site. All pure Python: mkdocs-bibtex is deliberately absent because it
 # needs pandoc, a system dependency the team would have to install per machine, and
 # references are rendered from each bundle's refs.bib with pybtex instead. `markdown` and
@@ -41,6 +41,117 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["metrics", "degradations", "fmeval"]
+
+[tool.ruff]
+# The linter runs on every pull request. Its job here is to catch what a reader cannot:
+# an import left behind by a refactor, a name that shadows another, a comparison that is
+# always true. It is NOT here to impose a house style on a shared research repository --
+# the formatting in these files was chosen by the people writing them, and a linter that
+# rewrites it costs more review time than it saves.
+#
+# `ruff check --fix` is safe to run: every rule enabled below has either an automatic fix
+# or a one-line manual one. `ruff format` is deliberately NOT part of CI; see the note on
+# line-length.
+target-version = "py312"
+# Measured from the files rather than chosen: 78 lines exceed 99 characters and 575 exceed
+# 90, so this codebase is written to about 100 columns and picking the more fashionable 88
+# would have meant reflowing a thousand lines to satisfy a preference nobody here holds.
+#
+# Enforced by E501 below rather than by a formatter, so a line that genuinely reads better
+# long -- an embedded fixture string whose content is what a test asserts, a URL in a
+# comment -- can carry a `# noqa: E501` with a reason instead of being silently rewrapped.
+line-length = 100
+extend-exclude = [
+    "results",      # generated run folders, not source
+    "datasets",     # a symlink to CFS
+    "site",         # the built documentation
+]
+
+[tool.ruff.lint]
+# Chosen rule by rule, on the evidence of what each one actually flagged in this
+# repository. Anything enabled here was checked to be a real defect somewhere, or to be
+# cheap enough that a future one is worth catching.
+select = [
+    "F",     # pyflakes: undefined names, unused imports, unused variables. The core.
+    "E4",    # import formatting
+    "E7",    # statement-level mistakes: comparisons to None/True, bare except
+    "E9",    # syntax and IO errors -- these are always fatal
+    "E501",  # line too long, at the width above
+    "W",     # trailing whitespace, missing final newline
+    "I",     # isort: import ordering. Mechanical, fixable, and keeps diffs small.
+    "B",     # bugbear: mutable default arguments, loop-variable capture in closures
+    "UP",    # pyupgrade: syntax superseded on the Python this project requires
+    "RUF",   # ruff's own: unused noqa, and mistakes the others miss
+    # `except Exception`. Selected specifically so the `# noqa: BLE001` comments already
+    # in this repository stay meaningful. Both registries and the report driver swallow a
+    # broad exception on purpose -- one contributor's broken module must not abort
+    # everyone's run -- and each says so in a comment beside the suppression. With BLE
+    # unselected, RUF100 reads those suppressions as unused and deletes them, taking the
+    # explanation with them; the next person to enable BLE then gets six findings and no
+    # record that they were ever considered.
+    "BLE",
+]
+ignore = [
+    # Implicit string concatenation inside a collection. Flagged 17 times, all of them in
+    # the same construction: a long f-string in a list of table rows, wrapped across two
+    # lines. Parenthesising each one would add noise to every row to satisfy a rule whose
+    # real target is the *accidental* missing comma -- and a missing comma between two
+    # separate row strings is caught by the tests that read the rendered table.
+    "ISC001", "ISC002", "ISC003",
+    # `assertRaises(Exception)`. Deliberate in the contract tests: they assert that an
+    # operator rejects a bad shape, and pinning the exception *type* would make the test
+    # fail when an implementation legitimately raises a more specific one.
+    "B017",
+    # `zip()` without `strict=`. The zips here are over sequences built together in the
+    # same function, where a length mismatch is not reachable, and `strict=True` on every
+    # one of them reads as though it were.
+    "B905",
+    # `int(round(x))`. Ruff is right that round() already returns an int, and the cast is
+    # kept anyway: these are severities being quantised to a cell count, and the explicit
+    # int() is what tells a reader the result indexes a grid. Removing it would save four
+    # characters and lose the only marker that a float stopped being a float.
+    "RUF046",
+    # An unused loop variable, flagged where a dict is iterated for its values or a
+    # `groupby` for its groups. `for _key, group in ...` is not clearer than naming the
+    # key, and naming it documents what the grouping is over.
+    "B007",
+    # `l` as a variable name. Flagged once, in `l / n for l, n in zip(length, shape)`,
+    # where `l` is a length and the alternative is a longer name for a value that lives
+    # for one expression.
+    "E741",
+    # Ambiguous Unicode. Flagged once, inside a character class that exists precisely to
+    # strip en dashes; the "ambiguity" is the rule's own subject matter.
+    "RUF001",
+    # An outdated `sys.version_info` block. Flagged in check_setup.py, whose entire job is
+    # to tell someone on the wrong interpreter what is wrong -- the branch ruff wants
+    # removed is the one that produces the error message.
+    "UP036",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Eleven lines, all of them a card's *expected text* written inline so the assertion and
+# the thing asserted sit together. Splitting a 200-character fixture string across
+# implicit concatenation puts the delimiters where a reader has to reassemble the value
+# mentally to see what the test checks, which is the opposite of what the length limit is
+# for. The rest of the file is held to the limit like everything else.
+"tests/test_cards.py" = ["E501"]
+# A pytest fixture is requested by writing its name as a function argument, which shadows
+# the fixture's own definition. Pyflakes cannot tell that from a genuine redefinition, and
+# it is the single most common construction in this suite.
+"tests/*" = ["F811"]
+"metrics/*/test_metric.py" = ["F811"]
+"degradations/*/test_degradation.py" = ["F811"]
+# The scaffolding a new bundle is copied from. Its imports are there for the author to
+# use, and its implementation deliberately raises NotImplementedError, so "unused" is the
+# template working as intended.
+"metrics/_template/*" = ["F401"]
+"degradations/_template/*" = ["F401"]
+
+[tool.ruff.lint.isort]
+# `metrics`, `degradations` and `fmeval` are this repository's own packages, not
+# third-party ones. Without this they sort into the third-party block and every file that
+# imports them shows a spurious diff.
+known-first-party = ["fmeval", "metrics", "degradations", "tests"]
 
 [tool.pytest.ini_options]
 # Bundle tests live beside the metric they test, in metrics/<name>/test_metric.py, so

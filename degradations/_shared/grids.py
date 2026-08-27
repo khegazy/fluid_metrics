@@ -7,7 +7,7 @@ import numpy as np
 from fmeval.remap import block_average
 from fmeval.remap import subsample as _subsample_kernel
 
-__all__ = ["_upsample", "block_average", "_subsample_kernel"]
+__all__ = ["_subsample_kernel", "_upsample", "block_average"]
 
 
 def _upsample(x: np.ndarray, factor: int, shape: tuple[int, ...]) -> np.ndarray:

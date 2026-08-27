@@ -62,8 +62,8 @@ def main() -> int:
     try:
         import numpy as np
 
-        from fmeval.derived import vorticity_from_velocity
         from fmeval.data.base import GridSpec
+        from fmeval.derived import vorticity_from_velocity
 
         n, dx = 32, 2 * np.pi / 32
         x = np.arange(n) * dx
@@ -110,7 +110,8 @@ def main() -> int:
     if failures:
         print(f"{len(failures)} problem(s) must be fixed before the suite will run.")
         return 1
-    print("Environment is usable." + (f" {len(warnings)} optional item(s) missing." if warnings else ""))
+    extra = f" {len(warnings)} optional item(s) missing." if warnings else ""
+    print("Environment is usable." + extra)
     print("Next: `pytest` (~20 s), then "
           "`python evaluate.py metrics=[mse] dataset=kinet_re5e4_dev`.")
     return 0

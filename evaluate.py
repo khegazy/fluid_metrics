@@ -235,7 +235,7 @@ def main(cfg: DictConfig) -> None:
             metric=spec.name,
             dataset=cfg.dataset.name,
             n_frames=result.n_frames,
-            n_rows=int(len(subset)),
+            n_rows=len(subset),
             fields=fields,
             analysis_grid=resolution or native_resolution,
             ladder_axes=sorted({r.label for r in severity_levels if not r.is_reference}),
@@ -269,7 +269,7 @@ def main(cfg: DictConfig) -> None:
             metric=", ".join(s.name for s in specs),
             dataset=cfg.dataset.name,
             n_frames=result.n_frames,
-            n_rows=int(len(result.rows)),
+            n_rows=len(result.rows),
             fields=fields,
             analysis_grid=resolution or native_resolution,
             ladder_axes=sorted({r.label for r in severity_levels if not r.is_reference}),
@@ -317,7 +317,7 @@ def _overrides() -> list[str]:
         from hydra.core.hydra_config import HydraConfig
 
         return list(HydraConfig.get().overrides.task)
-    except Exception:  # pragma: no cover - outside a Hydra run
+    except Exception:  # noqa: BLE001  # pragma: no cover - outside a Hydra run
         return []
 
 

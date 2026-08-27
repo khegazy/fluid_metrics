@@ -55,7 +55,6 @@ def test_every_result_column_is_documented(doc):
 
 def test_every_analysis_column_is_documented(doc):
     """Columns produced by summarise_axes, probe_summary and report_card."""
-    import pandas as pd
 
     from fmeval import analysis as an
     from tests.test_analysis import make_frame
@@ -88,8 +87,8 @@ def test_every_degradation_is_documented(doc):
 
 
 def test_every_renderer_is_documented(doc):
-    from fmeval.report.registry import PLOTS, TABLES  # noqa: F401
     from fmeval.report import driver  # noqa: F401  (imports the renderer modules)
+    from fmeval.report.registry import PLOTS, TABLES  # noqa: F401
 
     documented = documented_names(doc)
     # Tables are described by the quantities they contain rather than by name; figures
