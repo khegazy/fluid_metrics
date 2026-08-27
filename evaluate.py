@@ -34,20 +34,29 @@ from metrics import registry as metric_registry
 log = logging.getLogger(__name__)
 
 
+#: Formats whose frames are generated rather than read, so ``dataset.path`` names nothing
+#: on disk and the existence check below would reject a perfectly usable config.
+GENERATED_FORMATS: frozenset[str] = frozenset({"synthetic_ensemble"})
+
+
 def open_trajectory(cfg: DictConfig) -> Trajectory:
     """Construct the reader named by ``dataset.format``.
 
     Explicit imports rather than a package walk: readers are a small closed set maintained
     with the harness, unlike metrics and degradations which are open contributor sets.
     """
-    from fmeval.data import kinet_raw, well  # noqa: F401  (register the formats)
+    from fmeval.data import (  # noqa: F401  (register the formats)
+        kinet_raw,
+        synthetic_ensemble,
+        well,
+    )
 
     fmt = cfg.dataset.format
     if fmt not in READERS:
         raise KeyError(f"unknown dataset format {fmt!r}; available: {sorted(READERS)}")
 
     path = Path(cfg.dataset.path)
-    if not path.exists():
+    if fmt not in GENERATED_FORMATS and not path.exists():
         raise FileNotFoundError(_missing_dataset_message(cfg, path))
 
     reader_kwargs = OmegaConf.to_container(cfg.dataset.get("reader", {}), resolve=True)

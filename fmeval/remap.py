@@ -169,4 +169,31 @@ def remap_frame(
             # principle (see fmeval.derived), so this is a fallback, not a default.
             out[name] = op(frame.fields[name], factor)
 
-    return frame.with_fields(out, grid)
+    members = None
+    if frame.has_members:
+        # Every member is remapped exactly as the reference is, one member at a time so
+        # that the recompute-rather-than-average rule for derived fields applies within
+        # each member. Block-averaging a member's vorticity would leave a field that is
+        # not the curl of the velocity beside it, and doing that N times does not make it
+        # right.
+        names = list(frame.members)
+        n_members = frame.members[names[0]].shape[0]
+        per_member = [
+            remap_frame(
+                Frame(
+                    index=frame.index,
+                    time=frame.time,
+                    fields={name: frame.members[name][i] for name in names},
+                    grid=frame.grid,
+                ),
+                factor,
+                method=method,
+                recompute_derived=recompute_derived,
+            ).fields
+            for i in range(n_members)
+        ]
+        members = {
+            name: np.stack([fields[name] for fields in per_member]) for name in names
+        }
+
+    return frame.with_fields(out, grid, members=members)
