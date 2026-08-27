@@ -138,6 +138,7 @@ FAMILY_HEADINGS: dict[str, str] = {
     "resolution": "Resolution loss",
     "stochastic": "Noise",
     "pointwise": "Cell-value distortion",
+    "ensemble": "Ensemble dispersion",
 }
 """Subsection heading for each degradation family, for ``## Results``.
 

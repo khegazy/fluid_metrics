@@ -42,6 +42,8 @@ def _spec_fields(bundle: Bundle) -> dict[str, Any]:
             "differentiable": spec.differentiable,
             "symmetric": spec.symmetric,
             "higher_is_better": spec.higher_is_better,
+            "target": spec.target,
+            "measures": spec.measures,
             "reduction": spec.reduction,
             "has_pointwise_map": spec.has_pointwise,
         }
@@ -57,6 +59,7 @@ def _spec_fields(bundle: Bundle) -> dict[str, Any]:
         "calibration": spec.calibration,
         "ordinal": spec.ordinal,
         "stochastic": spec.stochastic,
+        "ensemble": spec.ensemble,
         "fields": list(spec.fields),
     }
 

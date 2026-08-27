@@ -16,7 +16,7 @@ These block criteria that are designed and implemented but cannot be exercised.
 |---|---|---|
 | [001](001-low-reynolds-reference.md) | The protocol specifies Re ~ 500; no such dataset exists | medium |
 | [002](002-shocklet-dataset.md) | No shocklet-populated compressible turbulence | accepted, scheduled |
-| [003](003-ensemble-data.md) | CRPS and spread-to-skill need ensembles | low |
+| [003](003-ensemble-data.md) | CRPS and spread-to-skill need ensembles — estimators built and validated on a synthetic ensemble; physical data is [004](004-independent-realizations.md) | resolved for the estimators |
 | [004](004-independent-realizations.md) | Only one seed per configuration | medium |
 | [005](005-3d-and-cost-extrapolation.md) | All data is two-dimensional | low |
 
