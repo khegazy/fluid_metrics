@@ -7,8 +7,6 @@ a synthetic ladder is caught in 50 ms rather than after a ten-minute run.
 
 from __future__ import annotations
 
-import re
-
 import numpy as np
 import pytest
 from scipy.stats import spearmanr

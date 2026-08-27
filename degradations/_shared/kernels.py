@@ -16,7 +16,8 @@ def _odd_width(severity: float) -> int:
     place it asymmetrically and the output is displaced by half a cell. For a project whose
     central concern is that metrics over-punish displacement, that shift dominates: measured on
     vorticity, calibrated widths that rounded to 2, 3, 6, 13 gave damage 0.0121, 0.0041,
-    0.0338, 0.0880 -- non-monotone, because the even severity level carried a half-cell shift the odd one
+    0.0338, 0.0880 -- non-monotone, because the even severity level carried a half-cell
+    shift the odd one
     did not. Rounding to odd removes the artefact and the axis becomes monotone.
     """
     width = int(round(severity))

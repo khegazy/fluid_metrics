@@ -12,17 +12,16 @@ import numpy as np
 import pytest
 
 from degradations import registry as deg
+from fmeval.calibration import calibrate_field
 from fmeval.context import FieldContext, derive_rng, fluctuation_rms
 from fmeval.data.base import Frame, GridSpec
 from fmeval.ladder import (
     REFERENCE_LEVEL,
-    SeverityLevel,
     apply_severity_level,
     build_ladder,
     ladder_axes,
     ordinal_axes,
 )
-from fmeval.calibration import calibrate_field
 from tests.conftest import synthetic_field
 
 #: Grid for the calibrated operators. Larger and with a red spectrum, because a calibrated

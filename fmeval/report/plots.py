@@ -260,7 +260,8 @@ def field_gallery(ctx, df, opts) -> PlotResult:
         ax = flat[i]
         show_field(ax, stored[key], cmap="magma")
         ax.set_title(key.split("__", 1)[1].rsplit("__", 1)[0], fontsize="xx-small")
-        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_xticks([])
+        ax.set_yticks([])
         i += 1
     for ax in flat[i:]:
         ax.set_axis_off()
@@ -342,7 +343,8 @@ def deception_panel(ctx, df, opts) -> PlotResult:
     for row, metric in enumerate(metrics):
         severity_levels = ladder[ladder["metric"] == metric]["damage"].dropna()
         if len(severity_levels):
-            ax.plot(severity_levels, [row] * len(severity_levels), "o", mfc="none", mec="0.65", ms=4, zorder=2)
+            ax.plot(severity_levels, [row] * len(severity_levels), "o",
+                    mfc="none", mec="0.65", ms=4, zorder=2)
         impostor = df[(df["metric"] == metric)
                       & (df["degradation"] == "gaussian_impostor")]["damage"].median()
         ax.hlines(row, 0, impostor, color="0.85", lw=1, zorder=1)
@@ -502,13 +504,15 @@ def energy_spectrum(ctx, df, opts) -> PlotResult:
 
     This is the figure that explains the resolution of every filter ladder in the report. A
     severity on a spectral axis is a fraction of energy to remove, and the harness converts it to
-    a cutoff using exactly this curve -- so where the curve is steep, neighbouring severity levels land on
-    the same wavenumber shell and cannot be separated, and where it is shallow they spread out.
+    a cutoff using exactly this curve -- so where the curve is steep, neighbouring severity levels
+    land on the same wavenumber shell and cannot be separated, and where it is shallow they spread
+    out.
 
     Read the steepness first. Measured on this data the density curve is almost a step: 3e-5 of its
     fluctuation energy lies at or below |k| = 1 and 69% at |k| = sqrt(2), so two consecutive
     available cutoffs differ by most of the field and a sharp filter has only a couple of usable
-    severity levels there however the ladder is configured. Vorticity rises gradually -- 50% by |k| = 3.2,
+    severity levels there however the ladder is configured. Vorticity rises gradually --
+    50% by |k| = 3.2,
     90% by 23, 99% by 51 -- and its cutoffs spread over more than a factor of ten as a result.
     """
     ctx.require(not ctx.spectrum.empty,
@@ -550,13 +554,15 @@ def energy_spectrum(ctx, df, opts) -> PlotResult:
 
     note = (
         "Dashed lines are the cutoffs the configured severities resolved to; dotted lines are "
-        "severity levels excluded because they landed on the same shell as a milder severity level or on a no-op."
+        "severity levels excluded because they landed on the same shell as a milder "
+        "severity level or on a no-op."
     )
     return PlotResult(
         figures=[FigureItem(
             fig=fig, keys={"field": field},
             caption=f"Cumulative fluctuation energy for {field}, with the applied spectral "
-                    "cutoffs. The steeper the curve, the fewer distinct severity levels a sharp filter "
+                    "cutoffs. The steeper the curve, the fewer distinct severity levels "
+                    "a sharp filter "
                     "can produce.",
             data=pd.concat([curve.assign(kind="spectrum"),
                             pd.DataFrame(rows).assign(kind="cutoff")], ignore_index=True),

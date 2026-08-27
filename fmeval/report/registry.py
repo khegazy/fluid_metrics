@@ -17,8 +17,9 @@ mechanism that suits an open contributor set would only add indirection here.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field as dc_field
+from collections.abc import Callable
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from typing import Any, Literal
 
 import pandas as pd
@@ -65,7 +66,8 @@ SECTIONS: tuple[Section, ...] = (
             "Monotone medians are not sufficient. If the distributions of adjacent severity levels "
             "overlap, the metric cannot rank two models that differ by one step."),
     Section(6, "sensitivity", "When and where does it fire?",
-            "The severity level at which the metric first departs from its clean value, the severity level at "
+            "The severity level at which the metric first departs from its clean value, "
+            "the severity level at "
             "which it saturates, and what the field actually looks like at each -- so the "
             "numbers can be checked against the eye."),
     Section(7, "selectivity", "What does it detect?",

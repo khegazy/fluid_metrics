@@ -31,8 +31,18 @@ from .registry import (
 from .style import Style, okabe, show_field
 
 __all__ = [
-    "PLOTS", "SECTIONS", "TABLES",
-    "FigureItem", "PlotResult", "ReportContext", "RendererSpec",
-    "RendererUnavailable", "Style", "TableResult",
-    "okabe", "plot", "show_field", "table",
+    "PLOTS",
+    "SECTIONS",
+    "TABLES",
+    "FigureItem",
+    "PlotResult",
+    "RendererSpec",
+    "RendererUnavailable",
+    "ReportContext",
+    "Style",
+    "TableResult",
+    "okabe",
+    "plot",
+    "show_field",
+    "table",
 ]

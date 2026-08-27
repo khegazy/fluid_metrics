@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import re
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
 from typing import Any
 
 SCHEMA_VERSION = 1

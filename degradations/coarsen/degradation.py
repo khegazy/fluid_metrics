@@ -9,6 +9,7 @@ from __future__ import annotations
 import numpy as np
 
 from fmeval.remap import block_average
+
 from .._shared.grids import _upsample
 from ..registry import degradation
 

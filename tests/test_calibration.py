@@ -11,7 +11,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from degradations import registry as deg
 from fmeval.calibration import DRIFT_WARN, calibrate, calibrate_field
 from fmeval.data.base import GridSpec
 from fmeval.ladder import build_ladder, resolve_severity
@@ -307,7 +306,9 @@ def test_the_reference_level_removes_and_changes_nothing():
     from fmeval.ladder import REFERENCE_LEVEL, apply_severity_level
 
     x = band_limited(12.0, seed=7)
-    applied = apply_severity_level(REFERENCE_LEVEL, _frame_of("vorticity", x), ["vorticity"], seed=0)
+    applied = apply_severity_level(
+        REFERENCE_LEVEL, _frame_of("vorticity", x), ["vorticity"], seed=0
+    )
     assert applied.energy_removed["vorticity"] == 0.0
     assert applied.energy_changed["vorticity"] == 0.0
 

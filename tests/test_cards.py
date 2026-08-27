@@ -14,17 +14,17 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import sys
 import pathlib
 import re
+import sys
 
 import pytest
 import yaml
 
 from fmeval.cards import loader, prose, review
+from fmeval.cards.schema import SCHEMA_VERSION, CardError, parse_card
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-from fmeval.cards.schema import SCHEMA_VERSION, CardError, parse_card
 
 # --------------------------------------------------------------------------------------
 # A minimal valid card, used as the base for the negative tests
@@ -880,10 +880,9 @@ def test_the_catalog_reports_the_code_not_the_card():
     prose half of a card, a metric could claim to be usable as a training loss because
     someone wrote that it was.
     """
-    from metrics import registry
-
     from fmeval.cards.catalog import entry
     from fmeval.cards.loader import find_bundle
+    from metrics import registry
 
     e = entry(find_bundle("nrmse"))
     spec = registry.get("nrmse")
@@ -1163,9 +1162,8 @@ def test_evidence_survives_a_run_whose_ladder_skipped_a_probe(tmp_path, monkeypa
     raise a bare KeyError naming a column. Absent probes are "not measured", rendered as
     an em dash, never an error.
     """
-    from tests.test_analysis import make_frame
-
     from fmeval.cards import evidence
+    from tests.test_analysis import make_frame
 
     df = make_frame(metric="mse",
                     axes={"gaussian_blur": [1.0, 2.0], "uncorrelated": [10.0, 10.0]})

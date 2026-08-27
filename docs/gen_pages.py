@@ -29,7 +29,7 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
 from fmeval.cards.catalog import build as build_catalog  # noqa: E402
-from fmeval.cards.loader import iter_bundles, load_card  # noqa: E402
+from fmeval.cards.loader import iter_bundles  # noqa: E402
 from fmeval.cards.schema import CATEGORIES  # noqa: E402
 
 #: Cards link to each other by repository-relative path so GitHub resolves them. On the
@@ -112,7 +112,7 @@ def _header(entry: dict) -> str:
     declared = entry["declared"]
     kind_row = ("what kind of metric" if entry["kind"] == "metric"
                 else "what kind of damage")
-    rows = [f"| | |", "|---|---|",
+    rows = ["| | |", "|---|---|",
             f"| **{kind_row}** | {_category(entry)} |",
             f"| **how far the work has got** | `{entry['status']}` |"]
     if entry["kind"] == "metric":
@@ -145,7 +145,8 @@ def _header(entry: dict) -> str:
             f"| **uses randomness** | {'yes' if declared['stochastic'] else 'no'} |",
         ]
     evidence = entry["evidence"]
-    measured = (f"`{evidence['run']}` on `{evidence['dataset']}`, {evidence.get('frames', 0)} frames"
+    measured = (f"`{evidence['run']}` on `{evidence['dataset']}`, "
+                f"{evidence.get('frames', 0)} frames"
                 if evidence["measured"] else "not yet measured")
     rows.append(f"| **measured on** | {measured} |")
     rows.append(f"| **read and signed by a person** | "

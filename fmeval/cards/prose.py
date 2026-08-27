@@ -409,7 +409,8 @@ def _check_result_section(section: str, body: str, name: str) -> list[Problem]:
                 "kind of test at a time, so a reader can find the evidence for a claim "
                 "beside the claim.",
                 "add a '### <test>' subsection per test, each with its generated "
-                f"include followed by what those numbers show; see {', '.join(sorted(set(FAMILY_HEADINGS.values())))}",
+                "include followed by what those numbers show; see "
+                f"{', '.join(sorted(set(FAMILY_HEADINGS.values())))}",
             )
         )
 

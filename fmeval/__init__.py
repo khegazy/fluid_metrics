@@ -24,7 +24,7 @@ def _install_card_validator() -> None:
         from .cards.loader import install
 
         install()
-    except Exception:  # noqa: BLE001 - see docstring
+    except Exception:  # deliberately broad - see docstring
         import logging
 
         logging.getLogger(__name__).debug("card validation unavailable", exc_info=True)

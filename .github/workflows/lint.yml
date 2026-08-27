@@ -1,0 +1,71 @@
+# Lint every pull request, and every push to main.
+#
+# Separate from `tests.yml` on purpose. The two answer different questions -- "is this
+# correct?" and "is this tidy?" -- and a reviewer looking at a red X wants to know which
+# one failed without opening the log. A lint failure is also usually a thirty-second fix,
+# so it should not be buried under a job that takes minutes to reach it.
+#
+# The rules are configured in `pyproject.toml` under `[tool.ruff]`, chosen rule by rule on
+# the evidence of what each one actually flagged in this repository. Read that block
+# before adding a rule here: several are deliberately off, each with the reason beside it.
+#
+# To reproduce a failure locally, exactly as CI runs it:
+#
+#     ruff check .            # what this job asserts
+#     ruff check . --fix      # fix what can be fixed automatically
+#     ruff check . --diff     # see the fixes without applying them
+#
+# Ruff is in the `dev` extra, so `uv sync --extra dev` or `pip install -e '.[dev]'` gets
+# the same version this job pins through uv.lock.
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A second push to the same PR supersedes the first; cancel the run it replaced rather
+# than paying for both. Same policy as tests.yml.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    name: ruff (lint)
+    runs-on: ubuntu-latest
+    # Ruff checks this repository in well under a second. This is a runaway guard.
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      # `--locked` fails if uv.lock would have to change to satisfy pyproject.toml, so the
+      # ruff version this job runs is the one the lockfile pins and the one a colleague
+      # gets locally. A linter that drifts between CI and the desk is worse than none:
+      # a new release adds rules, and the failure then appears on an unrelated pull
+      # request whose author changed nothing.
+      - name: Install the locked environment
+        run: uv sync --extra dev --locked
+
+      # `source .venv/bin/activate` would not survive to the next step; $GITHUB_PATH does.
+      - name: Put the environment on PATH
+        run: echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Show the ruff version
+        run: ruff --version
+
+      # `--output-format=github` turns each finding into a workflow annotation, so it
+      # appears inline on the diff of the pull request rather than only in the log.
+      #
+      # No `--fix` here, deliberately: a CI job that rewrites the tree either pushes to the
+      # contributor's branch or throws the fix away. Both are worse than telling them the
+      # one command to run.
+      - name: Lint
+        run: ruff check . --output-format=github

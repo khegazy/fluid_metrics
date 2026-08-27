@@ -37,8 +37,12 @@ from collections.abc import Iterable
 
 import numpy as np
 
-__all__ = ["physical_wavenumber_grid", "spectral_derivative", "spectral_vorticity",
-           "divergence"]
+__all__ = [
+    "divergence",
+    "physical_wavenumber_grid",
+    "spectral_derivative",
+    "spectral_vorticity",
+]
 
 
 def _velocity_array(velocity) -> np.ndarray:

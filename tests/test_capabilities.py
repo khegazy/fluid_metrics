@@ -201,7 +201,8 @@ def test_a_new_degradation_inherits_the_whole_contract(temporary_degradation_loc
                                        "severities": [4, 16, 64]}},
                          include_reference=False)
 
-    # `decreasing` means a smaller value is worse, so the mildest severity level must be the largest.
+    # `decreasing` means a smaller value is worse, so the mildest severity level must be the
+    # largest.
     assert [r.severity for r in severity_levels] == [64.0, 16.0, 4.0], (
         "sort_severities did not order a decreasing-direction ladder by increasing damage"
     )
@@ -213,7 +214,8 @@ def test_a_new_degradation_inherits_the_whole_contract(temporary_degradation_loc
         for r in severity_levels
     ]
     assert damage == sorted(damage), (
-        f"damage {damage} is not increasing across severity_levels {[r.severity for r in severity_levels]}; "
+        f"damage {damage} is not increasing across severity_levels "
+        f"{[r.severity for r in severity_levels]}; "
         "severity_direction='decreasing' would be wrong"
     )
 

@@ -86,6 +86,10 @@ pytest -m data                      # reads the real files on CFS
 module load texlive/2024 && pytest -m slow   # compiles a report
 pytest tests/test_analysis.py -k spearman    # one file, one pattern
 
+ruff check .                        # the lint CI runs; must be clean before you push
+ruff check . --fix                  # apply the fixes it can make itself
+ruff check . --diff                 # see those fixes without applying them
+
 python -m metrics                   # list registered metrics
 python -m degradations              # list registered degradations, with units
 
@@ -100,6 +104,13 @@ develops — so never draw a physical conclusion from it. Use `dataset=kinet_re5
 
 Two size knobs, both recorded with the results: `dataset.time.reduction` (evaluate every Nth
 frame) and `analysis_grid.resolution` (the common analysis grid).
+
+**The linter is not a style opinion.** Its rules are chosen one at a time in
+`pyproject.toml` under `[tool.ruff.lint]`, each on the evidence of what it actually caught
+here, and several are deliberately *off* with the reason written beside them. Read that
+block before adding a rule or reaching for a `# noqa`. If a finding is wrong for this
+codebase, the fix is usually to turn the rule off with an explanation rather than to
+suppress it line by line — a suppression teaches the next person nothing.
 
 ---
 

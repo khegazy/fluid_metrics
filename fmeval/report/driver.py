@@ -17,7 +17,8 @@ import logging
 import time
 import traceback
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass, field as dc_field
+from dataclasses import asdict, dataclass
+from dataclasses import field as dc_field
 from pathlib import Path
 from typing import Any
 
@@ -35,7 +36,6 @@ from .context import ReportContext
 from .latex import booktabs_table, document, escape, figure, preamble, slug, verbatim
 from .registry import (
     SECTIONS,
-    RendererSpec,
     RendererUnavailable,
     check_preconditions,
     iter_renderers,
@@ -157,7 +157,7 @@ def render(
         except RendererUnavailable as exc:
             outcome.status, outcome.reason = "skipped", str(exc)
             log.info("skip %s: %s", spec.name, exc)
-        except Exception:  # noqa: BLE001 - a bad figure must not lose the evaluation
+        except Exception:  # deliberately broad - a bad figure must not lose the evaluation
             outcome.status = "error"
             outcome.reason = traceback.format_exc(limit=3)
             log.exception("renderer %s failed", spec.name)

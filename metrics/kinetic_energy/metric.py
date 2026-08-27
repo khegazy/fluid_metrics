@@ -18,7 +18,8 @@ from ..registry import metric
     returns="scalar",
     differentiable=True,
     cost="cheap",
-    higher_is_better=False,   # no direction of its own: the drift from the reference is what is read
+    higher_is_better=False,   # no direction of its own: the drift from the reference
+                              # is what is read
     symmetric=False,
     units="field^2",
 )

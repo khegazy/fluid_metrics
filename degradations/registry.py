@@ -34,10 +34,9 @@ import importlib
 import inspect
 import pkgutil
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from typing import Any, Literal
-
-import numpy as np
 
 Direction = Literal["increasing", "decreasing"]
 

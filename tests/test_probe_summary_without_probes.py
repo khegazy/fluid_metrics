@@ -15,7 +15,6 @@ much more interesting claim. Absent must look absent.
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 
 from fmeval.analysis import normalisation, probe_summary
 from fmeval.pipeline import RESULT_DTYPES

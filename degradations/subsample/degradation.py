@@ -8,8 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .._shared.grids import _subsample_kernel
-from .._shared.grids import _upsample
+from .._shared.grids import _subsample_kernel, _upsample
 from ..registry import degradation
 
 

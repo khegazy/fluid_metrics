@@ -16,7 +16,8 @@ the same operator can appear twice with different options -- ``translate_x`` and
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field as dc_field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from typing import Any
 
 import numpy as np
@@ -166,9 +167,9 @@ def resolve_severity(severity_level: SeverityLevel, field: str,
         return severity_level.severity
     if calibration is None or field not in calibration:
         raise KeyError(
-            f"{severity_level.op!r} declares calibration={severity_level.calibration!r} but no calibration was "
-            f"measured for field {field!r}. Its severity is a relative quantity and cannot "
-            "be applied as an absolute one."
+            f"{severity_level.op!r} declares calibration={severity_level.calibration!r} "
+            f"but no calibration was measured for field {field!r}. Its severity is a "
+            "relative quantity and cannot be applied as an absolute one."
         )
     measured: FieldCalibration = calibration[field]
     if severity_level.calibration in ("energy_above", "energy_below"):
@@ -183,11 +184,12 @@ def resolve_severity(severity_level: SeverityLevel, field: str,
 class SeverityLevelApplication:
     """The result of applying one severity level to one frame, with what it measurably did.
 
-    A severity level's *requested* severity and its *realised* effect are different numbers, and on a field
-    with a steep spectrum they differ a lot: a sharp high-pass asked to remove 45% of the density
-    energy resolves to the lowest available cutoff and removes either none of it or 69%, because
-    69% sits in that one wavenumber shell. Reporting only the request would leave a reader unable
-    to tell those apart, so the effect is measured per field and carried on every result row.
+    A severity level's *requested* severity and its *realised* effect are different
+    numbers, and on a field with a steep spectrum they differ a lot: a sharp high-pass
+    asked to remove 45% of the density energy resolves to the lowest available cutoff and
+    removes either none of it or 69%, because 69% sits in that one wavenumber shell.
+    Reporting only the request would leave a reader unable to tell those apart, so the
+    effect is measured per field and carried on every result row.
     """
 
     fields: dict[str, np.ndarray]
@@ -195,7 +197,8 @@ class SeverityLevelApplication:
     resolved: dict[str, float]
     """Absolute severity actually applied, per field. Differs between fields when calibrated."""
     unchanged: set[str]
-    """Fields the operator left alone to within round-off, so the severity level is not an experiment."""
+    """Fields the operator left alone to within round-off, so the severity level is not
+    an experiment."""
     energy_removed: dict[str, float]
     """Fraction of the reference's fluctuation energy the operator eliminated.
 
@@ -246,16 +249,17 @@ def apply_severity_level(
             ``calibration``.
 
     Returns:
-        A :class:`SeverityLevelApplication`: the degraded arrays, the absolute severity applied to each
-        field, the fields left untouched, and how much of each field's fluctuation energy the
-        operator removed and changed.
+        A :class:`SeverityLevelApplication`: the degraded arrays, the absolute severity
+        applied to each field, the fields left untouched, and how much of each field's
+        fluctuation energy the operator removed and changed.
 
-        ``unchanged`` exists because a calibrated severity can resolve to a value at which the
-        operator does nothing, and such a severity level is not an experiment. Measured: a mild high-pass
-        request on density floors at the lowest usable cutoff |k| = 1, and since the axis modes
-        there hold only 3e-5 of the energy -- with the k=0 mean deliberately preserved -- the filter
-        passes essentially everything. Left unflagged such a severity level contributes an exactly-zero damage
-        that makes the axis appear to span eleven orders of magnitude.
+        ``unchanged`` exists because a calibrated severity can resolve to a value at
+        which the operator does nothing, and such a severity level is not an experiment.
+        Measured: a mild high-pass request on density floors at the lowest usable cutoff
+        |k| = 1, and since the axis modes there hold only 3e-5 of the energy -- with the
+        k=0 mean deliberately preserved -- the filter passes essentially everything. Left
+        unflagged such a severity level contributes an exactly-zero damage that makes the
+        axis appear to span eleven orders of magnitude.
     """
     if severity_level.is_reference:
         # On an ensemble frame the undamaged *prediction* is the ensemble mean, not the
@@ -409,7 +413,11 @@ def _apply_to_ensemble(
             else fluctuation_rms(reference)
         )
 
-        def _ctx_for(label: str) -> FieldContext:
+        # `name` and `rms` are bound as defaults rather than closed over. Every call is
+        # made inside this iteration, so closing over them would be correct today -- but
+        # the two differ the moment anyone stores one of these contexts to build later,
+        # and then every field would silently get the last field's name and RMS.
+        def _ctx_for(label: str, *, name: str = name, rms: float = rms) -> FieldContext:
             return FieldContext(
                 field=name,
                 grid=frame.grid,
@@ -472,9 +480,9 @@ def _apply_to_ensemble(
 #: Relative change below which an operator is treated as having done nothing. Bitwise equality
 #: is too strict: every spectral operator makes an FFT round trip, so a filter whose transfer
 #: function is identically one still returns an array that differs from its input in the last
-#: bits. Round-trip error is of order 1e-16 relative while the mildest genuine severity level measured here
-#: changes the field by about 2e-2 of its fluctuation RMS, so any threshold in between separates
-#: them cleanly and 1e-8 is nowhere near either.
+#: bits. Round-trip error is of order 1e-16 relative while the mildest genuine severity
+#: level measured here changes the field by about 2e-2 of its fluctuation RMS, so any
+#: threshold in between separates them cleanly and 1e-8 is nowhere near either.
 NOOP_RELATIVE_TOLERANCE = 1e-8
 
 
@@ -497,9 +505,9 @@ def _apply_whole_frame(
     returns one, and its context describes the frame rather than any single field.
 
     This was declared, defaulted and documented in two places for a long time while
-    :func:`apply_severity_level` never read it, so such an operator would have received a bare array where
-    it expected a mapping and failed with a message pointing at numpy rather than at the ignored
-    declaration.
+    :func:`apply_severity_level` never read it, so such an operator would have received a
+    bare array where it expected a mapping and failed with a message pointing at numpy
+    rather than at the ignored declaration.
 
     Args:
         resolved: Filled in with the severity applied to each field, in place.
@@ -509,13 +517,18 @@ def _apply_whole_frame(
         KeyError: If it drops a requested field.
         ValueError: If it changes a field's shape.
     """
-    severity = resolve_severity(severity_level, fields[0], calibration) if fields else severity_level.severity
+    severity = (
+        resolve_severity(severity_level, fields[0], calibration)
+        if fields
+        else severity_level.severity
+    )
     for name in fields:
         resolved[name] = resolve_severity(severity_level, name, calibration)
     if len({resolved[name] for name in fields}) > 1:
         raise ValueError(
-            f"{severity_level.op!r} declares whole_frame=True and calibration={severity_level.calibration!r}, but a "
-            "calibrated severity resolves per field and a whole-frame operator gets one call for "
+            f"{severity_level.op!r} declares whole_frame=True and "
+            f"calibration={severity_level.calibration!r}, but a calibrated severity "
+            "resolves per field and a whole-frame operator gets one call for "
             "all of them. Use per-field application, or an absolute severity."
         )
 
@@ -539,15 +552,15 @@ def _apply_whole_frame(
     result = spec.fn(source, severity, **kwargs)
     if not isinstance(result, Mapping):
         raise TypeError(
-            f"{severity_level.op!r} declares whole_frame=True so it must return a mapping of field name "
-            f"to array, not {type(result).__name__}"
+            f"{severity_level.op!r} declares whole_frame=True so it must return a "
+            f"mapping of field name to array, not {type(result).__name__}"
         )
     out: dict[str, np.ndarray] = {}
     for name in fields:
         if name not in result:
             raise KeyError(
-                f"{severity_level.op!r} declares whole_frame=True and dropped field {name!r}; it must "
-                f"return every field it was given ({sorted(fields)})"
+                f"{severity_level.op!r} declares whole_frame=True and dropped field "
+                f"{name!r}; it must return every field it was given ({sorted(fields)})"
             )
         array = np.asarray(result[name], dtype=np.float64)
         if array.shape != frame.fields[name].shape:
