@@ -550,6 +550,13 @@ def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
 
     Reports the IN-4 damage score alongside the ladder severity level whose damage is closest, which
     is what makes it interpretable: "the Gaussian field looks as bad as coarsening to 64".
+
+    A group that ran no probe contributes no row. The probes are ordinary ladder entries
+    and a custom ladder may omit them -- the ensemble miscalibration ladder does, since a
+    phase-scrambled field says nothing about whether an ensemble is honestly dispersed.
+    Emitting a row carrying only the group keys made the card generator write a trap-test
+    line with an em dash for its score, which a reader cannot distinguish from a trap test
+    that ran and could not be scored.
     """
     scored = add_damage(df, norm)
     rows = []
@@ -557,7 +564,10 @@ def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
         ["dataset", "metric", "field"], observed=True
     ):
         record = {"dataset": dataset, "metric": metric, "field": field}
-        for label in sorted(PROBE_LABELS & set(g["degradation"].unique())):
+        present = sorted(PROBE_LABELS & set(g["degradation"].unique()))
+        if not present:
+            continue
+        for label in present:
             sub = g[g["degradation"] == label]
             damage = float(sub["damage"].median())
             record[f"{label}_value"] = float(sub["value"].median())
@@ -567,6 +577,11 @@ def probe_summary(df: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
                 # so reporting it would add a column that carries no information.
                 record[f"{label}_nearest_level"] = _nearest_level(g, damage, exclude=label)
         rows.append(record)
+    if not rows:
+        # Empty, but still carrying the group keys: every consumer filters this frame by
+        # metric or field before reading it, and a frame with no columns at all raises a
+        # KeyError on that filter rather than returning nothing.
+        return pd.DataFrame(columns=["dataset", "metric", "field"])
     return pd.DataFrame(rows)
 
 

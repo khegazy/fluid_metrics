@@ -11,13 +11,17 @@
 # No ensemble of real flow realizations exists yet (issues/004-independent-realizations.md);
 # when one does, these metrics will already have been validated where there are no unknowns.
 # Use kinet_re5e4 for any physical conclusion.
-name: synthetic_ensemble_dev
+# The name carries no `_dev` suffix on purpose. In this repository that suffix means "a
+# reduced version of a real dataset, for exercising the code path quickly", and a card
+# citing such a run fails its tests. This is not a reduced version of anything: it is the
+# full and only form of a calibrated null, and a card may cite it.
+name: synthetic_ensemble
 format: synthetic_ensemble
 
 # Unused: the reader generates its frames rather than reading them. Declared because every
 # dataset config carries one; evaluate.py skips the existence check for this format.
 path: ${paths.data}
-trajectory: synthetic_ensemble_dev
+trajectory: synthetic_ensemble
 
 fields: [density]
 

@@ -33,9 +33,16 @@ consults its neighbours and the domain edge never enters.
 
 ## Performance
 
-<!-- GENERATED performance: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence ensemble_mean_rmse --results results/ensemble_mean_rmse_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+| test family | field | degradations | rank correlation | weakest gap between neighbouring strengths | first strength detected |
+|---|---|---|---|---|---|
+| Ensemble dispersion | density | 2 | — to — | 0.5 | level — |
+| Cell-value distortion | density | 1 | 1 to 1 | 1 | level 2 |
+
+One row per family of degradation and physical field. **Rank correlation** asks whether the metric put the strengths of one degradation in the right order: it is the Spearman correlation between the metric and the applied strength, computed inside a single frame, and the column gives the range over the degradations in that family. A value of 1 means every strength was ordered correctly in every frame. **Weakest gap between neighbouring strengths** asks whether the metric can tell one strength from the next: it is the smallest Mann-Whitney overlap between any two neighbouring strengths, where 1 means the two never overlap and 0.5 means the metric cannot separate them at all. **First strength detected** is the mildest strength at which the metric has moved a tenth of the way from the undegraded reference toward a field with no relation to the truth; a dash means the metric never reached that tenth. **Damage** is that same 0-to-1 scale read as a number: 0 is the undegraded reference and 1 is an unrelated field.
+
+This table reports what was measured and grades none of the measurements. What the numbers mean for this metric is written in the subsections below, beside the test that produced each number.
 
 <!-- END GENERATED performance -->
 
@@ -108,38 +115,56 @@ for the missing feature and once for the spurious one.
 
 ## Results
 
-<!-- GENERATED run: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED run: written by `python -m fmeval.cards evidence ensemble_mean_rmse --results results/ensemble_mean_rmse_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+Measured on `synthetic_ensemble`, frames 0 to 11 (12 frames of developed flow), on the 64 analysis grid, seed 20260807, at commit `c49b363765d7` (working tree dirty). Run `ensemble_mean_rmse_1787800137`.
+
+Every number in this section comes from that one run. Regenerate with `python -m fmeval.cards evidence <name> --results results/ensemble_mean_rmse_1787800137`.
 
 <!-- END GENERATED run -->
 
-No card in this repository may cite a run on `synthetic_ensemble_dev`, and that is
-deliberate: `configs/cards/default.yaml` allows evidence only from the developed-flow
-dataset, so that a number written into a card always describes a flow. The synthetic
-ensemble validates this metric's estimator against a known answer, which is a different
-claim and is recorded in the bundle's tests and in
-[issue 003](../../issues/003-ensemble-data.md) instead.
+**What these numbers are evidence of, and what they are not.** The run behind them is on
+`synthetic_ensemble`, which is generated rather than simulated: the reference is drawn from
+the same process as the members, with the same dispersion, so the two are exchangeable and
+every quantity below has a value derivable in advance. That is what makes the run worth
+citing — an estimator agreeing with arithmetic it could not have fitted to is a real
+result, and it is the claim a first implementation has to establish.
 
-These sections stay ungenerated until an ensemble of real runs exists
-([issue 004](../../issues/004-independent-realizations.md)). What this metric does on
-turbulence is not yet measured, and an empty section says so more honestly than a
-synthetic number would.
+It is not evidence about turbulence. The fields have no shocks, no intermittency and no
+coherent structure, so nothing here says how this metric behaves on the flows this
+repository exists to evaluate. The degradation families a physical run would exercise —
+smoothing, spectral filtering, displacement, resolution loss — are absent from these
+tables for that reason, and so are the trap tests. When an ensemble of real runs exists
+([issue 004](../../issues/004-independent-realizations.md)), this card should be
+regenerated against it and this section will say something different.
 
 ### Ensemble dispersion
 
 [spread_inflate](../../degradations/spread_inflate/card.md) ·
 [spread_deflate](../../degradations/spread_deflate/card.md)
 
-<!-- GENERATED results_ensemble: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED results_ensemble: written by `python -m fmeval.cards evidence ensemble_mean_rmse --results results/ensemble_mean_rmse_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+| degradation | field | strengths | rank correlation | fraction of frames in the right order | weakest gap between neighbouring strengths |
+|---|---|---|---|---|---|
+| `spread_deflate` | density | 4 | — | 0 | 0.5 |
+| `spread_inflate` | density | 4 | — | 0 | 0.5 |
 
 <!-- END GENERATED results_ensemble -->
 
-What the dispersion axes found. This metric is expected to be flat on both of them, since
-they preserve the ensemble mean exactly; a flat response here is the control working, not a
-failure to detect anything.
+The metric returns 0.1553 at every severity of both axes, to four decimals, against 0.1553
+at the clean severity level. That is the control working exactly as intended, and it is the
+sharpest statement in this bundle: an ensemble can go from honestly dispersed to four times
+too wide, or be collapsed to a fifth of its proper width, and this metric cannot tell.
+
+The absence of a rank correlation on these two axes is therefore correct rather than
+missing. There is no ordering to detect, so the analysis withholds the statistic instead of
+reporting a correlation computed on round-off.
+
+Read beside `crps` on the same run, this is what the probabilistic panel buys: CRPS moves
+from 0.085 to 0.141 and 0.109 across the same two axes while this number does not move at
+all. A panel carrying only mean-based scores would have reported both of those ensembles as
+identical to the calibrated one.
 
 ## References
 

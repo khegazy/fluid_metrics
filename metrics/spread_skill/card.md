@@ -59,9 +59,16 @@ neighbour, so the domain edge never enters.
 
 ## Performance
 
-<!-- GENERATED performance: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence spread_skill --results results/spread_skill_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+| test family | field | degradations | rank correlation | weakest gap between neighbouring strengths | first strength detected |
+|---|---|---|---|---|---|
+| Ensemble dispersion | density | 2 | 1 to 1 | 1 | level 2 |
+| Cell-value distortion | density | 1 | 1 to 1 | 1 | level 3 |
+
+One row per family of degradation and physical field. **Rank correlation** asks whether the metric put the strengths of one degradation in the right order: it is the Spearman correlation between the metric and the applied strength, computed inside a single frame, and the column gives the range over the degradations in that family. A value of 1 means every strength was ordered correctly in every frame. **Weakest gap between neighbouring strengths** asks whether the metric can tell one strength from the next: it is the smallest Mann-Whitney overlap between any two neighbouring strengths, where 1 means the two never overlap and 0.5 means the metric cannot separate them at all. **First strength detected** is the mildest strength at which the metric has moved a tenth of the way from the undegraded reference toward a field with no relation to the truth; a dash means the metric never reached that tenth. **Damage** is that same 0-to-1 scale read as a number: 0 is the undegraded reference and 1 is an unrelated field.
+
+This table reports what was measured and grades none of the measurements. What the numbers mean for this metric is written in the subsections below, beside the test that produced each number.
 
 <!-- END GENERATED performance -->
 
@@ -145,38 +152,60 @@ unless they persist across frames.
 
 ## Results
 
-<!-- GENERATED run: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED run: written by `python -m fmeval.cards evidence spread_skill --results results/spread_skill_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+Measured on `synthetic_ensemble`, frames 0 to 11 (12 frames of developed flow), on the 64 analysis grid, seed 20260807, at commit `c49b363765d7` (working tree dirty). Run `spread_skill_1787800137`.
+
+Every number in this section comes from that one run. Regenerate with `python -m fmeval.cards evidence <name> --results results/spread_skill_1787800137`.
 
 <!-- END GENERATED run -->
 
-No card in this repository may cite a run on `synthetic_ensemble_dev`, and that is
-deliberate: `configs/cards/default.yaml` allows evidence only from the developed-flow
-dataset, so that a number written into a card always describes a flow. The synthetic
-ensemble validates this metric's estimator against a known answer, which is a different
-claim and is recorded in the bundle's tests and in
-[issue 003](../../issues/003-ensemble-data.md) instead.
+**What these numbers are evidence of, and what they are not.** The run behind them is on
+`synthetic_ensemble`, which is generated rather than simulated: the reference is drawn from
+the same process as the members, with the same dispersion, so the two are exchangeable and
+every quantity below has a value derivable in advance. That is what makes the run worth
+citing — an estimator agreeing with arithmetic it could not have fitted to is a real
+result, and it is the claim a first implementation has to establish.
 
-These sections stay ungenerated until an ensemble of real runs exists
-([issue 004](../../issues/004-independent-realizations.md)). What this metric does on
-turbulence is not yet measured, and an empty section says so more honestly than a
-synthetic number would.
+It is not evidence about turbulence. The fields have no shocks, no intermittency and no
+coherent structure, so nothing here says how this metric behaves on the flows this
+repository exists to evaluate. The degradation families a physical run would exercise —
+smoothing, spectral filtering, displacement, resolution loss — are absent from these
+tables for that reason, and so are the trap tests. When an ensemble of real runs exists
+([issue 004](../../issues/004-independent-realizations.md)), this card should be
+regenerated against it and this section will say something different.
 
 ### Ensemble dispersion
 
 [spread_inflate](../../degradations/spread_inflate/card.md) ·
 [spread_deflate](../../degradations/spread_deflate/card.md)
 
-<!-- GENERATED results_ensemble: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED results_ensemble: written by `python -m fmeval.cards evidence spread_skill --results results/spread_skill_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+| degradation | field | strengths | rank correlation | fraction of frames in the right order | weakest gap between neighbouring strengths |
+|---|---|---|---|---|---|
+| `spread_deflate` | density | 4 | 1 | 1 | 1 |
+| `spread_inflate` | density | 4 | 1 | 1 | 1 |
 
 <!-- END GENERATED results_ensemble -->
 
-What the dispersion axes found. These two axes are the ones this metric exists to detect, so
-a clean monotone response on both — rising above one on inflation, falling below one on
-deflation — is the minimum bar rather than a result.
+The clean ensemble reads 0.995, within half a percent of the exchangeable value of one,
+which is the closed-form check on the estimator: the Fortin form and the sqrt((M+1)/M)
+correction together land on the analytic answer at 16 members.
+
+From there the axes separate cleanly in both directions — 0.199 at the harshest deflation
+and 3.978 at the harshest inflation — with a rank correlation of 1 and no overlap between
+neighbouring strengths on either. Note what that pair of numbers means for the ordering
+statistics: the raw value moves *down* on one axis and *up* on the other, so both score 1
+only because the analysis ranks on distance from the declared target rather than on the
+value itself. A metric like this scored as an ordinary error would read −1 on one of its
+two axes and look broken.
+
+The bias axis is the useful contrast. It falls from 0.995 to 0.378 without any change in
+dispersion at all, because biasing the members moves the ensemble mean away from the truth
+and so inflates the denominator. A low ratio therefore does not by itself mean an
+overconfident ensemble; it means spread and error disagree, and this axis is the reminder
+that the error can be the thing that moved.
 
 ## References
 

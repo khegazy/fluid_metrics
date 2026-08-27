@@ -27,7 +27,7 @@ at any size. A regression test constructs a case where the naive mean-of-spreads
 sqrt(2) and fails if the implementation is swapped for it; that was verified by making the
 swap and watching the test go red.
 
-`configs/dataset/synthetic_ensemble_dev.yaml` provides the ensemble. It is **generated, not
+`configs/dataset/synthetic_ensemble.yaml` provides the ensemble. It is **generated, not
 simulated**: the reference is drawn from the same process as the members with the same
 sigma, making them exchangeable, so every metric has an analytic target — flat rank
 histogram, spread-to-skill of one, CRPS matching the Gaussian closed form. That is what
@@ -36,7 +36,7 @@ validates the estimators. It is not physical evidence and its complexity rank is
 ## Acceptance criteria
 
 Met. `python evaluate.py 'metrics=[mae,crps,spread_skill,rank_histogram,ensemble_mean_rmse]'
-dataset=synthetic_ensemble_dev degradation=ensemble_miscalibration` runs end to end, and on
+dataset=synthetic_ensemble degradation=ensemble_miscalibration` runs end to end, and on
 that run, per-frame means:
 
 | axis | mae | ensemble_mean_rmse | crps | spread_skill | rank_histogram |
@@ -50,15 +50,39 @@ CRPS and spread-to-skill differ from MAE, as required. The two dispersion axes a
 sharper result: both deterministic metrics are constant on them to three decimals while
 every probabilistic metric responds, which is the separation the panel exists to provide.
 
+## The cards carry this run as evidence
+
+`configs/cards/default.yaml` now admits `synthetic_ensemble` alongside `kinet_re5e4`, and
+all four cards cite it. The two entries are there for different reasons and the cards say
+which is which: a run on the synthetic ensemble establishes that an estimator computes what
+it claims to, checkable against arithmetic, and nothing more. The dataset carries no `_dev`
+suffix precisely because that suffix marks a reduced version of a real dataset, and a card
+citing one fails its tests; this is the full and only form of a calibrated null.
+
+Two defects in the card machinery surfaced only once these cards had evidence to generate,
+both of which would have affected any custom ladder:
+
+1. `probe_summary` returned a bare row for a run whose ladder contains no probe, and the
+   generator rendered it as a "trap test: fake prediction, right spectrum" line scored with
+   an em dash — indistinguishable from a trap test that ran and could not be scored. The
+   miscalibration ladder has no impostor, since scrambling one field's phases says nothing
+   about whether an ensemble is honestly dispersed.
+2. `FAMILY_BLOCKS` in `evidence.py` and `FAMILY_HEADINGS` in `prose.py` were two
+   hand-maintained lists of the same families. The `ensemble` family was added to one and
+   not the other, so the cards named the subsection, passed the prose check, and kept their
+   "Not generated yet" placeholder while `cards evidence` reported success. The blocks are
+   now derived from the headings, and a test pins them together.
+
 ## What remains
 
 **Physical ensemble data**, which is issue [004](004-independent-realizations.md) and not
-this one. The synthetic dataset validates the estimators against known answers; it says
-nothing about how these metrics behave on turbulence. Until an ensemble of real runs at
-fixed parameters with perturbed initial conditions exists, the `## Results` sections of the
-four cards stay ungenerated: `configs/cards/default.yaml` allows evidence only from
-`kinet_re5e4`, deliberately, and a synthetic run must not be written into a card as though
-it described a flow.
+this one. Nothing measured here says how these metrics behave on turbulence: the synthetic
+fields have no shocks, no intermittency and no coherent structure, and the degradation
+families a physical run would exercise — smoothing, spectral filtering, displacement,
+resolution loss — are absent from these cards for that reason. When an ensemble of real
+runs at fixed parameters with perturbed initial conditions exists, the four cards should be
+regenerated against it and the `synthetic_ensemble` entry in the evidence allowlist
+reconsidered.
 
 ## Related
 

@@ -54,9 +54,16 @@ as described above.
 
 ## Performance
 
-<!-- GENERATED performance: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence rank_histogram --results results/rank_histogram_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+| test family | field | degradations | rank correlation | weakest gap between neighbouring strengths | first strength detected |
+|---|---|---|---|---|---|
+| Ensemble dispersion | density | 2 | 1 to 1 | 1 | level 1 |
+| Cell-value distortion | density | 1 | 1 to 1 | 1 | level 2 |
+
+One row per family of degradation and physical field. **Rank correlation** asks whether the metric put the strengths of one degradation in the right order: it is the Spearman correlation between the metric and the applied strength, computed inside a single frame, and the column gives the range over the degradations in that family. A value of 1 means every strength was ordered correctly in every frame. **Weakest gap between neighbouring strengths** asks whether the metric can tell one strength from the next: it is the smallest Mann-Whitney overlap between any two neighbouring strengths, where 1 means the two never overlap and 0.5 means the metric cannot separate them at all. **First strength detected** is the mildest strength at which the metric has moved a tenth of the way from the undegraded reference toward a field with no relation to the truth; a dash means the metric never reached that tenth. **Damage** is that same 0-to-1 scale read as a number: 0 is the undegraded reference and 1 is an unrelated field.
+
+This table reports what was measured and grades none of the measurements. What the numbers mean for this metric is written in the subsections below, beside the test that produced each number.
 
 <!-- END GENERATED performance -->
 
@@ -137,38 +144,57 @@ suggest, and the value is noisier frame to frame than the raw count of cells imp
 
 ## Results
 
-<!-- GENERATED run: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED run: written by `python -m fmeval.cards evidence rank_histogram --results results/rank_histogram_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+Measured on `synthetic_ensemble`, frames 0 to 11 (12 frames of developed flow), on the 64 analysis grid, seed 20260807, at commit `c49b363765d7` (working tree dirty). Run `rank_histogram_1787800137`.
+
+Every number in this section comes from that one run. Regenerate with `python -m fmeval.cards evidence <name> --results results/rank_histogram_1787800137`.
 
 <!-- END GENERATED run -->
 
-No card in this repository may cite a run on `synthetic_ensemble_dev`, and that is
-deliberate: `configs/cards/default.yaml` allows evidence only from the developed-flow
-dataset, so that a number written into a card always describes a flow. The synthetic
-ensemble validates this metric's estimator against a known answer, which is a different
-claim and is recorded in the bundle's tests and in
-[issue 003](../../issues/003-ensemble-data.md) instead.
+**What these numbers are evidence of, and what they are not.** The run behind them is on
+`synthetic_ensemble`, which is generated rather than simulated: the reference is drawn from
+the same process as the members, with the same dispersion, so the two are exchangeable and
+every quantity below has a value derivable in advance. That is what makes the run worth
+citing — an estimator agreeing with arithmetic it could not have fitted to is a real
+result, and it is the claim a first implementation has to establish.
 
-These sections stay ungenerated until an ensemble of real runs exists
-([issue 004](../../issues/004-independent-realizations.md)). What this metric does on
-turbulence is not yet measured, and an empty section says so more honestly than a
-synthetic number would.
+It is not evidence about turbulence. The fields have no shocks, no intermittency and no
+coherent structure, so nothing here says how this metric behaves on the flows this
+repository exists to evaluate. The degradation families a physical run would exercise —
+smoothing, spectral filtering, displacement, resolution loss — are absent from these
+tables for that reason, and so are the trap tests. When an ensemble of real runs exists
+([issue 004](../../issues/004-independent-realizations.md)), this card should be
+regenerated against it and this section will say something different.
 
 ### Ensemble dispersion
 
 [spread_inflate](../../degradations/spread_inflate/card.md) ·
 [spread_deflate](../../degradations/spread_deflate/card.md)
 
-<!-- GENERATED results_ensemble: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED results_ensemble: written by `python -m fmeval.cards evidence rank_histogram --results results/rank_histogram_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+| degradation | field | strengths | rank correlation | fraction of frames in the right order | weakest gap between neighbouring strengths |
+|---|---|---|---|---|---|
+| `spread_deflate` | density | 4 | 1 | 1 | 1 |
+| `spread_inflate` | density | 4 | 1 | 1 | 1 |
 
 <!-- END GENERATED results_ensemble -->
 
-What the dispersion axes found. Both directions should raise the index above its sampling
-floor, since both destroy uniformity; the two are distinguished by the shape of the
-histogram rather than by this number, so read them beside `spread_skill`.
+The clean ensemble reads 0.049, which is the sampling floor rather than zero: 16 members
+over a 64x64 grid give 17 bins and a finite histogram is never exactly flat. Every measured
+departure below should be read against 0.049, not against zero.
+
+Both directions rise well clear of it — to 1.239 at the harshest deflation and 1.009 at the
+harshest inflation, a factor of 20 or more — with a rank correlation of 1 on each. The
+index cannot say which direction it saw, and that is the limitation stated above made
+concrete: 1.0 could be either fault, and only `spread_skill`'s side of one distinguishes
+them.
+
+Deflation registers more strongly than inflation at comparable severity, which follows from
+the shapes: an over-narrow ensemble pushes the truth outside the members entirely, piling
+draws into the two end bins, while an over-wide one merely concentrates them toward the
+middle and leaves every bin occupied.
 
 ## References
 

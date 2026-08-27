@@ -305,6 +305,29 @@ def test_sections_must_be_in_the_fixed_order():
     assert any("out of order" in p.message for p in problems_for(swapped))
 
 
+def test_every_degradation_family_can_have_its_results_generated():
+    """Every family a card can head a subsection with must have a block to fill it.
+
+    These were two hand-maintained lists of the same families. A family added to the
+    headings but not to the blocks produced a card that named the subsection, passed the
+    prose check, and kept its "Not generated yet" placeholder while `cards evidence`
+    reported success -- a card that looks finished and cites nothing.
+    """
+    from fmeval.cards.evidence import FAMILY_BLOCKS
+
+    missing = sorted(set(prose.FAMILY_HEADINGS) - set(FAMILY_BLOCKS))
+    assert not missing, f"families with a heading but no generated block: {missing}"
+
+
+def test_every_registered_degradation_family_is_documented():
+    """A family in the registry that no card can report is a family nobody will read."""
+    from degradations.registry import FAMILIES
+
+    # `identity` is the reference severity level, not a test family: it heads no subsection.
+    missing = sorted(set(FAMILIES) - set(prose.FAMILY_HEADINGS) - {"identity"})
+    assert not missing, f"registered families with no card heading: {missing}"
+
+
 def test_the_declared_order_is_the_one_the_cards_use():
     """The order is a decision, so it is written down once and asserted here.
 
@@ -836,7 +859,14 @@ def test_the_catalog_supports_the_query_it_exists_for():
         and e["declared"]["cost"] == "cheap"
         and e["evidence"]["measured"]
     ]
-    assert set(answer) == {"mae", "mse", "rmse", "nrmse", "enstrophy", "kinetic_energy"}
+    # crps and ensemble_mean_rmse qualify on the same terms as the pointwise family: both
+    # are piecewise-differentiable and cheap, and both now carry measurements. The two
+    # calibration metrics are absent because they declare differentiable=False -- a rank
+    # is integer-valued and a ratio of square roots is not a loss.
+    assert set(answer) == {
+        "mae", "mse", "rmse", "nrmse", "enstrophy", "kinetic_energy",
+        "crps", "ensemble_mean_rmse",
+    }
 
 
 # --------------------------------------------------------------------------------------

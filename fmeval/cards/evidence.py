@@ -25,14 +25,12 @@ from .exemplars import load_cards_config, write_block
 from .prose import FAMILY_HEADINGS
 
 #: Which generated block each degradation family's results go into.
-FAMILY_BLOCKS = {
-    "smoothing": "results_smoothing",
-    "spectral": "results_spectral",
-    "geometric": "results_geometric",
-    "resolution": "results_resolution",
-    "stochastic": "results_stochastic",
-    "pointwise": "results_pointwise",
-}
+#:
+#: Derived from :data:`FAMILY_HEADINGS` rather than written out again: these were two
+#: hand-maintained lists of the same families, and adding a family to one and not the
+#: other left its results silently ungenerated -- the card kept its "Not generated yet"
+#: placeholder while `cards evidence` reported success.
+FAMILY_BLOCKS = {family: f"results_{family}" for family in FAMILY_HEADINGS}
 
 NOT_MEASURED = "No measurements for this test in the recorded run."
 

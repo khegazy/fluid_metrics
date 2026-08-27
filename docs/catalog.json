@@ -3,7 +3,7 @@
     "degradations": 23,
     "metrics": 10,
     "reviewed": 0,
-    "with_measurements": 6
+    "with_measurements": 10
   },
   "entries": [
     {
@@ -969,11 +969,46 @@
         "units": "field"
       },
       "evidence": {
-        "axes": [],
-        "dataset": null,
-        "measured": false,
+        "axes": [
+          {
+            "axis": "bias",
+            "family": "pointwise",
+            "field": "density",
+            "first_detected_level": 3.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_deflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 4.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_inflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 4.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          }
+        ],
+        "dataset": "synthetic_ensemble",
+        "frames": 12,
+        "measured": true,
         "probes": [],
-        "run": null
+        "run": "crps_1787800137"
       },
       "kind": "metric",
       "math": {
@@ -1018,11 +1053,46 @@
         "units": "field"
       },
       "evidence": {
-        "axes": [],
-        "dataset": null,
-        "measured": false,
+        "axes": [
+          {
+            "axis": "bias",
+            "family": "pointwise",
+            "field": "density",
+            "first_detected_level": 2.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_deflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": null,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 0.0,
+            "rank_correlation": null,
+            "weakest_separation": 0.5
+          },
+          {
+            "axis": "spread_inflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": null,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 0.0,
+            "rank_correlation": null,
+            "weakest_separation": 0.5
+          }
+        ],
+        "dataset": "synthetic_ensemble",
+        "frames": 12,
+        "measured": true,
         "probes": [],
-        "run": null
+        "run": "ensemble_mean_rmse_1787800137"
       },
       "kind": "metric",
       "math": {
@@ -2966,11 +3036,46 @@
         "units": "dimensionless"
       },
       "evidence": {
-        "axes": [],
-        "dataset": null,
-        "measured": false,
+        "axes": [
+          {
+            "axis": "bias",
+            "family": "pointwise",
+            "field": "density",
+            "first_detected_level": 2.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_deflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 1.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_inflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 1.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          }
+        ],
+        "dataset": "synthetic_ensemble",
+        "frames": 12,
+        "measured": true,
         "probes": [],
-        "run": null
+        "run": "rank_histogram_1787800137"
       },
       "kind": "metric",
       "math": {
@@ -3514,11 +3619,46 @@
         "units": "dimensionless"
       },
       "evidence": {
-        "axes": [],
-        "dataset": null,
-        "measured": false,
+        "axes": [
+          {
+            "axis": "bias",
+            "family": "pointwise",
+            "field": "density",
+            "first_detected_level": 3.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_deflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 2.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          },
+          {
+            "axis": "spread_inflate",
+            "family": "ensemble",
+            "field": "density",
+            "first_detected_level": 2.0,
+            "is_probe": false,
+            "levels": 4,
+            "monotone_fraction": 1.0,
+            "rank_correlation": 1.0,
+            "weakest_separation": 1.0
+          }
+        ],
+        "dataset": "synthetic_ensemble",
+        "frames": 12,
+        "measured": true,
         "probes": [],
-        "run": null
+        "run": "spread_skill_1787800137"
       },
       "kind": "metric",
       "math": {

@@ -61,9 +61,16 @@ periodicity is irrelevant.
 
 ## Performance
 
-<!-- GENERATED performance: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED performance: written by `python -m fmeval.cards evidence crps --results results/crps_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+| test family | field | degradations | rank correlation | weakest gap between neighbouring strengths | first strength detected |
+|---|---|---|---|---|---|
+| Ensemble dispersion | density | 2 | 1 to 1 | 1 | level 4 |
+| Cell-value distortion | density | 1 | 1 to 1 | 1 | level 3 |
+
+One row per family of degradation and physical field. **Rank correlation** asks whether the metric put the strengths of one degradation in the right order: it is the Spearman correlation between the metric and the applied strength, computed inside a single frame, and the column gives the range over the degradations in that family. A value of 1 means every strength was ordered correctly in every frame. **Weakest gap between neighbouring strengths** asks whether the metric can tell one strength from the next: it is the smallest Mann-Whitney overlap between any two neighbouring strengths, where 1 means the two never overlap and 0.5 means the metric cannot separate them at all. **First strength detected** is the mildest strength at which the metric has moved a tenth of the way from the undegraded reference toward a field with no relation to the truth; a dash means the metric never reached that tenth. **Damage** is that same 0-to-1 scale read as a number: 0 is the undegraded reference and 1 is an unrelated field.
+
+This table reports what was measured and grades none of the measurements. What the numbers mean for this metric is written in the subsections below, beside the test that produced each number.
 
 <!-- END GENERATED performance -->
 
@@ -142,38 +149,55 @@ the score moves, `spread_skill` and `rank_histogram` are what say which half mov
 
 ## Results
 
-<!-- GENERATED run: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED run: written by `python -m fmeval.cards evidence crps --results results/crps_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+Measured on `synthetic_ensemble`, frames 0 to 11 (12 frames of developed flow), on the 64 analysis grid, seed 20260807, at commit `c49b363765d7` (working tree dirty). Run `crps_1787800137`.
+
+Every number in this section comes from that one run. Regenerate with `python -m fmeval.cards evidence <name> --results results/crps_1787800137`.
 
 <!-- END GENERATED run -->
 
-No card in this repository may cite a run on `synthetic_ensemble_dev`, and that is
-deliberate: `configs/cards/default.yaml` allows evidence only from the developed-flow
-dataset, so that a number written into a card always describes a flow. The synthetic
-ensemble validates this metric's estimator against a known answer, which is a different
-claim and is recorded in the bundle's tests and in
-[issue 003](../../issues/003-ensemble-data.md) instead.
+**What these numbers are evidence of, and what they are not.** The run behind them is on
+`synthetic_ensemble`, which is generated rather than simulated: the reference is drawn from
+the same process as the members, with the same dispersion, so the two are exchangeable and
+every quantity below has a value derivable in advance. That is what makes the run worth
+citing — an estimator agreeing with arithmetic it could not have fitted to is a real
+result, and it is the claim a first implementation has to establish.
 
-These sections stay ungenerated until an ensemble of real runs exists
-([issue 004](../../issues/004-independent-realizations.md)). What this metric does on
-turbulence is not yet measured, and an empty section says so more honestly than a
-synthetic number would.
+It is not evidence about turbulence. The fields have no shocks, no intermittency and no
+coherent structure, so nothing here says how this metric behaves on the flows this
+repository exists to evaluate. The degradation families a physical run would exercise —
+smoothing, spectral filtering, displacement, resolution loss — are absent from these
+tables for that reason, and so are the trap tests. When an ensemble of real runs exists
+([issue 004](../../issues/004-independent-realizations.md)), this card should be
+regenerated against it and this section will say something different.
 
 ### Ensemble dispersion
 
 [spread_inflate](../../degradations/spread_inflate/card.md) ·
 [spread_deflate](../../degradations/spread_deflate/card.md)
 
-<!-- GENERATED results_ensemble: written by `python -m fmeval.cards evidence <name>`, do not edit -->
+<!-- GENERATED results_ensemble: written by `python -m fmeval.cards evidence crps --results results/crps_1787800137`, do not edit -->
 
-Not generated yet. Run `python -m fmeval.cards evidence <name>`.
+| degradation | field | strengths | rank correlation | fraction of frames in the right order | weakest gap between neighbouring strengths |
+|---|---|---|---|---|---|
+| `spread_deflate` | density | 4 | 1 | 1 | 1 |
+| `spread_inflate` | density | 4 | 1 | 1 | 1 |
 
 <!-- END GENERATED results_ensemble -->
 
-What the dispersion axes found. Both directions should raise the score, since the metric is
-proper and the calibrated ensemble is the optimum; the interesting question is the relative
-steepness of the two sides.
+Both directions raise the score, which is propriety visible in a measurement rather than
+asserted from the definition: the calibrated ensemble at 0.085 is the minimum, and widening
+it (to 0.141 at the harshest inflation) or narrowing it (to 0.109 at the harshest deflation)
+both cost. The two sides are not symmetric. Inflation is the steeper of the two here,
+costing 0.056 against deflation's 0.024 at comparable severity, because an ensemble stretched
+to four times its honest width puts most of its members far from the truth while one
+collapsed toward its mean keeps them all near a centre that is itself close to correct.
+
+Read that asymmetry with the generator in mind rather than as a general property: the
+ensemble mean of this dataset is a good prediction, so there is little for deflation to
+expose. On a model whose centre is wrong, collapsing the spread removes the only thing
+covering that error, and the deflation side would be expected to bite harder.
 
 ## References
 
