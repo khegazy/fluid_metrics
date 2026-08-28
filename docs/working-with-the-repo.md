@@ -36,6 +36,8 @@ elsewhere needs editing.
 | `configs/` | Hydra configuration: datasets, degradations, reports | You, carefully | To change what an evaluation run does |
 | `evaluate.py`, `make_report.py` | The entry points | Rarely anyone | Run them; don't edit them to change one run |
 | `fmeval/` | The shared machinery: data readers, the degradation sequence, analysis, reporting, pages | Whoever changes that machinery | Not while adding a metric |
+| `fmeval/data/locate.py` | Where a dataset lives — the local copy, or the one published at `paths.data_url`. The single resolver | Whoever changes how data is found | Adding a dataset in a new location |
+| `fmeval/data/remote.py` | A seekable file object over HTTP byte ranges, so h5py can read a published trajectory without downloading it | Rarely; see docs/decisions.md | Almost never |
 | `metrics/_template/`, `degradations/_template/` | What the `new` command copies | Whoever changes the contract | Never by hand for one bundle |
 | `issues/` | One file per open item, with the evidence for it | You | When you find a defect you are not fixing now |
 

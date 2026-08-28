@@ -19,6 +19,7 @@ These block criteria that are designed and implemented but cannot be exercised.
 | [003](003-ensemble-data.md) | CRPS and spread-to-skill need ensembles — estimators built and validated on a synthetic ensemble; physical data is [004](004-independent-realizations.md) | resolved for the estimators |
 | [004](004-independent-realizations.md) | Only one seed per configuration | medium |
 | [005](005-3d-and-cost-extrapolation.md) | All data is two-dimensional | low |
+| [034](034-only-one-trajectory-is-published.md) | Only `kinet_re5e4` is published for HTTP access; the documented dev-dataset inner loop still needs CFS | medium |
 
 ## Deferred functionality
 

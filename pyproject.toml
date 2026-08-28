@@ -164,5 +164,6 @@ norecursedirs = ["_template", ".venv", "results", "datasets"]
 markers = [
     "data: reads real files on CFS (skipped by default)",
     "slow: needs LaTeX or a long runtime (skipped by default)",
+    "web: reads the published data over HTTP from paths.data_url (skipped by default)",
 ]
-addopts = "-m 'not data and not slow'"
+addopts = "-m 'not data and not slow and not web'"

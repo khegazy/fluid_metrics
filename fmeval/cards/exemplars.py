@@ -68,11 +68,13 @@ def load_cards_config() -> Any:
     return OmegaConf.load(CARDS_CONFIG)
 
 
-def load_canonical_frame(cfg: Any | None = None) -> CanonicalFrame:
+def load_canonical_frame(cfg: Any | None = None, *, allow_remote: bool = False) -> CanonicalFrame:
     """Read the canonical exemplar frame from the dataset it names.
 
     Args:
         cfg: Card settings; loaded from ``configs/cards/default.yaml`` if omitted.
+        allow_remote: Permit reading the published copy over HTTP when there is no local
+            one. Off by default; see the comment on the resolver call below.
 
     Returns:
         The frame, with every field the config asks to illustrate.
@@ -93,16 +95,30 @@ def load_canonical_frame(cfg: Any | None = None) -> CanonicalFrame:
 
     from fmeval.data import kinet_raw, well  # noqa: F401  (register the formats)
     from fmeval.data.base import READERS
+    from fmeval.data import locate
+    from fmeval.data.locate import resolve_dataset_path
 
-    path = Path(str(raw_path).replace("${paths.data}", str(REPO / "datasets")))
-    if not path.exists():
+    # The same resolver `evaluate.py` uses. Sharing it matters more than it looks: this
+    # function used to carry its own substitution rule, and two rules for where a dataset
+    # lives diverge the moment either one grows a case.
+    #
+    # `allow_url=False` on purpose. Exemplar panels are committed artifacts generated
+    # where the data lives, and the documentation build must keep working on a runner with
+    # no data at all; silently fetching 166 GiB worth of ranges during a docs build is not
+    # an improvement. Pass allow_remote=True to opt in deliberately.
+    try:
+        location = resolve_dataset_path(
+            raw_path, REPO / "datasets", data_url=locate.default_data_url(),
+            allow_url=allow_remote,
+        )
+    except FileNotFoundError as exc:
         raise FileNotFoundError(
-            f"the canonical exemplar frame needs {path}, which is not readable here.\n"
+            f"the canonical exemplar frame is not readable here.\n{exc}\n"
             "Exemplar panels are generated where the data lives (NERSC) and committed, "
             "rather than in CI."
-        )
+        ) from None
     reader_kwargs = OmegaConf.to_container(dataset_cfg.get("reader", {}), resolve=True)
-    trajectory = READERS[str(dataset_cfg.format)](path, **reader_kwargs)
+    trajectory = READERS[str(dataset_cfg.format)](location.target, **reader_kwargs)
 
     wanted = [f for f in cfg.exemplar_frame.fields if f in trajectory.fields]
     frame = trajectory.frame(int(cfg.exemplar_frame.index), wanted)
