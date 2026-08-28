@@ -7,6 +7,7 @@ one, and nothing in a result folder would say so.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -81,12 +82,12 @@ def test_each_segment_is_quoted(root):
 
 def test_a_path_outside_the_data_root_refuses_to_guess_a_url(tmp_path):
     """There is no mirror for it, so a derived URL would be a fabrication that 404s."""
-    with pytest.raises(FileNotFoundError, match="not under `paths.data`"):
+    with pytest.raises(FileNotFoundError, match=re.escape("not under `paths.data`")):
         resolve_dataset_path(tmp_path / "stray" / "x.h5", tmp_path / "datasets", data_url=URL)
 
 
 def test_a_null_data_url_restores_the_old_failure(root):
-    with pytest.raises(FileNotFoundError, match="`paths.data_url` is null"):
+    with pytest.raises(FileNotFoundError, match=re.escape("`paths.data_url` is null")):
         resolve_dataset_path(f"{DATA_TOKEN}/{RELATIVE}", root, data_url=None)
 
 

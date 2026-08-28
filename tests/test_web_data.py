@@ -4,8 +4,10 @@ Marked `web`, so `pytest` skips it: it reaches portal.nersc.gov. The offline hal
 same machinery -- ranges, retries, the refusal to drain a 200 -- is covered by
 tests/test_remote_data.py against a local server and runs on every push.
 
-Only one trajectory is published (see issues/034); `kinet_re5e4` is the production run, so
-these read a handful of frames from the middle of it rather than the dev file.
+Both kinet trajectories are published (the Well-format copy is not; see issues/034). The
+end-to-end evaluation reads a handful of frames from the middle of the production run;
+`kinet_re5e4_dev` is checked separately, because it is the dataset the documentation tells a
+newcomer to start with and the one they cannot open at all without this fallback.
 """
 
 from __future__ import annotations
@@ -18,9 +20,9 @@ from omegaconf import OmegaConf
 
 from evaluate import dataset_info, open_trajectory, select_fields
 from fmeval.data.base import TimeSelection
-from fmeval.ladder import build_ladder
 from fmeval.data.kinet_raw import KinetRawTrajectory
 from fmeval.data.locate import default_data_url, resolve_dataset_path
+from fmeval.ladder import build_ladder
 from fmeval.pipeline import run
 from metrics import registry as metric_registry
 from tests.test_configs import build
@@ -104,6 +106,27 @@ def test_mse_evaluates_against_the_published_trajectory(web_cfg):
         "A 256^2 frame costs 2.5-3.2 MiB; a full read of the chunked `time` dataset "
         "costs 2.5 GiB, which is the regression this budget exists to catch."
     )
+
+
+def test_the_dev_trajectory_is_published_too(tmp_path):
+    """The documented inner loop must work on a machine with no CFS mount.
+
+    `README.md`, `AGENTS.md` section 2, `evaluate.py`'s docstring and a pinned phrase in
+    docs/recipes/verify-a-refactor.md all start a newcomer on `kinet_re5e4_dev`. Until it
+    was published that command failed for anyone without CFS, which is the whole audience
+    this fallback exists for.
+    """
+    cfg = build("dataset=kinet_re5e4_dev", f"paths.data={tmp_path}")
+    trajectory = open_trajectory(cfg)
+    try:
+        assert trajectory.is_remote
+        assert trajectory.source.endswith("D2Q9_shape-256-256_T-100_H-04a8a1.h5")
+        assert len(trajectory) == 101
+        frame = trajectory.frame(1, ["density", "velocity", "vorticity"])
+        assert np.isfinite(frame["density"]).all()
+        assert frame.grid.shape == (256, 256)
+    finally:
+        trajectory.close()
 
 
 def test_opening_the_published_trajectory_is_cheap(web_cfg):

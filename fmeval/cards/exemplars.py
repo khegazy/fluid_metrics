@@ -93,9 +93,8 @@ def load_canonical_frame(cfg: Any | None = None, *, allow_remote: bool = False) 
     )
     raw_path = OmegaConf.to_container(dataset_cfg, resolve=False)["path"]
 
-    from fmeval.data import kinet_raw, well  # noqa: F401  (register the formats)
+    from fmeval.data import kinet_raw, locate, well  # noqa: F401  (register the formats)
     from fmeval.data.base import READERS
-    from fmeval.data import locate
     from fmeval.data.locate import resolve_dataset_path
 
     # The same resolver `evaluate.py` uses. Sharing it matters more than it looks: this

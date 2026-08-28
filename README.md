@@ -23,7 +23,8 @@ readers fall back to the copy published at `paths.data_url`
 for one, and read it over HTTP byte ranges. Nothing is downloaded in full: HDF5 fetches
 only the parts it needs, so opening the 166 GiB production trajectory costs three requests
 and reading one 256² frame costs about 3 MiB. A local copy always wins when there is one.
-Only `kinet_re5e4` is published so far — see [issues/034](issues/034-only-one-trajectory-is-published.md).
+Both kinet trajectories are published; the Well-format copy is not — see
+[issues/034](issues/034-the-well-format-copy-is-not-published.md).
 
 Then install into whatever environment you use. **Every command in this README is a plain
 `python` or `pytest` call**, so activate your environment first and the rest follows; nothing

@@ -16,11 +16,12 @@ portal and against Apache's documented behaviour, not invented ones:
 from __future__ import annotations
 
 import threading
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Iterator, Literal
+from typing import Literal
 
 Mode = Literal["ranges", "ignore_ranges", "no_accept_ranges", "etag_flips", "drop_once"]
 
@@ -46,7 +47,7 @@ def _handler(payload: bytes, mode: Mode, stats: ServeStats):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
-        def log_message(self, *args):  # noqa: A002 - silence the default stderr spam
+        def log_message(self, *args):
             pass
 
         def _etag(self) -> str:
@@ -54,7 +55,7 @@ def _handler(payload: bytes, mode: Mode, stats: ServeStats):
                 return ETAG
             return ETAG if state["gets"] <= 1 else ETAG_AFTER_FLIP
 
-        def do_HEAD(self):  # noqa: N802 - the stdlib dispatches on this exact name
+        def do_HEAD(self):
             with lock:
                 stats.head_requests += 1
             self.send_response(200)
@@ -65,7 +66,7 @@ def _handler(payload: bytes, mode: Mode, stats: ServeStats):
             self.send_header("Last-Modified", LAST_MODIFIED)
             self.end_headers()
 
-        def do_GET(self):  # noqa: N802
+        def do_GET(self):
             header = self.headers.get("Range")
             with lock:
                 state["gets"] += 1
