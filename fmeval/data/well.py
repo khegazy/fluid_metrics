@@ -27,7 +27,10 @@ from typing import Any
 import h5py
 import numpy as np
 
+from . import remote as _remote
+from ._timeaxis import TimeAxisMode, read_time_axis
 from .base import FIELDS, GridSpec, NanPolicy, Trajectory, register_reader
+from .locate import is_url
 
 #: Canonical name -> (group, dataset). Velocity lives in the rank-1 group.
 FIELD_MAP: dict[str, tuple[str, str]] = {
@@ -59,31 +62,44 @@ class WellTrajectory(Trajectory):
         include_redundant: bool = False,
         include_degenerate: bool = False,
         sim_index: int = 0,
+        time_axis: TimeAxisMode = "auto",
     ) -> None:
-        """Open a Well-format file.
+        """Open a Well-format file, locally or over HTTP.
 
         Args:
-            path: Path to the ``.h5`` file.
+            path: Path to the ``.h5`` file, or an ``https://`` URL of the published copy.
             chunk_cache_mb: h5py chunk cache size.
             nan_policy: ``"error"``, ``"warn"`` or ``"ignore"`` for non-finite values.
             include_redundant: Expose ``pressure``.
             include_degenerate: Expose ``temperature``, which is constant for an
                 isothermal run and therefore not a field in any useful sense.
             sim_index: Index along the leading trajectory axis.
+            time_axis: How to read the clock. See ``fmeval.data._timeaxis``. This layout
+                stores it contiguously, so the default reads it directly either way.
         """
-        self.path = Path(path)
+        self.source = str(path)
+        self.is_remote = is_url(path)
+        self.location_source = "url" if self.is_remote else "local"
         self.nan_policy = nan_policy
         self._sim = sim_index
-        self._file = h5py.File(
-            self.path, "r", rdcc_nbytes=chunk_cache_mb * 2**20, rdcc_nslots=10007
-        )
+        self._remote: _remote.HTTPRangeFile | None = None
+        if self.is_remote:
+            self.path = None
+            self._file, self._remote = _remote.open_h5(
+                self.source, chunk_cache_mb=chunk_cache_mb
+            )
+        else:
+            self.path = Path(path)
+            self._file = h5py.File(
+                self.path, "r", rdcc_nbytes=chunk_cache_mb * 2**20, rdcc_nslots=10007
+            )
 
         dims = self._file["dimensions"]
         names = [_text(n) for n in dims.attrs.get("spatial_dims", ["x", "y"])]
         expected = ("x", "y", "z")[: len(names)]
         if tuple(names) != expected:
             raise ValueError(
-                f"{self.path.name}: spatial_dims is {names}, expected {list(expected)}. "
+                f"{self.source}: spatial_dims is {names}, expected {list(expected)}. "
                 "A different order would need a transpose, which this reader does not do."
             )
         coords = [np.asarray(dims[name][:], dtype=np.float64) for name in names]
@@ -102,7 +118,9 @@ class WellTrajectory(Trajectory):
             dims=tuple(names),
             origin=tuple(float(c[0]) for c in coords),
         )
-        self._times = np.asarray(dims["time"][:], dtype=np.float64)
+        self._times = read_time_axis(
+            dims["time"], remote=self.is_remote, mode=time_axis
+        )
 
         available = []
         for canonical, (group, dataset) in FIELD_MAP.items():
@@ -144,13 +162,17 @@ class WellTrajectory(Trajectory):
             else value.item() if isinstance(value, np.generic) else value
             for key, value in self._file.attrs.items()
         }
-        return {
-            "path": str(self.path),
+        meta: dict[str, Any] = {
+            "path": self.source,
             "format": "well",
             "n_frames": len(self._times),
             "fields": list(self._fields),
+            "source": self.location_source,
             "source_attrs": attrs,
         }
+        if self._remote is not None:
+            meta["remote"] = self._remote.provenance()
+        return meta
 
     def read_frame(self, t: int, fields: Sequence[str]) -> dict[str, np.ndarray]:
         """Read one frame, normalising channel placement and dtype.
@@ -176,6 +198,9 @@ class WellTrajectory(Trajectory):
         if getattr(self, "_file", None) is not None:
             self._file.close()
             self._file = None  # type: ignore[assignment]
+        if getattr(self, "_remote", None) is not None:
+            self._remote.close()
+            self._remote = None
 
 
 def _text(value: object) -> str:

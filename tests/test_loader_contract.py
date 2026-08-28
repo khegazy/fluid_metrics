@@ -8,6 +8,13 @@ The two highest-value tests here are easy to overlook:
 * ``test_never_slices_the_time_axis`` -- monkeypatches ``h5py`` to record every key used.
   A one-character slip from ``ds[0, :, t]`` to ``ds[0, :, :]`` turns a 1-second read into
   5 GB of I/O, and no correctness test would notice.
+
+That second test has one blind spot, and it has a sibling elsewhere because of it: it
+filters keys with ``len(key) >= 3`` to reach the time position of a field read, so a read
+of the 1-D ``time`` dataset -- key ``(slice(None),)``, length one -- passes straight
+through it. Slicing *that* dataset whole is the most expensive read in this package over
+HTTP. ``test_opening_and_iterating_never_slices_a_chunked_clock`` in
+tests/test_remote_data.py covers it.
 """
 
 from __future__ import annotations
