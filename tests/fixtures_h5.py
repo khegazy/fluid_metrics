@@ -31,13 +31,17 @@ def _time_axis(n: int) -> np.ndarray:
 
 
 def write_kinet_raw(path: Path, shape: tuple[int, ...] = SHAPE,
-                    n_frames: int = N_FRAMES) -> Path:
+                    n_frames: int = N_FRAMES, times: np.ndarray | None = None) -> Path:
     """Write a synthetic file in the raw kinet layout ``(1, C, T, *spatial)``.
 
     Reproduces: JSON-string root attrs, one-frame chunking, all-NaN ``stability_scale``
     at t=0, NaN ``time_scale[0]``, degenerate ``temperature``, ``pressure = density*c_s^2``.
     Velocity channel 0 is constant 1.0 and channel 1 constant 2.0 at t=0 so a channel-swap
     or an x/y transpose is detectable.
+
+    The ``time`` dataset is chunked ``(1,)`` as the real solver writes it, which is what
+    makes reading it in full expensive over HTTP. Pass ``times`` to write a deliberately
+    non-uniform clock, which the affine reconstruction must refuse rather than smooth over.
     """
     n_spatial = len(shape)
     with h5py.File(path, "w") as f:
@@ -108,8 +112,8 @@ def write_kinet_raw(path: Path, shape: tuple[int, ...] = SHAPE,
         temp = np.full((1, 1, n_frames, *([1] * n_spatial)), 1.0 / 3.0)
         f.create_dataset("temperature", data=temp).attrs["units"] = "-"
 
-        times = _time_axis(n_frames)
-        f.create_dataset("time", data=times, chunks=(1,)).attrs["units"] = "-"
+        clock = _time_axis(n_frames) if times is None else np.asarray(times, dtype=np.float64)
+        f.create_dataset("time", data=clock, chunks=(1,)).attrs["units"] = "-"
         f.create_dataset(
             "time_index", data=np.arange(n_frames, dtype=np.float64), chunks=(1,)
         ).attrs["units"] = "-"

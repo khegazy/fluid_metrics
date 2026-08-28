@@ -127,6 +127,10 @@ def test_every_group_option_on_disk_is_tested(group_files=None):
     ("report.style.theme=paper", lambda c: c.report.style.theme == "paper"),
     # Data root, for someone whose data is not where the symlink points.
     ("paths.data=/tmp/data", lambda c: str(c.paths.data) == "/tmp/data"),
+    # Refusing the HTTP fallback, for a run that must read a local copy or fail.
+    ("paths.data_url=null", lambda c: c.paths.data_url is None),
+    ("paths.data_url=http://example.invalid/d",
+     lambda c: c.paths.data_url == "http://example.invalid/d"),
 ])
 def test_documented_override_works(override, check):
     assert check(build(override)), f"override {override!r} did not take effect"
@@ -252,3 +256,28 @@ def test_a_generated_dataset_declares_itself_non_physical():
         "the exemplar frame must lie inside the developed-flow window"
     )
     assert int(cfg.figures.dpi) > 0
+
+
+def test_the_published_data_url_is_configured():
+    """Without it a colleague with no CFS mount gets a FileNotFoundError, not the data."""
+    cfg = build()
+    assert cfg.paths.data_url, "paths.data_url is unset; the HTTP fallback cannot fire"
+    assert str(cfg.paths.data_url).startswith("https://")
+    assert not str(cfg.paths.data_url).endswith("/"), "a trailing slash doubles in the URL"
+
+
+def test_every_dataset_path_is_under_the_data_root():
+    """The published tree mirrors `paths.data`, so a path outside it has no URL to derive.
+
+    `fmeval.data.locate` refuses to guess one rather than fabricating a URL that 404s, so a
+    dataset config that wandered outside the root would silently lose the fallback.
+    """
+    cfg = build()
+    root = Path(str(cfg.paths.data))
+    for name in sorted(p.stem for p in Path(CONFIGS, "dataset").glob("*.yaml")):
+        dataset = build(f"dataset={name}").dataset
+        path = Path(str(dataset.path))
+        assert path == root or root in path.parents, (
+            f"{name} points at {path}, which is not under paths.data ({root}), "
+            "so no published URL can be derived for it"
+        )

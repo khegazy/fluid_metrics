@@ -154,3 +154,39 @@ by its own test. Where the two disagree, the recipe wins.
   50 MB, the fallback is Git LFS — raise the question, do not delete panels.
 - Your local copy of the repository may sit in a directory named `fluid_metrics`. The
   repository is `pde_metrics`; the directory name is historical and means nothing.
+
+## Reading published data over HTTP with stdlib `http.client`
+
+*2026-08-27.* Colleagues on other clusters have no CFS mount, so the readers fall back to
+the copy published at `paths.data_url` when a file is not on the local filesystem. Three
+alternatives were rejected on measurement rather than taste.
+
+**h5py's `ros3` driver.** Not available: `h5py._hl.files.ros3` is `False` in this build and
+`h5py.File(url, driver="ros3")` raises `ValueError: h5py was built without ROS3 support`.
+It is also S3-only, and the data is served by Apache over plain HTTPS.
+
+**fsspec.** Would be two lines instead of the hundred in `fmeval/data/remote.py`, and its
+block caching is well tested. But it needs `aiohttp`, and neither is installed here; making
+the fallback depend on an extra that a new user has not installed defeats the point of it
+being automatic. The declared dependencies stay numpy, scipy, h5py, pandas, matplotlib,
+hydra-core, omegaconf and pyyaml.
+
+**Downloading the file first.** The production trajectory is 166 GiB. HDF5 needs random
+access, not the whole file: opening it costs three range requests and 0.05 s, and one 256²
+frame costs about 3 MiB.
+
+What the stdlib implementation must get right, all measured against the portal on
+2026-08-27:
+
+* **One range per request, always.** Any multi-range header — two ranges or two hundred,
+  overlapping or not — comes back `200` with `Content-Length: 178271350284`. A non-206 is
+  therefore a hard error whose body is dropped unread, and the check is on the status line,
+  never on `Content-Length`.
+* **Not an `io` subclass.** h5py's fileobj driver prefers `readinto`, and the one inherited
+  from `io.RawIOBase` raises a bare `NotImplementedError` inside `h5fd.pyx`. The driver
+  calls only `readinto`, `seek` (whence 0 and 2) and `tell`.
+* **Block caching is the design, not an optimisation.** HDF5 issues small irregular reads —
+  8, 48, 328, 2096 bytes — so an uncached implementation is one request per read.
+* **No concurrency.** 48 parallel range GETs are no faster than one at a time.
+* **`If-Range` on every request**, so a file replaced mid-read returns `200` and trips the
+  check above rather than splicing two HDF5 images together.

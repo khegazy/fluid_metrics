@@ -12,9 +12,18 @@
 #
 #   pytest -m data   reads the real trajectories on CFS, which exist only on NERSC
 #   pytest -m slow   compiles a report with latexmk, which needs a TeX Live install
+#   pytest -m web    reads the published trajectories over HTTP from portal.nersc.gov
 #
-# Both are excluded by `addopts` in pyproject.toml, so plain `pytest` already skips them and
-# the job needs no marker arguments. The protection that matters most from the LaTeX side is
+# The first two are excluded because a runner *cannot* run them. `web` is different and the
+# distinction is worth keeping explicit: a GitHub runner can reach the portal perfectly
+# well, and we choose not to let it. A network test makes PR status depend on an external
+# service we do not control, and puts standing load on a shared science portal for no
+# information a local run would not give. The transport itself is still covered here --
+# tests/test_remote_data.py exercises ranges, retries, the ETag check and the refusal to
+# drain a 200 against a loopback server, offline, on every push.
+#
+# All three are excluded by `addopts` in pyproject.toml, so plain `pytest` already skips
+# them and the job needs no marker arguments. The protection that matters most from the LaTeX side is
 # not lost: `test_no_unescaped_underscore_survives_into_any_generated_tex` is an ordinary
 # test and runs here. Only the actual latexmk compile is left to a local
 # `module load texlive/2024 && pytest -m slow`.

@@ -13,6 +13,19 @@ defaults:
 paths:
   data: ${hydra:runtime.cwd}/datasets
   results: ${hydra:runtime.cwd}/results
+  # Where the same tree is published, for colleagues with no CFS mount. The URL tree
+  # mirrors `paths.data` one directory for one -- `datasets` points at
+  # /global/cfs/cdirs/m4790/Data and the portal serves that directory -- so a dataset
+  # config's `path: ${paths.data}/kinet/...` needs no second spelling and no per-dataset
+  # URL. Measured 2026-08-27: HEAD on the production trajectory returns Content-Length
+  # 178271350284, exactly `os.path.getsize` of the CFS copy.
+  #
+  # The local copy always wins; this is only reached when the file is not on disk. Set it
+  # to null to refuse the network, which restores the pre-2026-08 behaviour of failing.
+  #
+  # A plain literal on purpose: `fmeval.data.locate.default_data_url` reads this key
+  # without Hydra, which `${hydra:runtime.cwd}` would make impossible.
+  data_url: https://portal.nersc.gov/project/m4790/Data
 
 # Metric names resolved against the registry. `python -m metrics` lists them.
 metrics: [mae, mse, nrmse]

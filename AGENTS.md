@@ -83,6 +83,7 @@ python check_setup.py               # confirm the environment; run this FIRST wh
 
 pytest                              # ~20 s. Skips CFS-reading and LaTeX tests
 pytest -m data                      # reads the real files on CFS
+pytest -m web                       # reads the published copy over HTTP
 module load texlive/2024 && pytest -m slow   # compiles a report
 pytest tests/test_analysis.py -k spearman    # one file, one pattern
 
@@ -467,6 +468,19 @@ class MyTrajectory(Trajectory):
 Then add the module to the import line in `evaluate.py::open_trajectory`, and write a dataset
 config under `configs/dataset/`.
 
+**A reader takes a location, not a path.** It is handed either a `Path` or an `https://` URL,
+because a colleague with no CFS mount reads the copy published at `paths.data_url` instead.
+`fmeval/data/locate.py` is the single place that decision is made — a local copy always wins —
+and `fmeval/data/remote.py` supplies a seekable file object over HTTP byte ranges that h5py
+opens directly. A new reader gets this by calling `remote.open_h5(url)` on the remote branch,
+and it should keep the URL in `self.source` rather than pushing it through `Path`, whose
+`.exists()` on a URL is a lie that will be believed.
+
+Two things there are easy to get wrong and are covered by tests rather than by care: never
+subclass anything in `io` for the file object (h5py prefers the inherited `readinto`, which
+raises a bare `NotImplementedError`), and never let the body of a non-206 range response be
+read — on this data a `200` is 166 GiB.
+
 ### Three rules that are not negotiable
 
 **1. Canonical layout is channel-first with spatial axes trailing in `(x, y, z)` order.** The
@@ -604,7 +618,8 @@ that no number appears in the report without a machine-readable source in the sa
 
 ## 7. Writing tests
 
-Run with `pytest`. Markers: `data` reads real files on CFS, `slow` needs LaTeX; both are
+Run with `pytest`. Markers: `data` reads real files on CFS, `web` reads the published copy
+over HTTP, `slow` needs LaTeX; all three are
 excluded by default.
 
 **CI runs the default suite on every push to a pull request** — `.github/workflows/tests.yml`,
@@ -612,10 +627,16 @@ which builds the environment from the committed lockfile, puts `.venv/bin` on PA
 are the same plain commands written above, and runs `check_setup.py`, both registry listings and
 `pytest -ra`.
 
-It cannot run the other two markers: a GitHub runner has no CFS and no TeX Live. So a green PR
-says nothing about a `data`-marked test, and **verifying those stays a local responsibility** —
-run `pytest -m data` yourself before asking for review on anything touching a reader, a remap or
-an anchor. The LaTeX side is less exposed than it looks: the check that actually bites,
+It cannot run `data` or `slow`: a GitHub runner has no CFS and no TeX Live. `web` is excluded
+for a different reason and the distinction is worth keeping — a runner *can* reach the portal,
+and we choose not to let it, because a network test makes PR status depend on an external
+service and puts standing load on a shared science portal. The offline half of that machinery
+(ranges, retries, the refusal to drain a 200) runs against a loopback server in
+`tests/test_remote_data.py` on every push, so a regression in the transport is still caught.
+So a green PR says nothing about a `data`- or `web`-marked test, and **verifying those stays a
+local responsibility** —
+run `pytest -m data` — and `pytest -m web` — yourself before asking for review on anything
+touching a reader, a remap or an anchor. The LaTeX side is less exposed than it looks: the check that actually bites,
 `test_no_unescaped_underscore_survives_into_any_generated_tex`, is an ordinary test and does run
 in CI. Only the `latexmk` compile is left to `module load texlive/2024 && pytest -m slow`.
 
@@ -726,6 +747,9 @@ listed so nobody has to rediscover them.
 | **Placing a `###` subsection mid-section** | Everything after it reads as belonging to it; a Boundary-handling subsection once swallowed the rest of the Definition | put required subsections at the end of their section |
 | **Expecting byte-identical PNGs across matplotlib versions** | They differ; only the JSON fingerprints are byte-stable, and a determinism test on pixels will flake in CI | `docs/decisions.md`, "Figures are committed" |
 | **Including the reference severity level in cross-metric correlation** | Every pairwise metric is 0 there, adding a shared point that pulls every correlation toward +1 | `analysis.py::cross_metric_correlation` |
+| **Reading a 1-D `time` dataset whole** | It is chunked `(1,)` and interleaved 17.8 MiB apart across the file: 9938 requests, 297 s and 2.5 GiB over HTTP to fetch 80 KB. The field-read spy cannot see it, because it filters `len(key) >= 3` | `fmeval/data/_timeaxis.py` |
+| **Reading the body of a non-206 range response** | A server that declines a `Range` answers `200` with the **entire** entity. Measured: any multi-range header on this portal returns all 166 GiB | `fmeval/data/remote.py` |
+| **Subclassing `io.RawIOBase` for an h5py file object** | Its inherited `readinto` raises a bare `NotImplementedError` from inside `h5fd.pyx`, naming nothing | `fmeval/data/remote.py` |
 | **A raw `imshow` on a spatial field** | Data is `(X, Y)`, so it transposes every picture — and looks fine on square data | `fmeval/report/style.py::show_field` |
 | **Assuming `pressure == density / 3` bitwise** | The solver writes `density * float64(1/3)`; the two differ by one ulp | `fmeval/data/kinet_raw.py` |
 | **Reading `time_scale` as a clock** | `time_scale[0]` is NaN and the values are ~0.5 constant. It is a solver stability quantity; use `time` | `fmeval/data/kinet_raw.py` |

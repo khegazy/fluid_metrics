@@ -26,6 +26,7 @@ from omegaconf import DictConfig, OmegaConf
 from degradations import registry as deg_registry
 from fmeval import io as fio
 from fmeval.data.base import READERS, TimeSelection, Trajectory
+from fmeval.data.locate import resolve_dataset_path, trajectory_provenance
 from fmeval.derived import recompute_frame
 from fmeval.ladder import build_ladder
 from fmeval.pipeline import DatasetInfo, MapRequest, run
@@ -55,50 +56,37 @@ def open_trajectory(cfg: DictConfig) -> Trajectory:
     if fmt not in READERS:
         raise KeyError(f"unknown dataset format {fmt!r}; available: {sorted(READERS)}")
 
-    path = Path(cfg.dataset.path)
-    if fmt not in GENERATED_FORMATS and not path.exists():
-        raise FileNotFoundError(_missing_dataset_message(cfg, path))
-
     reader_kwargs = OmegaConf.to_container(cfg.dataset.get("reader", {}), resolve=True)
-    return READERS[fmt](path, **reader_kwargs)
+    if fmt in GENERATED_FORMATS:
+        return READERS[fmt](Path(cfg.dataset.path), **reader_kwargs)
+
+    location = resolve_dataset_path(
+        cfg.dataset.path, cfg.paths.data, data_url=cfg.paths.get("data_url")
+    )
+    if location.source == "url":
+        log.info(
+            "dataset %s is not on this filesystem; reading the published copy at %s",
+            cfg.dataset.name, location.url,
+        )
+    return READERS[fmt](location.target, **reader_kwargs)
 
 
 def _missing_dataset_message(cfg: DictConfig, path: Path) -> str:
-    """Explain a missing dataset in terms of the cause, not the failed open.
+    """Explain an unreadable dataset in terms of the cause, not the failed open.
 
-    A fresh clone has no `datasets` symlink -- it is gitignored, being machine-specific --
-    so this is the first thing a new user hits. Without this the error is a raw h5py
-    traceback that names neither the symlink nor `paths.data`.
+    Kept as a thin wrapper over the resolver's own diagnosis so there is one explanation
+    rather than two that can drift apart. It matters because this is the first error a new
+    user hits, and because with a URL fallback in place it is only reached when *both* the
+    local copy and the published one were unavailable -- a message that named only the
+    symlink would now be actively misleading.
     """
-    root = Path(cfg.paths.data)
-    lines = [
-        f"dataset {cfg.dataset.name!r} is not readable:",
-        f"  {path}",
-        "",
-    ]
-    if not root.exists():
-        lines += [
-            f"The dataset root does not exist: {root}",
-            "",
-            "That path comes from `paths.data` in configs/config.yaml, which defaults to a",
-            "`datasets` symlink in the repository root. The symlink is gitignored because it",
-            "is machine-specific, so a fresh clone does not have it. Either create it:",
-            "",
-            "    ln -s /global/cfs/cdirs/m4790/Data datasets",
-            "",
-            "or point the config at your own location:",
-            "",
-            f"    ... paths.data=/path/to/your/data dataset={cfg.dataset.name}",
-        ]
-    else:
-        lines += [
-            f"The dataset root exists ({root}) but this file does not.",
-            "",
-            "Check `path` in the dataset config, or pick a different dataset:",
-            "",
-            "    ls configs/dataset/",
-        ]
-    return "\n".join(lines)
+    try:
+        resolve_dataset_path(
+            cfg.dataset.path, cfg.paths.data, data_url=cfg.paths.get("data_url")
+        )
+    except FileNotFoundError as exc:
+        return f"dataset {cfg.dataset.name!r} is not readable.\n{exc}"
+    return f"dataset {cfg.dataset.name!r} at {path} could not be opened."
 
 
 def select_fields(cfg: DictConfig, trajectory: Trajectory,
@@ -197,6 +185,9 @@ def main(cfg: DictConfig) -> None:
             remap_method=cfg.analysis_grid.get("method", "block_mean"),
             maps=maps,
         )
+        # Before the `finally`: the request counters live on the HTTP file object, which
+        # close() releases.
+        data_source = trajectory_provenance(trajectory)
     finally:
         trajectory.close()
 
@@ -234,6 +225,7 @@ def main(cfg: DictConfig) -> None:
             config_hash=digest,
             metric=spec.name,
             dataset=cfg.dataset.name,
+            data_source=data_source,
             n_frames=result.n_frames,
             n_rows=len(subset),
             fields=fields,
@@ -268,6 +260,7 @@ def main(cfg: DictConfig) -> None:
             config_hash=digest,
             metric=", ".join(s.name for s in specs),
             dataset=cfg.dataset.name,
+            data_source=data_source,
             n_frames=result.n_frames,
             n_rows=len(result.rows),
             fields=fields,

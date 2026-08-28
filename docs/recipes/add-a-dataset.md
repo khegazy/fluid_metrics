@@ -23,6 +23,20 @@ never slice the time axis. Test against the shared reader contract in
 `tests/test_loader_contract.py` with a small synthetic file in `tests/fixtures_h5.py` that
 reproduces the real format's quirks, and keep every fixture non-square.
 
+A dataset does not have to be on the local filesystem. When the file named by `path` is
+absent, the location is resolved against `paths.data_url` instead and the reader is opened
+on the published copy over HTTP byte ranges — `fmeval/data/locate.py` decides, and a local
+copy always wins. Nothing is downloaded whole: opening the 166 GiB production trajectory
+costs three requests. A new reader supports this by calling `fmeval.data.remote.open_h5`
+when handed a URL rather than a path.
+
+Two costs only appear remotely, and both are worth checking on a new layout. A 1-D dataset
+chunked one element per chunk — which is how the kinet solver writes its clock — is
+catastrophic to read whole over HTTP, so `fmeval/data/_timeaxis.py` reconstructs and then
+verifies it; and the severity calibration reads several frames, so it is the slowest part
+of a remote smoke run. Verify a new reader against the real published file with a
+`web`-marked test.
+
 If the data carries fields outside the canonical vocabulary — a magnetic field, say —
 extend `FIELDS` in `fmeval/data/base.py` first, tagged primitive or derived. Derived
 fields need a recompute rule in `fmeval/derived.py`, because they are recomputed on the

@@ -14,8 +14,17 @@ attention. Whether a metric joins the panel is the team's call.
 
 ```bash
 git clone git@github.com:khegazy/pde_metrics.git && cd pde_metrics
-ln -s /global/cfs/cdirs/m4790/Data datasets   # gitignored; or set paths.data in the config
+ln -s /global/cfs/cdirs/m4790/Data datasets   # optional; see "No CFS mount?" below
 ```
+
+**No CFS mount?** Skip the symlink. When a dataset is not on the local filesystem the
+readers fall back to the copy published at `paths.data_url`
+(`https://portal.nersc.gov/project/m4790/Data`), which mirrors the CFS tree one directory
+for one, and read it over HTTP byte ranges. Nothing is downloaded in full: HDF5 fetches
+only the parts it needs, so opening the 166 GiB production trajectory costs three requests
+and reading one 256² frame costs about 3 MiB. A local copy always wins when there is one.
+Both kinet trajectories are published; the Well-format copy is not — see
+[issues/034](issues/034-the-well-format-copy-is-not-published.md).
 
 Then install into whatever environment you use. **Every command in this README is a plain
 `python` or `pytest` call**, so activate your environment first and the rest follows; nothing
@@ -141,6 +150,7 @@ here works.
 | `report.style.theme=paper` | Vector PDF, Type-42 fonts, journal column widths |
 | `seed=1` | Change the run seed |
 | `paths.data=/path/to/data` | Point at your own data instead of the `datasets` symlink |
+| `paths.data_url=null` | Refuse the HTTP fallback; fail instead when there is no local copy |
 
 Two settings in `config.yaml` are load-bearing and commented there rather than left implicit:
 `hydra.job.chdir` must stay `false`, and the Hydra output directories must stay plain relative

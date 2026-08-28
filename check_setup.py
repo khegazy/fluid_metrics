@@ -85,10 +85,14 @@ def main() -> int:
         target = root.resolve()
         record(OK, "dataset root", f"{root} -> {target}" if root.is_symlink() else str(root))
     else:
+        # Deliberately no network probe here: this script runs as a subprocess in the
+        # default test suite, so reaching the portal would put CI on the internet.
         record(WARN, "dataset root",
                "no `datasets` symlink (gitignored, so a fresh clone lacks it). "
-               "Create it with `ln -s /global/cfs/cdirs/m4790/Data datasets`, or pass "
-               "`paths.data=...`. Only needed to run evaluations, not tests")
+               "Evaluations will read the published copy over HTTP instead, from "
+               "`paths.data_url`. To use a local copy, create the symlink with "
+               "`ln -s /global/cfs/cdirs/m4790/Data datasets` or pass `paths.data=...`. "
+               "Not needed for tests either way")
 
     # --- LaTeX ------------------------------------------------------------------------
     if shutil.which("latexmk"):
