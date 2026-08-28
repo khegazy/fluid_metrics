@@ -30,6 +30,22 @@ Publishing it needs no code change — the URL is derived from the path, so the 
 dataset config already points at the right place. The copy goes to
 `/global/cfs/cdirs/m4790/www/Data/<same subpath>` with mode 644.
 
+## `synthetic_ensemble` needs no publishing, and that is not an oversight
+
+Checked 2026-08-28, because "publish the probabilistic dataset too" is a reasonable thing
+to ask and the answer is not obvious from the dataset list. There is nothing to publish:
+`fmeval/data/synthetic_ensemble.py` *computes* its frames rather than reading them, from a
+fixed seed, so two instances return bitwise-identical fields and member stacks. Its config
+says as much — `path: ${paths.data}` is declared only because every dataset config carries
+one, and `evaluate.py` skips the existence check for the format.
+
+It therefore already runs on any machine, with no CFS mount and no network. Materialising
+it would mean a file to keep in step with the generator and a new registered reader format
+for a stored ensemble, which none of the current readers handle, in exchange for bytes a
+colleague already obtains identically by running it. The ensemble data that *is* worth
+having is a set of real flow realizations —
+[003](003-ensemble-data.md) and [004](004-independent-realizations.md).
+
 ## Related, and cheaper than any of this
 
 The kinet writer records `discretization.temporal` as `{"grid": 10000, "resolution": 1.0,
