@@ -495,7 +495,9 @@ def _split(url: str) -> tuple[str, str, bool]:
     return parts.netloc, target, parts.scheme == "https"
 
 
-def open_h5(url: str, *, chunk_cache_mb: int = 32, **kwargs: Any) -> tuple[h5py.File, HTTPRangeFile]:
+def open_h5(
+    url: str, *, chunk_cache_mb: int = 32, **kwargs: Any
+) -> tuple[h5py.File, HTTPRangeFile]:
     """Open a remote HDF5 file. Both handles are returned; both must be closed.
 
     `chunk_cache_mb` is h5py's chunk cache and is *separate* from the block cache in

@@ -272,13 +272,11 @@ def test_every_dataset_path_is_under_the_data_root():
     `fmeval.data.locate` refuses to guess one rather than fabricating a URL that 404s, so a
     dataset config that wandered outside the root would silently lose the fallback.
     """
-    from pathlib import Path as _Path
-
     cfg = build()
-    root = _Path(str(cfg.paths.data))
-    for name in sorted(p.stem for p in _Path(CONFIGS, "dataset").glob("*.yaml")):
+    root = Path(str(cfg.paths.data))
+    for name in sorted(p.stem for p in Path(CONFIGS, "dataset").glob("*.yaml")):
         dataset = build(f"dataset={name}").dataset
-        path = _Path(str(dataset.path))
+        path = Path(str(dataset.path))
         assert path == root or root in path.parents, (
             f"{name} points at {path}, which is not under paths.data ({root}), "
             "so no published URL can be derived for it"
